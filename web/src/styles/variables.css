@@ -1,0 +1,117 @@
+/* ==========================================
+   专业蓝白主题 - 全局样式变量
+   ========================================== */
+
+:root {
+  /* ========================================
+     主色 - 专业蓝色系 (#165DFF)
+     ======================================== */
+  --color-primary: #165DFF;
+  --color-primary-dark: #0E42D2;
+  --color-primary-light: #E8F3FF;
+  --color-primary-lighter: #F2F7FF;
+  
+  --color-success: #22c55e;
+  --color-success-light: #f0fdf4;
+  --color-warning: #f97316;
+  --color-warning-light: #fffbeb;
+  --color-danger: #ef4444;
+  --color-danger-light: #fef2f2;
+  --color-info: #06b6d4;
+  --color-info-light: #ecfeff;
+
+  /* ========================================
+     背景色
+     ======================================== */
+  --color-bg-page: #f1f5f9;
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #1e293b;
+  --color-bg-dark-900: #0f172a;
+  --color-white: #ffffff;
+
+  /* ========================================
+     边框色
+     ======================================== */
+  --color-border: #d1d5db;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #9ca3af;
+
+  /* ========================================
+     文字色 - 提高对比度
+     ======================================== */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* 侧边栏文字色 - 蓝白主题，确保WCAG AA级对比度 */
+  --sidebar-text-primary: #1d2129;
+  --sidebar-text-secondary: #4e5969;
+  --sidebar-text-muted: #86909c;
+
+  /* ========================================
+     阴影
+     ======================================== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-primary: 0 4px 12px rgba(14, 165, 233, 0.3);
+
+  /* ========================================
+     圆角
+     ======================================== */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+  --border-radius-2xl: 16px;
+  --border-radius-full: 9999px;
+
+  /* ========================================
+     间距
+     ======================================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+
+  /* ========================================
+     字号体系
+     ======================================== */
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 22px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 36px;
+
+  /* ========================================
+     行高
+     ======================================== */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ========================================
+     字重
+     ======================================== */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ========================================
+     过渡动画
+     ======================================== */
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease-out;
+}
