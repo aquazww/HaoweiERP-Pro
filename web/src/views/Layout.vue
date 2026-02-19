@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '56px' : '190px'" class="el-aside">
+    <el-aside :width="isCollapse ? '38px' : '126px'" class="el-aside">
       <div class="logo">
         <svg v-if="!isCollapse" class="logo-icon" viewBox="0 0 32 32" fill="none">
           <rect width="32" height="32" rx="8" fill="url(#logoGradient)"/>
@@ -249,46 +249,46 @@ const handleCommand = async (command) => {
 }
 
 .logo {
-  height: 52px;
+  height: 48px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0 var(--spacing-md);
-  gap: var(--spacing-sm);
+  justify-content: center;
+  padding: 0 var(--spacing-sm);
+  gap: var(--spacing-xs);
   position: relative;
   border-bottom: 1px solid var(--color-border-light);
 }
 
 .logo-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
 
 .logo-text {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-primary);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .logo-text-mini {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--color-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .sidebar-menu {
   border-right: none;
   background: transparent;
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
 }
 
 .sidebar-menu:not(.el-menu--collapse) {
-  padding: 0 var(--spacing-sm);
+  padding: 0 var(--spacing-xs);
 }
 
 .sidebar-menu.el-menu--collapse {
@@ -298,10 +298,10 @@ const handleCommand = async (command) => {
 .sidebar-menu .el-menu-item,
 .sidebar-menu .el-sub-menu__title {
   color: var(--sidebar-text-secondary);
-  border-radius: var(--border-radius-md);
-  margin: 3px 0;
-  height: 40px;
-  line-height: 40px;
+  border-radius: var(--border-radius-sm);
+  margin: 2px 0;
+  height: 36px;
+  line-height: 36px;
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
@@ -309,7 +309,7 @@ const handleCommand = async (command) => {
 
 .sidebar-menu:not(.el-menu--collapse) .el-menu-item,
 .sidebar-menu:not(.el-menu--collapse) .el-sub-menu__title {
-  padding: 0 var(--spacing-sm);
+  padding: 0 var(--spacing-xs);
 }
 
 .sidebar-menu .el-menu-item:hover,
@@ -330,8 +330,8 @@ const handleCommand = async (command) => {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
-  height: 20px;
+  width: 2px;
+  height: 16px;
   background-color: var(--color-primary);
   border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
 }
@@ -341,9 +341,9 @@ const handleCommand = async (command) => {
 }
 
 .sidebar-menu .el-icon {
-  width: 18px;
-  height: 18px;
-  margin-right: var(--spacing-sm);
+  width: 16px;
+  height: 16px;
+  margin-right: var(--spacing-xs);
 }
 
 .sidebar-menu.el-menu--collapse .el-icon {
@@ -357,11 +357,11 @@ const handleCommand = async (command) => {
 
 .sidebar-menu .el-sub-menu .el-menu-item {
   background-color: var(--color-bg-light);
-  margin: 3px var(--spacing-xs);
+  margin: 2px var(--spacing-xs);
   color: var(--sidebar-text-secondary);
-  padding-left: calc(var(--spacing-xl) - 4px) !important;
-  height: 36px;
-  line-height: 36px;
+  padding-left: calc(var(--spacing-lg) - 2px) !important;
+  height: 32px;
+  line-height: 32px;
 }
 
 /* 确保菜单图标颜色正确 */
