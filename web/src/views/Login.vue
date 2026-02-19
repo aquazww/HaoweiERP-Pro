@@ -20,7 +20,7 @@
               </defs>
             </svg>
           </div>
-          <h1 class="app-title">进销存管理系统</h1>
+          <h1 class="app-title">豪威工贸管理系统</h1>
           <p class="app-subtitle">高效管理 · 智能决策</p>
         </div>
       </div>
@@ -69,12 +69,12 @@
         </el-form>
 
         <div class="login-tips">
-          <p>默认账号：admin / admin123</p>
+          <p></p>
         </div>
       </div>
 
       <div class="login-footer">
-        <p>© 2026 进销存管理系统</p>
+        <p>© 2026 镇江豪威工贸有限公司</p>
       </div>
     </div>
   </div>

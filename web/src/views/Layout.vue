@@ -13,8 +13,8 @@
             </linearGradient>
           </defs>
         </svg>
-        <span v-if="!isCollapse" class="logo-text">进销存管理</span>
-        <span v-else class="logo-text-mini">ERP</span>
+        <span v-if="!isCollapse" class="logo-text">豪威工贸</span>
+        <span v-else class="logo-text-mini">豪威</span>
       </div>
       <el-menu
         :default-active="activeMenu"
