@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="el-aside">
+    <el-aside :width="isCollapse ? '56px' : '190px'" class="el-aside">
       <div class="logo">
         <svg v-if="!isCollapse" class="logo-icon" viewBox="0 0 32 32" fill="none">
           <rect width="32" height="32" rx="8" fill="url(#logoGradient)"/>
@@ -249,46 +249,46 @@ const handleCommand = async (command) => {
 }
 
 .logo {
-  height: 64px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 var(--spacing-lg);
-  gap: var(--spacing-md);
+  padding: 0 var(--spacing-md);
+  gap: var(--spacing-sm);
   position: relative;
   border-bottom: 1px solid var(--color-border-light);
 }
 
 .logo-icon {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 
 .logo-text {
-  font-size: var(--font-size-xl);
-  font-weight: 700;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
   color: var(--color-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .logo-text-mini {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--color-primary);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-menu {
   border-right: none;
   background: transparent;
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-sm);
 }
 
 .sidebar-menu:not(.el-menu--collapse) {
-  padding: 0 var(--spacing-md);
+  padding: 0 var(--spacing-sm);
 }
 
 .sidebar-menu.el-menu--collapse {
@@ -298,10 +298,10 @@ const handleCommand = async (command) => {
 .sidebar-menu .el-menu-item,
 .sidebar-menu .el-sub-menu__title {
   color: var(--sidebar-text-secondary);
-  border-radius: var(--border-radius-lg);
-  margin: 4px 0;
-  height: 48px;
-  line-height: 48px;
+  border-radius: var(--border-radius-md);
+  margin: 3px 0;
+  height: 40px;
+  line-height: 40px;
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
@@ -309,7 +309,7 @@ const handleCommand = async (command) => {
 
 .sidebar-menu:not(.el-menu--collapse) .el-menu-item,
 .sidebar-menu:not(.el-menu--collapse) .el-sub-menu__title {
-  padding: 0 var(--spacing-md);
+  padding: 0 var(--spacing-sm);
 }
 
 .sidebar-menu .el-menu-item:hover,
@@ -330,8 +330,8 @@ const handleCommand = async (command) => {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 24px;
+  width: 3px;
+  height: 20px;
   background-color: var(--color-primary);
   border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
 }
@@ -341,9 +341,9 @@ const handleCommand = async (command) => {
 }
 
 .sidebar-menu .el-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: var(--spacing-md);
+  width: 18px;
+  height: 18px;
+  margin-right: var(--spacing-sm);
 }
 
 .sidebar-menu.el-menu--collapse .el-icon {
@@ -357,9 +357,11 @@ const handleCommand = async (command) => {
 
 .sidebar-menu .el-sub-menu .el-menu-item {
   background-color: var(--color-bg-light);
-  margin: 4px var(--spacing-sm);
+  margin: 3px var(--spacing-xs);
   color: var(--sidebar-text-secondary);
-  padding-left: var(--spacing-xl) !important;
+  padding-left: calc(var(--spacing-xl) - 4px) !important;
+  height: 36px;
+  line-height: 36px;
 }
 
 /* 确保菜单图标颜色正确 */
@@ -403,8 +405,8 @@ const handleCommand = async (command) => {
   border-bottom: 1px solid var(--color-border-light);
   display: flex;
   align-items: center;
-  padding: 0 var(--spacing-xl);
-  height: 64px;
+  padding: 0 var(--spacing-lg);
+  height: 52px;
   box-shadow: var(--shadow-sm);
   position: relative;
   z-index: 99;
@@ -523,13 +525,13 @@ const handleCommand = async (command) => {
   padding: var(--spacing-lg);
   overflow: auto;
   width: 100%;
-  height: calc(100% - 64px);
+  height: calc(100% - 52px);
 }
 
 /* 确保主内容区域完全铺满 */
 .layout-container :deep(.el-main) {
   width: 100%;
-  height: calc(100% - 64px);
+  height: calc(100% - 52px);
 }
 
 .el-main::-webkit-scrollbar {
