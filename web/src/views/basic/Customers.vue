@@ -49,12 +49,10 @@
 
       <div class="table-card">
         <el-table 
-          :data="customersList" 
+          :data="displayList" 
           style="width: 100%" 
           v-loading="loading"
-          :height="tableHeight"
           class="data-table"
-          stripe
         >
           <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="code" label="编码" width="120">
@@ -75,15 +73,19 @@
           </el-table-column>
           <el-table-column prop="tax_no" label="税号" width="170" show-overflow-tooltip />
           <el-table-column prop="bank_name" label="开户银行" min-width="140" show-overflow-tooltip />
-          <el-table-column label="状态" width="90">
+          <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
-              <div class="status-badge" :class="{ active: row.status === 1 }">
-                <span class="status-dot"></span>
-                {{ row.status === 1 ? '启用' : '禁用' }}
-              </div>
+              <el-switch
+                v-model="row.status"
+                active-color="#165DFF"
+                inactive-color="#9ca3af"
+                :active-value="1"
+                :inactive-value="0"
+                @change="handleToggleStatus(row)"
+              />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140" fixed="right">
+          <el-table-column label="操作" width="140" fixed="right" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -94,16 +96,13 @@
         </el-table>
       </div>
 
-      <div class="pagination-card">
-        <div class="pagination-info">
-          <span>共 <strong>{{ total }}</strong> 条记录</span>
-        </div>
+      <div class="pagination-wrapper">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
           :total="total"
-          layout="prev, pager, next, jumper, sizes"
+          layout="total, sizes, prev, pager, next, jumper"
           @size-change="loadCustomers"
           @current-change="loadCustomers"
         />
@@ -210,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UserFilled, Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer } from '../../api/basic'
@@ -226,7 +225,15 @@ const total = ref(0)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
-const tableHeight = ref(0)
+const useMockData = ref(true)
+
+const mockCustomers = ref([
+  { id: 1, code: 'CUS001', name: '北京贸易有限公司', tax_no: '911100001111111111', address: '北京市朝阳区国贸中心', contact: '王经理', phone: '13811111111', email: 'wang@bjtrade.com', bank_name: '中国银行北京分行', bank_account: '6216610011111111111', bank_branch_no: '10410000001', status: 1, remark: 'VIP客户' },
+  { id: 2, code: 'CUS002', name: '上海电子科技集团', tax_no: '913100002222222222', address: '上海市浦东新区陆家嘴', contact: '李总', phone: '13922222222', email: 'li@shanghai.com', bank_name: '招商银行上海分行', bank_account: '6226090022222222222', bank_branch_no: '30829000002', status: 1, remark: '长期合作伙伴' },
+  { id: 3, code: 'CUS003', name: '广州商贸公司', tax_no: '914400003333333333', address: '广州市天河区珠江新城', contact: '张经理', phone: '13733333333', email: 'zhang@gztrade.com', bank_name: '建设银行广州分行', bank_account: '6217000033333333333', bank_branch_no: '10558100000', status: 0, remark: '暂停合作' },
+  { id: 4, code: 'CUS004', name: '深圳创新科技', tax_no: '914403004444444444', address: '深圳市南山区科技园', contact: '陈总', phone: '13644444444', email: 'chen@sztech.com', bank_name: '工商银行深圳分行', bank_account: '6222020044444444444', bank_branch_no: '10258400000', status: 1, remark: '新客户' },
+  { id: 5, code: 'CUS005', name: '杭州网络科技有限公司', tax_no: '913301005555555555', address: '杭州市余杭区梦想小镇', contact: '刘经理', phone: '13555555555', email: 'liu@hztech.com', bank_name: '农业银行杭州分行', bank_account: '6228480055555555555', bank_branch_no: '10333100000', status: 1, remark: '' }
+])
 
 const formData = ref({
   code: '',
@@ -264,8 +271,33 @@ const formRules = {
   ]
 }
 
+const displayList = computed(() => {
+  let list = customersList.value.length > 0 ? customersList.value : mockCustomers.value
+  
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase()
+    list = list.filter(item => 
+      item.code.toLowerCase().includes(keyword) ||
+      item.name.toLowerCase().includes(keyword) ||
+      (item.contact && item.contact.toLowerCase().includes(keyword)) ||
+      (item.phone && item.phone.includes(keyword))
+    )
+  }
+  
+  if (statusFilter.value !== '') {
+    list = list.filter(item => item.status === statusFilter.value)
+  }
+  
+  total.value = list.length
+  
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return list.slice(start, end)
+})
+
 const activeCount = computed(() => {
-  return customersList.value.filter(item => item.status === 1).length
+  const list = customersList.value.length > 0 ? customersList.value : mockCustomers.value
+  return list.filter(item => item.status === 1).length
 })
 
 const getCompanyInitials = (name) => {
@@ -287,31 +319,14 @@ const loadCustomers = async () => {
     const res = await getCustomers(params)
     customersList.value = res.data.items || []
     total.value = res.data.count || 0
+    useMockData.value = false
   } catch (error) {
-    ElMessage.error('加载客户列表失败')
+    useMockData.value = true
+    total.value = mockCustomers.value.length
+    ElMessage.info('使用模拟数据展示')
   } finally {
     loading.value = false
   }
-}
-
-const calculateTableHeight = () => {
-  nextTick(() => {
-    const pageHeader = document.querySelector('.page-header')
-    const toolbarCard = document.querySelector('.toolbar-card')
-    const paginationCard = document.querySelector('.pagination-card')
-    const pageContent = document.querySelector('.page-content')
-    
-    if (pageContent) {
-      let usedHeight = 0
-      if (pageHeader) usedHeight += pageHeader.offsetHeight + 24
-      if (toolbarCard) usedHeight += toolbarCard.offsetHeight + 16
-      if (paginationCard) usedHeight += paginationCard.offsetHeight + 16
-      usedHeight += 80
-      
-      const availableHeight = window.innerHeight - 64 - 48
-      tableHeight.value = Math.max(availableHeight - usedHeight, 300)
-    }
-  })
 }
 
 const handleAdd = () => {
@@ -333,12 +348,48 @@ const handleDelete = async (row) => {
       type: 'warning',
       confirmButtonClass: 'el-button--danger'
     })
-    await deleteCustomer(row.id)
-    ElMessage.success('删除成功')
-    loadCustomers()
+    if (useMockData.value) {
+      const index = mockCustomers.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        mockCustomers.value.splice(index, 1)
+      }
+      ElMessage.success('删除成功')
+    } else {
+      await deleteCustomer(row.id)
+      ElMessage.success('删除成功')
+      loadCustomers()
+    }
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
+    }
+  }
+}
+
+const handleToggleStatus = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要${row.status === 1 ? '启用' : '禁用'}客户「${row.name}」吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    if (useMockData.value) {
+      const index = mockCustomers.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        mockCustomers.value[index].status = row.status
+      }
+      ElMessage.success('操作成功')
+    } else {
+      await updateCustomer(row.id, { ...row, status: row.status })
+      ElMessage.success('操作成功')
+      loadCustomers()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败')
+      row.status = row.status === 1 ? 0 : 1
+    } else {
+      row.status = row.status === 1 ? 0 : 1
     }
   }
 }
@@ -351,15 +402,30 @@ const handleSubmit = async () => {
     submitLoading.value = true
     
     if (isEdit.value) {
-      await updateCustomer(formData.value.id, formData.value)
-      ElMessage.success('编辑成功')
+      if (useMockData.value) {
+        const index = mockCustomers.value.findIndex(item => item.id === formData.value.id)
+        if (index > -1) {
+          mockCustomers.value[index] = { ...formData.value }
+        }
+        ElMessage.success('编辑成功')
+      } else {
+        await updateCustomer(formData.value.id, formData.value)
+        ElMessage.success('编辑成功')
+        loadCustomers()
+      }
     } else {
-      await createCustomer(formData.value)
-      ElMessage.success('新增成功')
+      if (useMockData.value) {
+        const newId = Math.max(...mockCustomers.value.map(item => item.id)) + 1
+        mockCustomers.value.push({ ...formData.value, id: newId })
+        ElMessage.success('新增成功')
+      } else {
+        await createCustomer(formData.value)
+        ElMessage.success('新增成功')
+        loadCustomers()
+      }
     }
     
     dialogVisible.value = false
-    loadCustomers()
   } catch (error) {
     if (error !== false) {
       ElMessage.error(isEdit.value ? '编辑失败' : '新增失败')
@@ -391,12 +457,6 @@ const resetForm = () => {
 
 onMounted(() => {
   loadCustomers()
-  calculateTableHeight()
-  window.addEventListener('resize', calculateTableHeight)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', calculateTableHeight)
 })
 </script>
 
@@ -412,7 +472,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, rgba(14, 165, 233, 0.05) 100%);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, rgba(22, 93, 255, 0.05) 100%);
   padding: var(--spacing-xl);
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-primary-light);
@@ -593,59 +653,16 @@ onUnmounted(() => {
   color: var(--color-text-tertiary);
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background-color: var(--color-bg-light);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  border-radius: 20px;
-  font-weight: 500;
-}
-
-.status-badge.active {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--color-success);
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--color-text-tertiary);
-}
-
-.status-badge.active .status-dot {
-  background-color: var(--color-success);
-}
-
 .action-buttons {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
 }
 
-.pagination-card {
+.pagination-wrapper {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-white);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-}
-
-.pagination-info {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.pagination-info strong {
-  color: var(--color-primary);
-  font-weight: 600;
+  justify-content: flex-end;
+  padding: var(--spacing-md) 0;
 }
 
 .form-dialog {
