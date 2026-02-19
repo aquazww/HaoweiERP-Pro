@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '38px' : '126px'" class="el-aside">
+    <el-aside :width="isCollapse ? '48px' : '160px'" class="el-aside">
       <div class="logo">
         <svg v-if="!isCollapse" class="logo-icon" viewBox="0 0 32 32" fill="none">
           <rect width="32" height="32" rx="8" fill="url(#logoGradient)"/>
@@ -300,16 +300,16 @@ const handleCommand = async (command) => {
   color: var(--sidebar-text-secondary);
   border-radius: var(--border-radius-sm);
   margin: 2px 0;
-  height: 36px;
-  line-height: 36px;
+  height: 40px;
+  line-height: 40px;
   transition: all var(--transition-fast);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sidebar-menu:not(.el-menu--collapse) .el-menu-item,
 .sidebar-menu:not(.el-menu--collapse) .el-sub-menu__title {
-  padding: 0 var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
 }
 
 .sidebar-menu .el-menu-item:hover,
@@ -359,9 +359,10 @@ const handleCommand = async (command) => {
   background-color: var(--color-bg-light);
   margin: 2px var(--spacing-xs);
   color: var(--sidebar-text-secondary);
-  padding-left: calc(var(--spacing-lg) - 2px) !important;
-  height: 32px;
-  line-height: 32px;
+  padding-left: calc(var(--spacing-lg)) !important;
+  height: 36px;
+  line-height: 36px;
+  overflow: visible;
 }
 
 /* 确保菜单图标颜色正确 */
@@ -390,9 +391,17 @@ const handleCommand = async (command) => {
 }
 
 /* 覆盖Element Plus默认的菜单文字颜色 */
-.sidebar-menu .el-menu-item span,
-.sidebar-menu .el-sub-menu__title span {
+.sidebar-menu :deep(.el-menu-item span),
+.sidebar-menu :deep(.el-sub-menu__title span) {
   color: inherit;
+  overflow: visible;
+  text-overflow: initial;
+}
+
+/* 确保菜单项文字完整显示 */
+.sidebar-menu :deep(.el-menu-item span) {
+  overflow: visible;
+  text-overflow: initial;
 }
 
 /* 子菜单展开时的背景 */
@@ -414,8 +423,7 @@ const handleCommand = async (command) => {
 .sidebar-menu :deep(.el-sub-menu__title span) {
   flex: 1;
   margin-right: var(--spacing-xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
 }
 
