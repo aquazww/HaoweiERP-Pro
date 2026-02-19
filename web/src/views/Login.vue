@@ -279,9 +279,10 @@ onMounted(() => {
   margin-top: var(--spacing-lg);
 }
 
-/* 确保所有表单项占满宽度 */
+/* 确保所有表单项占满宽度，间距统一 */
 .login-form .el-form-item {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 24px;
+  width: 100%;
 }
 
 .login-form .el-form-item:last-child {
@@ -291,41 +292,69 @@ onMounted(() => {
 /* 确保错误提示文字与输入框对齐 */
 .login-form :deep(.el-form-item__error) {
   padding-left: 48px;
-  padding-top: 4px;
+  padding-top: 6px;
+  font-size: 13px;
 }
 
+/* 输入框组合单元 - 确保完全对称 */
 .input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  height: 48px;
 }
 
+/* 图标样式统一 */
 .input-icon {
   position: absolute;
-  left: var(--spacing-md);
+  left: 16px;
   color: var(--color-text-tertiary);
-  z-index: 1;
+  z-index: 10;
   font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* 输入框样式统一 */
 .login-input {
-  padding-left: 48px;
   width: 100%;
+}
+
+.login-input :deep(.el-input__wrapper) {
+  width: 100%;
+  height: 48px;
+  padding-left: 48px;
+  padding-right: 16px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--color-border) inset;
+  transition: all 0.2s ease;
+}
+
+.login-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--color-primary) inset;
+}
+
+.login-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px var(--color-primary) inset;
+}
+
+.login-input :deep(.el-input__inner) {
+  height: 48px;
+  line-height: 48px;
+  font-size: 15px;
+}
+
+/* 密码输入框的显示密码按钮位置调整 */
+.login-input :deep(.el-input__suffix) {
+  right: 8px;
 }
 
 /* 确保输入框容器占满宽度 */
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
 .input-wrapper :deep(.el-input) {
-  width: 100%;
-}
-
-.input-wrapper :deep(.el-input__wrapper) {
   width: 100%;
 }
 
