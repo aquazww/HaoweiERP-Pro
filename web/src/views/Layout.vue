@@ -400,6 +400,31 @@ const handleCommand = async (command) => {
   padding: 4px 0;
 }
 
+/* 优化子菜单标题的布局 - 文字与箭头间距 */
+.sidebar-menu :deep(.el-sub-menu__title) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-menu :deep(.el-sub-menu__title .el-icon:first-child) {
+  flex-shrink: 0;
+}
+
+.sidebar-menu :deep(.el-sub-menu__title span) {
+  flex: 1;
+  margin-right: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-menu :deep(.el-sub-menu__icon-arrow) {
+  flex-shrink: 0;
+  margin-left: var(--spacing-xs);
+  transition: transform var(--transition-fast);
+}
+
 .el-header {
   background-color: var(--color-white);
   border-bottom: 1px solid var(--color-border-light);
