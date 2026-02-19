@@ -77,8 +77,8 @@
             <template #default="{ row }">
               <el-switch
                 v-model="row.status"
-                :active-color="var(--color-primary)"
-                :inactive-color="var(--color-text-muted)"
+                active-color="#165DFF"
+                inactive-color="#9ca3af"
                 :active-value="1"
                 :inactive-value="0"
                 @change="handleToggleStatus(row)"

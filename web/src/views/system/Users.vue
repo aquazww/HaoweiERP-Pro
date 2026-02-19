@@ -30,8 +30,8 @@
             <template #default="{ row }">
               <el-switch
                 v-model="row.is_active"
-                :active-color="var(--color-primary)"
-                :inactive-color="var(--color-text-muted)"
+                active-color="#165DFF"
+                inactive-color="#9ca3af"
                 @change="handleToggleStatus(row)"
               />
             </template>
