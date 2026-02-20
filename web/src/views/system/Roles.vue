@@ -1,36 +1,60 @@
 <template>
   <div class="roles-page">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>角色管理</span>
-          <el-button type="primary" @click="handleAdd">新增角色</el-button>
+    <div class="page-content">
+      <div class="toolbar-card">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <el-icon class="search-icon"><Search /></el-icon>
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索角色名称"
+              class="search-input"
+              clearable
+              @keyup.enter="loadData"
+            />
+          </div>
         </div>
-      </template>
+        <div class="toolbar-right">
+          <el-button :icon="Refresh" @click="loadData">刷新</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd">新增角色</el-button>
+        </div>
+      </div>
 
-      <el-table :data="tableData" border style="width: 100%">
-        <el-table-column prop="name" label="角色名称" width="200" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadData"
-        @current-change="loadData"
-        style="margin-top: 20px; justify-content: flex-end"
-      />
-    </el-card>
+      <div class="table-card">
+        <el-table 
+          :data="tableData" 
+          style="width: 100%" 
+          v-loading="loading"
+          class="data-table"
+          stripe
+          :height="tableHeight"
+        >
+          <el-table-column type="index" label="#" width="60" align="center" />
+          <el-table-column prop="name" label="角色名称" width="200" />
+          <el-table-column prop="description" label="描述" />
+          <el-table-column prop="created_at" label="创建时间" width="180" />
+          <el-table-column label="操作" width="140" align="center">
+            <template #default="{ row }">
+              <div class="action-buttons">
+                <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">删除</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="loadData"
+            @current-change="loadData"
+          />
+        </div>
+      </div>
+    </div>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
@@ -61,15 +85,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { getRoles, createRole, updateRole, deleteRole } from '../../api/system'
 
+const loading = ref(false)
 const tableData = ref([])
 const formRef = ref(null)
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const editingId = ref(null)
+const searchKeyword = ref('')
+const tableHeight = ref(0)
 
 const permissionsList = ref([])
 
@@ -89,16 +117,43 @@ const pagination = ref({
   total: 0
 })
 
+const calculateTableHeight = () => {
+  nextTick(() => {
+    const toolbarCard = document.querySelector('.toolbar-card')
+    const paginationWrapper = document.querySelector('.pagination-wrapper')
+    const pageContent = document.querySelector('.page-content')
+    
+    if (pageContent) {
+      let usedHeight = 0
+      if (toolbarCard) usedHeight += toolbarCard.offsetHeight + 4
+      if (paginationWrapper) usedHeight += paginationWrapper.offsetHeight + 2
+      usedHeight += 4
+      
+      const availableHeight = window.innerHeight - 64 - 16
+      tableHeight.value = Math.max(availableHeight - usedHeight, 150)
+    }
+  })
+}
+
 const loadData = async () => {
+  loading.value = true
   try {
-    const res = await getRoles({
+    const params = {
       page: pagination.value.page,
       page_size: pagination.value.pageSize
-    })
-    tableData.value = res.data.results || []
+    }
+    if (searchKeyword.value) {
+      params.search = searchKeyword.value
+    }
+    const res = await getRoles(params)
+    tableData.value = res.data.results || res.data.items || []
     pagination.value.total = res.data.count || 0
   } catch (error) {
-    ElMessage.error('加载数据失败')
+    tableData.value = []
+    pagination.value.total = 0
+    ElMessage.error('加载数据失败：' + (error.message || '未知错误'))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -160,17 +215,125 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   loadData()
+  calculateTableHeight()
+  window.addEventListener('resize', calculateTableHeight)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', calculateTableHeight)
 })
 </script>
 
 <style scoped>
 .roles-page {
-  padding: 20px;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  overflow: hidden;
 }
 
-.card-header {
+.page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.toolbar-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: var(--color-white);
+  padding: 6px var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: var(--spacing-md);
+  color: var(--color-text-tertiary);
+  z-index: 1;
+}
+
+.search-input {
+  width: 320px;
+  padding-left: 40px;
+}
+
+.table-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.data-table {
+  --el-table-header-bg-color: var(--color-bg-light);
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-border-light);
+  padding: 4px var(--spacing-md);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  flex-shrink: 0;
+}
+
+.pagination-wrapper :deep(.el-pagination) {
+  --el-pagination-button-height: 32px;
+  --el-pagination-font-size: 13px;
+}
+
+.pagination-wrapper :deep(.el-pagination .btn-prev),
+.pagination-wrapper :deep(.el-pagination .btn-next) {
+  min-width: 32px;
+  padding: 0 8px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pager li) {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 8px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
+  margin-left: 8px;
 }
 </style>

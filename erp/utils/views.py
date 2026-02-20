@@ -1,11 +1,14 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from system.models import Log
+from .permissions import HasModulePermission
 
 
 class BaseModelViewSet(viewsets.ModelViewSet):
     """基础视图集，统一响应格式和操作日志记录"""
 
+    permission_classes = [IsAuthenticated, HasModulePermission]
     module_name = None
 
     def get_client_ip(self, request):

@@ -1,8 +1,8 @@
 <template>
   <el-container class="layout-container">
-    <el-aside :width="isCollapse ? '48px' : '160px'" class="el-aside">
+    <el-aside :width="isCollapse ? '65px' : '160px'" class="el-aside">
       <div class="logo">
-        <svg v-if="!isCollapse" class="logo-icon" viewBox="0 0 32 32" fill="none">
+        <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
           <rect width="32" height="32" rx="8" fill="url(#logoGradient)"/>
           <path d="M8 12L16 6L24 12L16 18L8 12Z" fill="white"/>
           <path d="M8 20L16 14L24 20L16 26L8 20Z" fill="white" opacity="0.7"/>
@@ -14,18 +14,17 @@
           </defs>
         </svg>
         <span v-if="!isCollapse" class="logo-text">豪威工贸</span>
-        <span v-else class="logo-text-mini">豪威</span>
       </div>
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapse"
-        :collapse-transition="false"
+        :collapse-transition="true"
         router
         class="sidebar-menu"
       >
         <el-menu-item index="/dashboard">
           <el-icon><DataLine /></el-icon>
-          <template #title>控制台</template>
+          <template #title>概览</template>
         </el-menu-item>
         <el-sub-menu index="basic">
           <template #title>
@@ -234,9 +233,8 @@ const handleCommand = async (command) => {
   transition: width var(--transition-normal);
   overflow-x: hidden;
   overflow-y: auto;
-  position: relative;
-  z-index: 100;
   border-right: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .el-aside::-webkit-scrollbar {
@@ -248,20 +246,23 @@ const handleCommand = async (command) => {
   border-radius: var(--border-radius-sm);
 }
 
+
+
 .logo {
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--spacing-sm);
+  padding: 0 var(--spacing-xs);
   gap: var(--spacing-xs);
   position: relative;
   border-bottom: 1px solid var(--color-border-light);
+  overflow: hidden;
 }
 
 .logo-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
 }
 
@@ -272,13 +273,6 @@ const handleCommand = async (command) => {
   letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
-}
-
-.logo-text-mini {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-primary);
-  letter-spacing: 0.3px;
 }
 
 .sidebar-menu {
@@ -312,6 +306,12 @@ const handleCommand = async (command) => {
   padding: 0 var(--spacing-sm);
 }
 
+.sidebar-menu.el-menu--collapse .el-menu-item,
+.sidebar-menu.el-menu--collapse .el-sub-menu__title {
+  padding: 0;
+  justify-content: center;
+}
+
 .sidebar-menu .el-menu-item:hover,
 .sidebar-menu .el-sub-menu__title:hover {
   background-color: var(--color-primary-light);
@@ -324,7 +324,7 @@ const handleCommand = async (command) => {
   font-weight: 600;
 }
 
-.sidebar-menu .el-menu-item.is-active::before {
+.sidebar-menu:not(.el-menu--collapse) .el-menu-item.is-active::before {
   content: '';
   position: absolute;
   left: 0;
@@ -341,8 +341,8 @@ const handleCommand = async (command) => {
 }
 
 .sidebar-menu .el-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin-right: var(--spacing-xs);
 }
 
@@ -363,6 +363,10 @@ const handleCommand = async (command) => {
   height: 36px;
   line-height: 36px;
   overflow: visible;
+}
+
+.sidebar-menu.el-menu--collapse .el-sub-menu .el-menu-item {
+  padding-left: 0 !important;
 }
 
 /* 确保菜单图标颜色正确 */
@@ -585,5 +589,58 @@ const handleCommand = async (command) => {
 
 .el-main::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-text-tertiary);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .el-aside {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(0);
+    transition: transform var(--transition-normal);
+  }
+  
+  .el-aside.el-aside--mobile-hidden {
+    transform: translateX(-100%);
+  }
+  
+  .el-container {
+    margin-left: 0 !important;
+  }
+  
+  .el-header {
+    padding: 0 var(--spacing-md) !important;
+  }
+  
+  .header-left {
+    gap: var(--spacing-sm) !important;
+  }
+  
+  .breadcrumb-title {
+    font-size: var(--font-size-base) !important;
+  }
+  
+  .header-actions {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .el-aside {
+    width: 140px !important;
+  }
+  
+  .logo-text {
+    font-size: var(--font-size-sm) !important;
+  }
+  
+  .sidebar-menu .el-menu-item,
+  .sidebar-menu .el-sub-menu__title {
+    height: 36px !important;
+    line-height: 36px !important;
+  }
 }
 </style>

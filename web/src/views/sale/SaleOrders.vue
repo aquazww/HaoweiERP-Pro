@@ -1,23 +1,5 @@
 <template>
   <div class="sale-page">
-    <div class="page-header">
-      <div class="header-title-section">
-        <div class="title-icon">
-          <el-icon :size="24"><ShoppingBag /></el-icon>
-        </div>
-        <div class="title-content">
-          <h1 class="page-title">销售订单</h1>
-          <p class="page-subtitle">管理和维护所有销售订单</p>
-        </div>
-      </div>
-      <div class="header-stats">
-        <div class="stat-item">
-          <div class="stat-value">{{ orderList.length }}</div>
-          <div class="stat-label">订单总数</div>
-        </div>
-      </div>
-    </div>
-
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -31,7 +13,7 @@
               @keyup.enter="loadOrders"
             />
           </div>
-          <el-select v-model="statusFilter" placeholder="状态筛选" clearable @change="loadOrders">
+          <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width: 140px" @change="loadOrders">
             <el-option label="全部" :value="''" />
             <el-option label="待出库" value="pending" />
             <el-option label="部分出库" value="partial" />
@@ -86,6 +68,17 @@
             </template>
           </el-table-column>
         </el-table>
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="loadOrders"
+            @current-change="loadOrders"
+          />
+        </div>
       </div>
     </div>
 
@@ -228,6 +221,9 @@ const warehouseList = ref([])
 const goodsList = ref([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 const tableHeight = ref(0)
 
 const form = ref({
@@ -311,18 +307,18 @@ const loadOptions = async () => {
 
 const calculateTableHeight = () => {
   nextTick(() => {
-    const pageHeader = document.querySelector('.page-header')
     const toolbarCard = document.querySelector('.toolbar-card')
+    const paginationWrapper = document.querySelector('.pagination-wrapper')
     const pageContent = document.querySelector('.page-content')
     
     if (pageContent) {
       let usedHeight = 0
-      if (pageHeader) usedHeight += pageHeader.offsetHeight + 24
-      if (toolbarCard) usedHeight += toolbarCard.offsetHeight + 16
-      usedHeight += 80
+      if (toolbarCard) usedHeight += toolbarCard.offsetHeight + 4
+      if (paginationWrapper) usedHeight += paginationWrapper.offsetHeight + 2
+      usedHeight += 4
       
-      const availableHeight = window.innerHeight - 64 - 48
-      tableHeight.value = Math.max(availableHeight - usedHeight, 300)
+      const availableHeight = window.innerHeight - 64 - 16
+      tableHeight.value = Math.max(availableHeight - usedHeight, 150)
     }
   })
 }
@@ -476,90 +472,20 @@ onUnmounted(() => {
 <style scoped>
 .sale-page {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, rgba(14, 165, 233, 0.05) 100%);
-  padding: var(--spacing-xl);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-primary-light);
-}
-
-.header-title-section {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.title-icon {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  border-radius: var(--border-radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-white);
-  box-shadow: var(--shadow-primary);
-}
-
-.title-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.page-title {
-  margin: 0;
-  font-size: var(--font-size-2xl);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: 1.4;
-}
-
-.header-stats {
-  display: flex;
-  gap: var(--spacing-lg);
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.stat-value {
-  font-size: var(--font-size-3xl);
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
-  margin-top: var(--spacing-xs);
+  padding: 8px;
+  overflow: hidden;
 }
 
 .page-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 8px;
   overflow: hidden;
+  width: 100%;
 }
 
 .toolbar-card {
@@ -567,10 +493,11 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   background-color: var(--color-white);
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 6px var(--spacing-md);
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-border-light);
   box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 
 .toolbar-left,
@@ -600,11 +527,14 @@ onUnmounted(() => {
 
 .table-card {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   background-color: var(--color-white);
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-border-light);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  min-height: 0;
 }
 
 .data-table {
@@ -671,6 +601,41 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-border-light);
+  padding: 4px var(--spacing-md);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  flex-shrink: 0;
+}
+
+.pagination-wrapper :deep(.el-pagination) {
+  --el-pagination-button-height: 32px;
+  --el-pagination-font-size: 13px;
+}
+
+.pagination-wrapper :deep(.el-pagination .btn-prev),
+.pagination-wrapper :deep(.el-pagination .btn-next) {
+  min-width: 32px;
+  padding: 0 8px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pager li) {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 8px;
+}
+
+.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
+  margin-left: 8px;
 }
 
 .form-dialog {
