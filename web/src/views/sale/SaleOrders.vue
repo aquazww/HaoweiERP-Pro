@@ -109,7 +109,9 @@
       <el-table :data="viewData.items" border style="width: 100%;">
         <el-table-column type="index" label="#" width="50" align="center" />
         <el-table-column prop="goods_name" label="商品名称" min-width="180" />
-        <el-table-column prop="quantity" label="数量" width="100" align="right" />
+        <el-table-column prop="quantity" label="数量" width="100" align="right">
+          <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
+        </el-table-column>
         <el-table-column label="单价" width="120" align="right">
           <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
         </el-table-column>
@@ -283,7 +285,7 @@ import {
   getSaleOrder, confirmSaleOrder
 } from '../../api/sale'
 import { getCustomers, getWarehouses, getGoods } from '../../api/basic'
-import { formatPrice, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
+import { formatPrice, formatQuantity, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -357,7 +359,7 @@ const calculateItemAmount = (row) => {
 
 const getGoodsUnit = (goodsId) => {
   const goods = goodsList.value.find(g => g.id === goodsId)
-  return goods?.unit || ''
+  return goods?.unit_name || ''
 }
 
 const handleQuantityInput = (row, value) => {

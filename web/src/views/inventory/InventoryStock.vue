@@ -105,10 +105,11 @@
           <el-table-column prop="updated_at" label="更新时间" width="160">
             <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link size="small" @click="handleViewLogs(row)">流水</el-button>
+                <el-button v-if="isAdmin && Number(row.quantity) === 0" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -145,12 +146,16 @@
         <el-table-column prop="change_quantity" label="变动数量" width="100" align="right">
           <template #default="{ row }">
             <span :class="row.change_type === 'inbound' ? 'text-success' : 'text-danger'">
-              {{ row.change_type === 'inbound' ? '+' : '-' }}{{ row.change_quantity }}
+              {{ row.change_type === 'inbound' ? '+' : '-' }}{{ formatNumber(row.change_quantity) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="before_quantity" label="变动前" width="90" align="right" />
-        <el-table-column prop="after_quantity" label="变动后" width="90" align="right" />
+        <el-table-column prop="before_quantity" label="变动前" width="90" align="right">
+          <template #default="{ row }">{{ formatNumber(row.before_quantity) }}</template>
+        </el-table-column>
+        <el-table-column prop="after_quantity" label="变动后" width="90" align="right">
+          <template #default="{ row }">{{ formatNumber(row.after_quantity) }}</template>
+        </el-table-column>
         <el-table-column prop="related_order_type" label="关联单据" width="120" />
         <el-table-column prop="remark" label="备注" min-width="150" />
         <el-table-column prop="created_at" label="时间" width="160">
@@ -168,7 +173,7 @@
         <el-table-column prop="warehouse_name" label="仓库" width="100" />
         <el-table-column prop="quantity" label="当前库存" width="100" align="right">
           <template #default="{ row }">
-            <span :class="getWarningClass(row.warning_type)">{{ row.quantity }}</span>
+            <span :class="getWarningClass(row.warning_type)">{{ formatNumber(row.quantity) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="预警类型" width="120" align="center">
@@ -187,11 +192,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Box, Goods, Warning } from '@element-plus/icons-vue'
-import { getInventory, getInventoryLogs, getInventoryWarning } from '../../api/inventory'
+import { getInventory, getInventoryLogs, getInventoryWarning, deleteInventory } from '../../api/inventory'
 import { getWarehouses, getCategories } from '../../api/basic'
+import request from '../../api/index'
 
 const loading = ref(false)
 const stockList = ref([])
@@ -208,6 +214,13 @@ const warehouseList = ref([])
 const categoryList = ref([])
 const sortField = ref('')
 const sortOrder = ref('')
+const userInfo = ref({})
+
+const isAdmin = computed(() => {
+  return userInfo.value.username === 'admin' || 
+         userInfo.value.role_name === 'admin' || 
+         userInfo.value.role_name === '管理员'
+})
 
 const logDialogVisible = ref(false)
 const logLoading = ref(false)
@@ -223,7 +236,7 @@ const formatNumber = (num) => {
   const n = Number(num)
   if (isNaN(n)) return '0'
   if (Number.isInteger(n)) return String(n)
-  return n.toFixed(2)
+  return Math.round(n).toString()
 }
 
 const formatDateTime = (datetime) => {
@@ -310,6 +323,33 @@ const loadStock = async () => {
   }
 }
 
+const loadUserInfo = async () => {
+  try {
+    const res = await request.get('/auth/user/')
+    userInfo.value = res.data.data || res.data
+  } catch (error) {
+    console.error('获取用户信息失败')
+  }
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除库存记录吗？\n商品：${row.goods_name}\n仓库：${row.warehouse_name}`,
+      '确认删除',
+      { type: 'warning' }
+    )
+    await deleteInventory(row.id)
+    ElMessage.success('删除成功')
+    loadStock()
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMsg = error.response?.data?.msg || error.message || '未知错误'
+      ElMessage.error('删除失败：' + errorMsg)
+    }
+  }
+}
+
 const loadOptions = async () => {
   try {
     const [whRes, catRes] = await Promise.all([
@@ -355,6 +395,7 @@ const showWarningDialog = async () => {
 }
 
 onMounted(() => {
+  loadUserInfo()
   loadStock()
   loadOptions()
   calculateTableHeight()

@@ -26,15 +26,6 @@
           <el-icon><DataLine /></el-icon>
           <template #title>概览</template>
         </el-menu-item>
-        <el-sub-menu index="basic">
-          <template #title>
-            <el-icon><Box /></el-icon>
-            <span>基础资料</span>
-          </template>
-          <el-menu-item index="/basic/goods">商品管理</el-menu-item>
-          <el-menu-item index="/basic/suppliers">供应商管理</el-menu-item>
-          <el-menu-item index="/basic/customers">客户管理</el-menu-item>
-        </el-sub-menu>
         <el-sub-menu index="purchase">
           <template #title>
             <el-icon><ShoppingCart /></el-icon>
@@ -76,7 +67,17 @@
           <el-menu-item index="/reports/inventory">库存报表</el-menu-item>
           <el-menu-item index="/reports/finance">财务报表</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="system">
+        <el-sub-menu index="basic">
+          <template #title>
+            <el-icon><Box /></el-icon>
+            <span>基础资料</span>
+          </template>
+          <el-menu-item index="/basic/params">参数设置</el-menu-item>
+          <el-menu-item index="/basic/goods">商品管理</el-menu-item>
+          <el-menu-item index="/basic/suppliers">供应商管理</el-menu-item>
+          <el-menu-item index="/basic/customers">客户管理</el-menu-item>
+        </el-sub-menu>
+        <el-sub-menu index="system" v-if="isAdmin">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
@@ -117,7 +118,7 @@
                       </defs>
                     </svg>
                   </div>
-                  <span class="user-name">管理员</span>
+                  <span class="user-name">{{ userInfo.username || '用户' }}</span>
                   <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
@@ -149,17 +150,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DataLine, Box, ShoppingCart, Sell, Goods, Wallet, Document, Setting, Fold, Expand, Bell, Refresh, ArrowDown, User, SwitchButton } from '@element-plus/icons-vue'
+import request from '../api/index'
 
 const router = useRouter()
 const route = useRoute()
 const isCollapse = ref(false)
+const userInfo = ref({})
 
 const pageTitleMap = {
   '/dashboard': '控制台',
+  '/basic/params': '参数设置',
   '/basic/goods': '商品管理',
   '/basic/suppliers': '供应商管理',
   '/basic/customers': '客户管理',
@@ -183,8 +187,23 @@ const activeMenu = computed(() => route.path)
 
 const currentPageTitle = computed(() => pageTitleMap[route.path] || '页面')
 
+const isAdmin = computed(() => {
+  return userInfo.value.username === 'admin' || 
+         userInfo.value.role_name === 'admin' || 
+         userInfo.value.role_name === '管理员'
+})
+
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
+}
+
+const loadUserInfo = async () => {
+  try {
+    const res = await request.get('/auth/user/')
+    userInfo.value = res.data.data || res.data
+  } catch (error) {
+    console.error('获取用户信息失败')
+  }
 }
 
 const handleCommand = async (command) => {
@@ -196,6 +215,7 @@ const handleCommand = async (command) => {
         type: 'warning'
       })
       localStorage.removeItem('token')
+      localStorage.removeItem('refresh_token')
       ElMessage.success('已退出登录')
       router.push('/login')
     } catch {
@@ -206,6 +226,10 @@ const handleCommand = async (command) => {
     ElMessage.info('系统设置功能开发中')
   }
 }
+
+onMounted(() => {
+  loadUserInfo()
+})
 </script>
 
 <style scoped>

@@ -9,7 +9,7 @@ class InventorySerializer(serializers.ModelSerializer):
     goods_code = serializers.CharField(source='goods.code', read_only=True)
     category = serializers.IntegerField(source='goods.category.id', read_only=True)
     category_name = serializers.CharField(source='goods.category.name', read_only=True)
-    unit = serializers.CharField(source='goods.unit', read_only=True)
+    unit = serializers.CharField(source='goods.unit.name', read_only=True)
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     stock_status = serializers.SerializerMethodField()
@@ -44,7 +44,7 @@ class InventoryListSerializer(serializers.ModelSerializer):
     goods_code = serializers.CharField(source='goods.code', read_only=True)
     category = serializers.IntegerField(source='goods.category.id', read_only=True)
     category_name = serializers.CharField(source='goods.category.name', read_only=True)
-    unit = serializers.CharField(source='goods.unit', read_only=True)
+    unit = serializers.CharField(source='goods.unit.name', read_only=True)
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     min_stock = serializers.IntegerField(source='goods.min_stock', read_only=True)
@@ -139,7 +139,7 @@ class StockAdjustItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
-    unit = serializers.CharField(source='goods.unit', read_only=True)
+    unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = StockAdjustItem
@@ -202,7 +202,7 @@ class StockTransferItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
-    unit = serializers.CharField(source='goods.unit', read_only=True)
+    unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = StockTransferItem

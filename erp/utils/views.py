@@ -118,6 +118,37 @@ class BaseModelViewSet(viewsets.ModelViewSet):
                 'data': {'id': instance_id}
             })
         except Exception as e:
+            from rest_framework.exceptions import ValidationError
+            from django.db.utils import IntegrityError
+            if isinstance(e, ValidationError):
+                error_messages = []
+                for field, messages in e.detail.items():
+                    if isinstance(messages, list):
+                        for msg in messages:
+                            if hasattr(msg, 'string'):
+                                error_messages.append(msg.string)
+                            else:
+                                error_messages.append(str(msg))
+                    else:
+                        error_messages.append(str(messages))
+                return Response({
+                    'code': 400,
+                    'msg': error_messages[0] if error_messages else '数据验证失败',
+                    'data': None
+                }, status=400)
+            if isinstance(e, IntegrityError):
+                error_msg = str(e)
+                if 'unique' in error_msg.lower() or '重复' in error_msg:
+                    return Response({
+                        'code': 400,
+                        'msg': '该名称已存在，请使用其他名称',
+                        'data': None
+                    }, status=400)
+                return Response({
+                    'code': 400,
+                    'msg': '数据完整性错误，请检查输入内容',
+                    'data': None
+                }, status=400)
             logger.error(f'创建失败: {str(e)}')
             return Response({
                 'code': 500,
@@ -146,6 +177,23 @@ class BaseModelViewSet(viewsets.ModelViewSet):
                 'data': read_serializer.data
             })
         except Exception as e:
+            from rest_framework.exceptions import ValidationError
+            if isinstance(e, ValidationError):
+                error_messages = []
+                for field, messages in e.detail.items():
+                    if isinstance(messages, list):
+                        for msg in messages:
+                            if hasattr(msg, 'string'):
+                                error_messages.append(msg.string)
+                            else:
+                                error_messages.append(str(msg))
+                    else:
+                        error_messages.append(str(messages))
+                return Response({
+                    'code': 400,
+                    'msg': error_messages[0] if error_messages else '数据验证失败',
+                    'data': None
+                }, status=400)
             logger.error(f'更新失败: {str(e)}')
             return Response({
                 'code': 500,

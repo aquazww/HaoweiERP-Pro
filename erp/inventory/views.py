@@ -123,6 +123,43 @@ class InventoryViewSet(BaseModelViewSet):
                 'data': None
             }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def destroy(self, request, *args, **kwargs):
+        """删除库存记录（仅管理员）"""
+        try:
+            if request.user.username != 'admin' and request.user.role_name != 'admin' and request.user.role_name != '管理员':
+                return Response({
+                    'code': 403,
+                    'msg': '权限不足，只有管理员才能删除库存记录',
+                    'data': None
+                }, status=http_status.HTTP_403_FORBIDDEN)
+            
+            instance = self.get_object()
+            goods_name = instance.goods.name if instance.goods else '未知商品'
+            warehouse_name = instance.warehouse.name if instance.warehouse else '未知仓库'
+            quantity = instance.quantity
+            
+            if quantity != 0:
+                return Response({
+                    'code': 400,
+                    'msg': f'无法删除库存记录，该记录库存数量为 {quantity}，仅允许删除库存为0的记录',
+                    'data': None
+                }, status=http_status.HTTP_400_BAD_REQUEST)
+            
+            self.perform_destroy(instance)
+            self.log_action(request, 'delete', f'删除库存记录: {goods_name} - {warehouse_name}')
+            
+            return Response({
+                'code': 200,
+                'msg': '删除成功',
+                'data': None
+            })
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'msg': f'删除失败: {str(e)}',
+                'data': None
+            }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """库存汇总统计"""

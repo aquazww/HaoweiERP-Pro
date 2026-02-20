@@ -4,6 +4,10 @@ export const getInventory = (params) => {
   return request.get('/inventory/inventory/', { params })
 }
 
+export const deleteInventory = (id) => {
+  return request.delete(`/inventory/inventory/${id}/`)
+}
+
 export const getInventorySummary = () => {
   return request.get('/inventory/inventory/summary/')
 }

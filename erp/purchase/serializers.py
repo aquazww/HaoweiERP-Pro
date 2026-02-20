@@ -8,7 +8,7 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
-    unit = serializers.CharField(source='goods.unit', read_only=True)
+    unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = PurchaseItem

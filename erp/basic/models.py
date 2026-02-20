@@ -2,6 +2,23 @@ from django.db import models
 from django.utils import timezone
 
 
+class Unit(models.Model):
+    """计量单位表"""
+    name = models.CharField(max_length=50, unique=True, verbose_name='单位名称')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'biz_unit'
+        verbose_name = '计量单位'
+        verbose_name_plural = verbose_name
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Category(models.Model):
     """商品分类表"""
     name = models.CharField(max_length=100, verbose_name='分类名称')
@@ -126,7 +143,8 @@ class Goods(models.Model):
     code = models.CharField(max_length=50, unique=True, verbose_name='商品编码')
     name = models.CharField(max_length=100, verbose_name='商品名称')
     category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='商品分类')
-    unit = models.CharField(max_length=20, verbose_name='计量单位')
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT, null=True, blank=True, verbose_name='计量单位')
+    unit_name = models.CharField(max_length=20, blank=True, verbose_name='计量单位名称(冗余)')
     spec = models.CharField(max_length=100, blank=True, verbose_name='规格')
     barcode = models.CharField(max_length=50, blank=True, verbose_name='条形码')
     purchase_price = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='进货价')
@@ -152,3 +170,8 @@ class Goods(models.Model):
 
     def __str__(self):
         return f'{self.code} - {self.name}'
+    
+    def save(self, *args, **kwargs):
+        if self.unit:
+            self.unit_name = self.unit.name
+        super().save(*args, **kwargs)

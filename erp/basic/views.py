@@ -1,16 +1,68 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum
+from rest_framework import status
+from django.db.models import Sum, ProtectedError
+from django.db import transaction, IntegrityError
 from decimal import Decimal
+import logging
 
-from .models import Category, Warehouse, Supplier, Customer, Goods
+from .models import Category, Warehouse, Supplier, Customer, Goods, Unit
 from .serializers import (
     CategorySerializer, WarehouseSerializer, SupplierSerializer,
-    CustomerSerializer, GoodsSerializer, GoodsWithStockSerializer
+    CustomerSerializer, GoodsSerializer, GoodsWithStockSerializer,
+    UnitSerializer
 )
 from utils.views import BaseModelViewSet
 from inventory.goods_inventory_service import GoodsInventoryService
+
+logger = logging.getLogger(__name__)
+
+
+class UnitViewSet(BaseModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer
+    filterset_fields = ['is_active']
+    search_fields = ['name']
+    module_name = '计量单位'
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance_name = instance.name
+            
+            goods_list = Goods.objects.filter(unit=instance)
+            if goods_list.exists():
+                goods_info = [f'{g.code} - {g.name}' for g in goods_list[:5]]
+                total_count = goods_list.count()
+                if total_count > 5:
+                    goods_info.append(f'...等共 {total_count} 个商品')
+                
+                return Response({
+                    'code': 400,
+                    'msg': f'无法删除计量单位「{instance_name}」，该单位已被 {total_count} 个商品使用',
+                    'data': {
+                        'goods_list': goods_info,
+                        'total_count': total_count,
+                        'suggestion': '请先将这些商品的计量单位修改为其他单位，或删除这些商品后再尝试删除该计量单位'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            self.perform_destroy(instance)
+            self.log_action(request, 'delete', f'删除计量单位: {instance_name}')
+            return Response({
+                'code': 200,
+                'msg': '删除成功',
+                'data': None
+            })
+        except Exception as e:
+            logger.error(f'删除计量单位失败: {str(e)}')
+            return Response({
+                'code': 500,
+                'msg': f'删除失败: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CategoryViewSet(BaseModelViewSet):
@@ -21,6 +73,51 @@ class CategoryViewSet(BaseModelViewSet):
     search_fields = ['name']
     module_name = '商品分类'
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance_id = instance.id
+            instance_name = instance.name
+            
+            goods_list = Goods.objects.filter(category=instance)
+            if goods_list.exists():
+                goods_info = [f'{g.code} - {g.name}' for g in goods_list[:5]]
+                total_count = goods_list.count()
+                if total_count > 5:
+                    goods_info.append(f'...等共 {total_count} 个商品')
+                
+                return Response({
+                    'code': 400,
+                    'msg': f'无法删除分类「{instance_name}」，该分类下存在 {total_count} 个关联商品',
+                    'data': {
+                        'goods_list': goods_info,
+                        'total_count': total_count,
+                        'suggestion': '请先将这些商品修改为其他分类，或删除这些商品后再尝试删除该分类'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            self.perform_destroy(instance)
+            self.log_action(request, 'delete', f'删除分类: {instance_name}')
+            return Response({
+                'code': 200,
+                'msg': '删除成功',
+                'data': None
+            })
+        except ProtectedError as e:
+            logger.error(f'删除分类失败(保护约束): {str(e)}')
+            return Response({
+                'code': 400,
+                'msg': '该分类下存在关联数据，无法删除',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f'删除分类失败: {str(e)}')
+            return Response({
+                'code': 500,
+                'msg': f'删除失败: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class WarehouseViewSet(BaseModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -29,6 +126,49 @@ class WarehouseViewSet(BaseModelViewSet):
     filterset_fields = ['is_active']
     search_fields = ['name']
     module_name = '仓库'
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance_name = instance.name
+            
+            from inventory.models import Inventory
+            inventory_list = Inventory.objects.filter(warehouse=instance)
+            if inventory_list.exists():
+                inventory_info = []
+                total_count = 0
+                for inv in inventory_list[:5]:
+                    if inv.goods:
+                        inventory_info.append(f'{inv.goods.code} - {inv.goods.name}（库存：{inv.quantity}）')
+                        total_count += 1
+                total_count = inventory_list.count()
+                if total_count > 5:
+                    inventory_info.append(f'...等共 {total_count} 条库存记录')
+                
+                return Response({
+                    'code': 400,
+                    'msg': f'无法删除仓库「{instance_name}」，该仓库存在 {total_count} 条库存记录',
+                    'data': {
+                        'goods_list': inventory_info,
+                        'total_count': total_count,
+                        'suggestion': '请先将该仓库的库存调拨到其他仓库，或清空库存后再尝试删除该仓库'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            self.perform_destroy(instance)
+            self.log_action(request, 'delete', f'删除仓库: {instance_name}')
+            return Response({
+                'code': 200,
+                'msg': '删除成功',
+                'data': None
+            })
+        except Exception as e:
+            logger.error(f'删除仓库失败: {str(e)}')
+            return Response({
+                'code': 500,
+                'msg': f'删除失败: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SupplierViewSet(BaseModelViewSet):
@@ -64,9 +204,8 @@ class GoodsViewSet(BaseModelViewSet):
         return GoodsSerializer
 
     def perform_create(self, serializer):
-        """商品创建时初始化库存"""
+        """商品创建"""
         goods = serializer.save()
-        GoodsInventoryService.on_goods_created(goods)
 
     def perform_update(self, serializer):
         """商品更新时处理状态变更"""

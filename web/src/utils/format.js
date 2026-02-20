@@ -16,7 +16,7 @@ export const formatPrice = (price) => {
 }
 
 /**
- * 格式化数量（整数或小数）
+ * 格式化数量（整数）
  * @param {number|string} quantity - 数量值
  * @returns {string} 格式化后的数量字符串
  */
@@ -24,8 +24,7 @@ export const formatQuantity = (quantity) => {
   if (quantity === undefined || quantity === null || quantity === '') return '0'
   const num = Number(quantity)
   if (isNaN(num)) return '0'
-  if (Number.isInteger(num)) return String(num)
-  return num.toString()
+  return Math.round(num).toString()
 }
 
 /**
@@ -39,8 +38,7 @@ export const formatInputNumber = (value, isQuantity = false) => {
   const num = Number(value)
   if (isNaN(num)) return ''
   if (isQuantity) {
-    if (Number.isInteger(num)) return String(num)
-    return num.toString()
+    return Math.round(num).toString()
   }
   return num.toFixed(2)
 }

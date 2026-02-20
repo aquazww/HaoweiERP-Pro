@@ -26,6 +26,11 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = ['id', 'name', 'permissions', 'description', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'name': {
+                'validators': []
+            }
+        }
     
     def validate_name(self, value):
         """验证角色名称"""
@@ -33,7 +38,17 @@ class RoleSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('角色名称不能为空')
         if len(value) > 50:
             raise serializers.ValidationError('角色名称不能超过50个字符')
-        return value.strip()
+        
+        value = value.strip()
+        
+        queryset = Role.objects.filter(name=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'角色名称「{value}」已存在，请使用其他名称')
+        
+        return value
     
     def validate_description(self, value):
         """验证描述"""
@@ -85,18 +100,24 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """用户创建序列化器"""
-    password = serializers.CharField(write_only=True, min_length=6)
-    password_confirm = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=6, required=True, help_text='密码，至少6位字符')
+    password_confirm = serializers.CharField(write_only=True, required=True, help_text='确认密码，需与密码一致')
 
     class Meta:
         model = User
         fields = ['id', 'username', 'password', 'password_confirm', 'role', 'phone', 'is_active']
         read_only_fields = ['id']
     
+    def validate_password(self, value):
+        """验证密码格式"""
+        if len(value) < 6:
+            raise serializers.ValidationError('密码长度不能少于6位字符')
+        return value
+    
     def validate(self, data):
         """验证两次密码是否一致"""
         if data.get('password') != data.get('password_confirm'):
-            raise serializers.ValidationError({'password_confirm': '两次密码输入不一致'})
+            raise serializers.ValidationError({'password_confirm': '两次密码输入不一致，请确保两次输入的密码相同'})
         return data
     
     def create(self, validated_data):
@@ -109,6 +130,52 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """用户更新序列化器"""
+    password = serializers.CharField(write_only=True, min_length=6, required=False, allow_blank=True, help_text='密码（留空则不修改），至少6位字符')
+    password_confirm = serializers.CharField(write_only=True, required=False, allow_blank=True, help_text='确认密码，修改密码时需与密码一致')
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password', 'password_confirm', 'role', 'phone', 'is_active']
+        read_only_fields = ['id']
+    
+    def validate_password(self, value):
+        """验证密码格式"""
+        if value and len(value) < 6:
+            raise serializers.ValidationError('密码长度不能少于6位字符')
+        return value
+    
+    def validate(self, data):
+        """验证两次密码是否一致"""
+        password = data.get('password')
+        password_confirm = data.get('password_confirm')
+        
+        if password or password_confirm:
+            if not password:
+                raise serializers.ValidationError({'password': '请输入密码'})
+            if not password_confirm:
+                raise serializers.ValidationError({'password_confirm': '请再次输入密码以确认'})
+            if password != password_confirm:
+                raise serializers.ValidationError({'password_confirm': '两次密码输入不一致，请确保两次输入的密码相同'})
+        
+        return data
+    
+    def update(self, instance, validated_data):
+        """更新用户"""
+        validated_data.pop('password_confirm', None)
+        password = validated_data.pop('password', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        if password:
+            instance.set_password(password)
+        
+        instance.save()
+        return instance
+
+
 class LogSerializer(serializers.ModelSerializer):
     """日志序列化器"""
     username = serializers.CharField(source='user.username', read_only=True)
@@ -117,3 +184,13 @@ class LogSerializer(serializers.ModelSerializer):
         model = Log
         fields = ['id', 'user', 'username', 'action', 'module', 'detail', 'ip_address', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """重置密码序列化器"""
+    new_password = serializers.CharField(min_length=6, max_length=50)
+    
+    def validate_new_password(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError('密码长度不能少于6位')
+        return value

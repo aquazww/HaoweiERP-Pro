@@ -1,5 +1,21 @@
 import request from './index'
 
+export const getUnits = (params) => {
+  return request.get('/basic/units/', { params })
+}
+
+export const createUnit = (data) => {
+  return request.post('/basic/units/', data)
+}
+
+export const updateUnit = (id, data) => {
+  return request.put(`/basic/units/${id}/`, data)
+}
+
+export const deleteUnit = (id) => {
+  return request.delete(`/basic/units/${id}/`)
+}
+
 export const getCategories = (params) => {
   return request.get('/basic/categories/', { params })
 }
@@ -18,6 +34,18 @@ export const deleteCategory = (id) => {
 
 export const getWarehouses = (params) => {
   return request.get('/basic/warehouses/', { params })
+}
+
+export const createWarehouse = (data) => {
+  return request.post('/basic/warehouses/', data)
+}
+
+export const updateWarehouse = (id, data) => {
+  return request.put(`/basic/warehouses/${id}/`, data)
+}
+
+export const deleteWarehouse = (id) => {
+  return request.delete(`/basic/warehouses/${id}/`)
 }
 
 export const getSuppliers = (params) => {

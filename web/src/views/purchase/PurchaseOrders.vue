@@ -412,7 +412,7 @@ const totalAmount = computed(() => {
 
 const getGoodsUnit = (goodsId) => {
   const goods = goodsList.value.find(g => g.id === goodsId)
-  return goods?.unit || '-'
+  return goods?.unit_name || '-'
 }
 
 const availableGoods = (currentIndex) => {

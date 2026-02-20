@@ -27,7 +27,7 @@
         <el-table-column prop="quantity" label="库存数量" width="120">
           <template #default="{ row }">
             <span :class="{ 'low-stock': row.quantity <= (row.min_stock || 0) }">
-              {{ row.quantity }}
+              {{ formatQuantity(row.quantity) }}
             </span>
           </template>
         </el-table-column>
@@ -41,7 +41,9 @@
             ¥{{ (row.total_value !== undefined && row.total_value !== null) ? row.total_value.toFixed(2) : '0.00' }}
           </template>
         </el-table-column>
-        <el-table-column prop="min_stock" label="预警库存" width="100" />
+        <el-table-column prop="min_stock" label="预警库存" width="100">
+          <template #default="{ row }">{{ formatQuantity(row.min_stock) }}</template>
+        </el-table-column>
       </el-table>
 
       <el-pagination
@@ -76,6 +78,13 @@ const pagination = ref({
   pageSize: 20,
   total: 0
 })
+
+const formatQuantity = (num) => {
+  if (num === null || num === undefined) return '0'
+  const n = Number(num)
+  if (isNaN(n)) return '0'
+  return Math.round(n).toString()
+}
 
 const loadData = async () => {
   try {
@@ -144,6 +153,8 @@ const handleExport = async () => {
   
   const exportData = allData.map(item => ({
     ...item,
+    quantity: formatQuantity(item.quantity),
+    min_stock: formatQuantity(item.min_stock),
     avg_price: '¥' + ((item.avg_price !== undefined && item.avg_price !== null) ? item.avg_price.toFixed(2) : '0.00'),
     total_value: '¥' + ((item.total_value !== undefined && item.total_value !== null) ? item.total_value.toFixed(2) : '0.00')
   }))

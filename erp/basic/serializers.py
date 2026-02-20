@@ -1,11 +1,42 @@
 from rest_framework import serializers
 from django.db.models import Sum
 from decimal import Decimal
-from .models import Category, Warehouse, Supplier, Customer, Goods
+from .models import Category, Warehouse, Supplier, Customer, Goods, Unit
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    """计量单位序列化器"""
+    
+    class Meta:
+        model = Unit
+        fields = '__all__'
+        extra_kwargs = {
+            'name': {
+                'validators': []
+            }
+        }
+    
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError('单位名称不能为空')
+        if len(value) > 50:
+            raise serializers.ValidationError('单位名称不能超过50个字符')
+        
+        value = value.strip()
+        
+        queryset = Unit.objects.filter(name=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'单位名称「{value}」已存在，请使用其他名称或检查现有单位列表')
+        
+        return value
 
 
 class CategorySerializer(serializers.ModelSerializer):
     """商品分类序列化器"""
+    parent_name = serializers.CharField(source='parent.name', read_only=True)
     
     class Meta:
         model = Category
@@ -17,13 +48,33 @@ class CategorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('分类名称不能为空')
         if len(value) > 100:
             raise serializers.ValidationError('分类名称不能超过100个字符')
-        return value.strip()
+        
+        value = value.strip()
+        
+        queryset = Category.objects.filter(name=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'分类名称「{value}」已存在，请使用其他名称')
+        
+        return value
     
     def validate(self, data):
-        """验证父分类不能是自己"""
+        """验证父分类"""
         if data.get('parent'):
-            if data['parent'].id == self.instance.id if self.instance else False:
-                raise serializers.ValidationError({'parent': '父分类不能是自己'})
+            if self.instance and data['parent'].id == self.instance.id:
+                raise serializers.ValidationError({
+                    'parent': '父分类不能选择当前分类本身，请选择其他分类或设置为顶级分类'
+                })
+            if self.instance:
+                parent = data['parent']
+                while parent:
+                    if parent.id == self.instance.id:
+                        raise serializers.ValidationError({
+                            'parent': '不能选择当前分类的子分类作为父分类，这会造成循环引用'
+                        })
+                    parent = parent.parent
         return data
 
 
@@ -57,6 +108,11 @@ class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Supplier
         fields = '__all__'
+        extra_kwargs = {
+            'code': {
+                'validators': []
+            }
+        }
     
     def validate_code(self, value):
         """验证供应商编码"""
@@ -64,7 +120,17 @@ class SupplierSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('供应商编码不能为空')
         if len(value) > 50:
             raise serializers.ValidationError('供应商编码不能超过50个字符')
-        return value.strip().upper()
+        
+        value = value.strip().upper()
+        
+        queryset = Supplier.objects.filter(code=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'供应商编码「{value}」已存在，请使用其他编码')
+        
+        return value
     
     def validate_name(self, value):
         """验证公司名称"""
@@ -104,6 +170,11 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = '__all__'
+        extra_kwargs = {
+            'code': {
+                'validators': []
+            }
+        }
     
     def validate_code(self, value):
         """验证客户编码"""
@@ -111,7 +182,17 @@ class CustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('客户编码不能为空')
         if len(value) > 50:
             raise serializers.ValidationError('客户编码不能超过50个字符')
-        return value.strip().upper()
+        
+        value = value.strip().upper()
+        
+        queryset = Customer.objects.filter(code=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'客户编码「{value}」已存在，请使用其他编码')
+        
+        return value
     
     def validate_name(self, value):
         """验证公司名称"""
@@ -148,10 +229,16 @@ class CustomerSerializer(serializers.ModelSerializer):
 class GoodsSerializer(serializers.ModelSerializer):
     """商品序列化器"""
     category_name = serializers.CharField(source='category.name', read_only=True)
+    unit_name = serializers.CharField(source='unit.name', read_only=True)
     
     class Meta:
         model = Goods
         fields = '__all__'
+        extra_kwargs = {
+            'code': {
+                'validators': []
+            }
+        }
     
     def validate_code(self, value):
         """验证商品编码"""
@@ -159,7 +246,17 @@ class GoodsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('商品编码不能为空')
         if len(value) > 50:
             raise serializers.ValidationError('商品编码不能超过50个字符')
-        return value.strip().upper()
+        
+        value = value.strip().upper()
+        
+        queryset = Goods.objects.filter(code=value)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError(f'商品编码「{value}」已存在，请使用其他编码')
+        
+        return value
     
     def validate_name(self, value):
         """验证商品名称"""
@@ -167,12 +264,6 @@ class GoodsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('商品名称不能为空')
         if len(value) > 100:
             raise serializers.ValidationError('商品名称不能超过100个字符')
-        return value.strip()
-    
-    def validate_unit(self, value):
-        """验证计量单位"""
-        if not value or not value.strip():
-            raise serializers.ValidationError('计量单位不能为空')
         return value.strip()
     
     def validate_purchase_price(self, value):
@@ -225,12 +316,14 @@ class GoodsWithStockSerializer(serializers.ModelSerializer):
     """带库存信息的商品序列化器"""
     category = serializers.IntegerField(source='category.id', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
+    unit = serializers.IntegerField(source='unit.id', read_only=True)
+    unit_name = serializers.CharField(source='unit.name', read_only=True)
     total_quantity = serializers.SerializerMethodField()
     stock_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Goods
-        fields = ['id', 'code', 'name', 'category', 'category_name', 'unit', 'spec',
+        fields = ['id', 'code', 'name', 'category', 'category_name', 'unit', 'unit_name', 'spec',
                   'barcode', 'purchase_price', 'sale_price', 'retail_price',
                   'min_stock', 'max_stock', 'status', 'total_quantity', 'stock_status',
                   'created_at', 'updated_at']

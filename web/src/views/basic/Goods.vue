@@ -51,7 +51,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="unit" label="单位" width="80" align="center" />
+          <el-table-column prop="unit_name" label="单位" width="80" align="center" />
           <el-table-column prop="purchase_price" label="进货价" width="120" align="right">
             <template #default="{ row }">
               <span class="price-text purchase">¥{{ formatPrice(row.purchase_price) }}</span>
@@ -165,20 +165,16 @@
             <el-form-item label="计量单位" prop="unit">
               <el-select 
                 v-model="form.unit" 
-                placeholder="请选择或输入单位"
+                placeholder="请选择计量单位"
                 style="width: 100%"
                 filterable
-                allow-create
               >
-                <el-option label="个" value="个" />
-                <el-option label="件" value="件" />
-                <el-option label="台" value="台" />
-                <el-option label="套" value="套" />
-                <el-option label="箱" value="箱" />
-                <el-option label="包" value="包" />
-                <el-option label="盒" value="盒" />
-                <el-option label="千克" value="千克" />
-                <el-option label="米" value="米" />
+                <el-option 
+                  v-for="item in unitList" 
+                  :key="item.id" 
+                  :label="item.name" 
+                  :value="item.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -186,16 +182,16 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="规格" prop="spec">
+            <el-form-item label="规格">
               <el-input 
                 v-model="form.spec" 
-                placeholder="请输入规格（选填）"
+                placeholder="请输入规格"
                 maxlength="100"
               />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="条形码" prop="barcode">
+            <el-form-item label="条形码">
               <el-input 
                 v-model="form.barcode" 
                 placeholder="请输入条形码（选填）"
@@ -331,8 +327,7 @@
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
-import { getGoods, createGoods, deleteGoods, updateGoods } from '../../api/basic'
-import { getCategories } from '../../api/basic'
+import { getGoods, createGoods, deleteGoods, updateGoods, getCategories, getUnits } from '../../api/basic'
 import { formatPrice, formatInputNumber, parseInputNumber } from '../../utils/format'
 
 const loading = ref(false)
@@ -351,6 +346,7 @@ const isEdit = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
 const categoryList = ref([])
+const unitList = ref([])
 
 const priceErrors = reactive({
   purchase_price: '',
@@ -363,7 +359,7 @@ const form = reactive({
   code: '',
   name: '',
   category: null,
-  unit: '',
+  unit: null,
   spec: '',
   barcode: '',
   purchase_price: 0,
@@ -498,6 +494,15 @@ const loadCategories = async () => {
     categoryList.value = res.data.items || res.data.results || []
   } catch (error) {
     categoryList.value = []
+  }
+}
+
+const loadUnits = async () => {
+  try {
+    const res = await getUnits({ page_size: 1000, is_active: true })
+    unitList.value = res.data.items || res.data.results || []
+  } catch (error) {
+    unitList.value = []
   }
 }
 
@@ -677,6 +682,7 @@ const handleToggleStatus = async (row) => {
 
 onMounted(() => {
   loadCategories()
+  loadUnits()
   loadGoods()
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
