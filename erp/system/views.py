@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from .serializers import CustomTokenObtainPairSerializer, UserSerializer, RoleSerializer, LogSerializer
 from .models import Role, Log
@@ -24,6 +25,22 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             'data': {
                 'access': response.data['access'],
                 'refresh': response.data['refresh']
+            }
+        })
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """自定义Token刷新视图，统一响应格式"""
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        return Response({
+            'code': 200,
+            'msg': '刷新成功',
+            'data': {
+                'access': response.data['access'],
+                'refresh': response.data.get('refresh')
             }
         })
 

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.db.models import Sum
+from decimal import Decimal
 from .models import Category, Warehouse, Supplier, Customer, Goods
 
 
@@ -217,3 +219,42 @@ class GoodsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'max_stock': '最高库存不能低于最低库存'})
         
         return data
+
+
+class GoodsWithStockSerializer(serializers.ModelSerializer):
+    """带库存信息的商品序列化器"""
+    category = serializers.IntegerField(source='category.id', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    total_quantity = serializers.SerializerMethodField()
+    stock_status = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Goods
+        fields = ['id', 'code', 'name', 'category', 'category_name', 'unit', 'spec',
+                  'barcode', 'purchase_price', 'sale_price', 'retail_price',
+                  'min_stock', 'max_stock', 'status', 'total_quantity', 'stock_status',
+                  'created_at', 'updated_at']
+    
+    def get_total_quantity(self, obj):
+        """获取商品总库存"""
+        from inventory.models import Inventory
+        
+        total = Inventory.objects.filter(goods=obj).aggregate(
+            total=Sum('quantity')
+        )['total']
+        return total or Decimal('0')
+    
+    def get_stock_status(self, obj):
+        """获取库存状态"""
+        total_quantity = self.get_total_quantity(obj)
+        min_stock = obj.min_stock or 0
+        max_stock = obj.max_stock or 0
+        
+        if total_quantity <= 0:
+            return {'code': 'out', 'text': '缺货'}
+        elif min_stock > 0 and total_quantity <= min_stock:
+            return {'code': 'low', 'text': '库存不足'}
+        elif max_stock > 0 and total_quantity >= max_stock:
+            return {'code': 'over', 'text': '库存过剩'}
+        else:
+            return {'code': 'normal', 'text': '正常'}

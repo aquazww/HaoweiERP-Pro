@@ -61,9 +61,9 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="success" link :icon="Download" size="small" @click="handleStockIn(row)" v-if="row.status !== 'completed'">入库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="row.status === 'pending'">编辑</el-button>
+                <el-button type="success" link :icon="Download" size="small" @click="handleStockIn(row)" v-if="row.status !== 'completed' && row.status !== 'cancelled'">入库</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="row.status === 'pending'">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -86,7 +86,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑采购单' : '新增采购单'"
-      width="1000px"
+      width="1100px"
       class="form-dialog"
       destroy-on-close
       @close="resetForm"
@@ -132,43 +132,89 @@
           </el-form-item>
 
           <el-form-item label="备注">
-            <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" />
+            <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" maxlength="500" show-word-limit />
           </el-form-item>
         </div>
 
         <div class="form-section">
-          <div class="section-title">采购明细</div>
+          <div class="section-title">
+            采购明细
+            <span class="item-count" v-if="form.items.length > 0">({{ form.items.length }}项)</span>
+          </div>
           
           <div class="detail-table-wrapper">
             <el-table :data="form.items" border style="width: 100%;" class="detail-table">
-              <el-table-column prop="goods" label="商品" min-width="220">
+              <el-table-column type="index" label="#" width="50" align="center" />
+              <el-table-column prop="goods" label="商品" min-width="200">
                 <template #default="{ row, $index }">
-                  <el-select v-model="row.goods" placeholder="选择商品" style="width: 100%" filterable @change="handleGoodsChange(row)">
+                  <el-select 
+                    v-model="row.goods" 
+                    placeholder="请选择商品" 
+                    style="width: 100%" 
+                    filterable 
+                    @change="handleGoodsChange(row, $index)"
+                  >
                     <el-option 
-                      v-for="item in goodsList" 
+                      v-for="item in availableGoods($index)" 
                       :key="item.id" 
-                      :label="item.name" 
+                      :label="`${item.name} (${item.code})`" 
                       :value="item.id" 
                     />
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column prop="quantity" label="数量" width="130">
+              <el-table-column prop="unit" label="单位" width="70" align="center">
                 <template #default="{ row }">
-                  <el-input-number v-model="row.quantity" :min="0" :precision="2" style="width: 100%" />
+                  <span class="unit-text">{{ getGoodsUnit(row.goods) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="price" label="单价" width="130">
-                <template #default="{ row }">
-                  <el-input-number v-model="row.price" :min="0" :precision="2" style="width: 100%" />
+              <el-table-column prop="quantity" label="数量" width="150">
+                <template #default="{ row, $index }">
+                  <div class="input-cell" :class="{ 'has-error': row._quantityError }">
+                    <el-input
+                      :model-value="formatInputNumber(row.quantity, true)"
+                      @input="(val) => handleQuantityInput(row, val)"
+                      @blur="handleQuantityBlur(row)"
+                      placeholder="请输入"
+                      class="number-input"
+                      :class="{ 'is-error': row._quantityError }"
+                    >
+                      <template #suffix>
+                        <span class="input-suffix" v-if="row.quantity">件</span>
+                      </template>
+                    </el-input>
+                    <div class="error-tip" v-if="row._quantityError">{{ row._quantityError }}</div>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="amount" label="金额" width="140">
-                <template #default="{ row }">
-                  <span class="detail-price">¥{{ (row.quantity * row.price).toFixed(2) }}</span>
+              <el-table-column prop="price" label="单价(元)" width="150">
+                <template #default="{ row, $index }">
+                  <div class="input-cell" :class="{ 'has-error': row._priceError }">
+                    <el-input
+                      :model-value="formatInputNumber(row.price)"
+                      @input="(val) => handlePriceInput(row, val)"
+                      @blur="handlePriceBlur(row)"
+                      placeholder="请输入"
+                      class="number-input price-input"
+                      :class="{ 'is-error': row._priceError }"
+                    >
+                      <template #prefix>
+                        <span class="input-prefix">¥</span>
+                      </template>
+                    </el-input>
+                    <div class="error-tip" v-if="row._priceError">{{ row._priceError }}</div>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="80">
+              <el-table-column prop="amount" label="金额(元)" width="130" align="right">
+                <template #default="{ row }">
+                  <div class="amount-display">
+                    <span class="amount-symbol">¥</span>
+                    <span class="amount-value">{{ calculateItemAmount(row) }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="70" align="center">
                 <template #default="{ $index }">
                   <el-button type="danger" link :icon="Delete" size="small" @click="removeItem($index)"></el-button>
                 </template>
@@ -179,8 +225,15 @@
           <div class="detail-footer">
             <el-button type="primary" plain :icon="Plus" @click="addItem">添加明细</el-button>
             <div class="total-section">
-              <span class="total-label">合计金额：</span>
-              <span class="total-amount">¥{{ totalAmount }}</span>
+              <div class="total-info">
+                <span class="total-items">共 <strong>{{ form.items.length }}</strong> 项</span>
+                <span class="total-divider">|</span>
+                <span class="total-quantity">合计数量: <strong>{{ totalQuantity }}</strong></span>
+              </div>
+              <div class="total-amount-wrapper">
+                <span class="total-label">合计金额：</span>
+                <span class="total-amount">¥{{ totalAmount }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -195,23 +248,68 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 查看详情弹窗 -->
+    <el-dialog
+      v-model="viewDialogVisible"
+      title="采购单详情"
+      width="900px"
+      class="view-dialog"
+    >
+      <el-descriptions :column="2" border v-if="viewData">
+        <el-descriptions-item label="采购单号">{{ viewData.order_no }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <div class="status-badge" :class="viewData.status">
+            <span class="status-dot"></span>
+            {{ getStatusText(viewData.status) }}
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="供应商">{{ viewData.supplier_name }}</el-descriptions-item>
+        <el-descriptions-item label="仓库">{{ viewData.warehouse_name }}</el-descriptions-item>
+        <el-descriptions-item label="采购日期">{{ viewData.order_date }}</el-descriptions-item>
+        <el-descriptions-item label="总金额">¥{{ formatPrice(viewData.total_amount) }}</el-descriptions-item>
+        <el-descriptions-item label="创建人">{{ viewData.created_by_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ viewData.created_at }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ viewData.remark || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      
+      <div class="view-items-title">采购明细</div>
+      <el-table :data="viewData?.items || []" border style="width: 100%;">
+        <el-table-column type="index" label="#" width="60" align="center" />
+        <el-table-column prop="goods_name" label="商品名称" min-width="180" />
+        <el-table-column prop="goods_code" label="商品编码" width="120" />
+        <el-table-column prop="unit" label="单位" width="70" align="center" />
+        <el-table-column prop="quantity" label="数量" width="100" align="right">
+          <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
+        </el-table-column>
+        <el-table-column prop="price" label="单价" width="120" align="right">
+          <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
+        </el-table-column>
+        <el-table-column prop="amount" label="金额" width="120" align="right">
+          <template #default="{ row }">¥{{ formatPrice(row.amount) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ShoppingCart, Search, Refresh, Plus, Edit, Delete, View, Download } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, View, Download } from '@element-plus/icons-vue'
 import { 
   getPurchaseOrders, createPurchaseOrder, 
-  updatePurchaseOrder, deletePurchaseOrder 
+  updatePurchaseOrder, deletePurchaseOrder,
+  getPurchaseOrder
 } from '../../api/purchase'
 import { getSuppliers, getWarehouses, getGoods } from '../../api/basic'
 import { createStockIn, confirmStockIn } from '../../api/inventory'
+import { formatPrice, formatQuantity, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
 
 const loading = ref(false)
 const submitLoading = ref(false)
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
 const orderList = ref([])
@@ -224,6 +322,7 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
+const viewData = ref(null)
 
 const form = ref({
   supplier: '',
@@ -236,17 +335,7 @@ const form = ref({
 const rules = {
   supplier: [{ required: true, message: '请选择供应商', trigger: 'change' }],
   warehouse: [{ required: true, message: '请选择仓库', trigger: 'change' }],
-  order_date: [{ required: true, message: '请选择日期', trigger: 'change' }]
-}
-
-const getStatusType = (status) => {
-  const typeMap = {
-    'pending': 'warning',
-    'partial': 'info',
-    'completed': 'success',
-    'cancelled': 'danger'
-  }
-  return typeMap[status] || ''
+  order_date: [{ required: true, message: '请选择采购日期', trigger: 'change' }]
 }
 
 const getStatusText = (status) => {
@@ -259,21 +348,89 @@ const getStatusText = (status) => {
   return textMap[status] || status
 }
 
-const formatPrice = (price) => {
-  if (price === undefined || price === null) return '0.00'
-  return Number(price).toFixed(2)
+const handleQuantityInput = (row, value) => {
+  row._quantityError = ''
+  const num = parseInputNumber(value)
+  row.quantity = num
 }
+
+const handleQuantityBlur = (row) => {
+  if (row.quantity === null || row.quantity === undefined || row.quantity === '') {
+    row._quantityError = '请输入数量'
+    return
+  }
+  if (row.quantity <= 0) {
+    row._quantityError = '数量必须大于0'
+    return
+  }
+  if (row.quantity > 999999.99) {
+    row._quantityError = '数量超出范围'
+    return
+  }
+  row._quantityError = ''
+}
+
+const handlePriceInput = (row, value) => {
+  row._priceError = ''
+  const num = parseInputNumber(value)
+  row.price = num
+}
+
+const handlePriceBlur = (row) => {
+  if (row.price === null || row.price === undefined || row.price === '') {
+    row._priceError = '请输入单价'
+    return
+  }
+  if (row.price <= 0) {
+    row._priceError = '单价必须大于0'
+    return
+  }
+  if (row.price > 99999999.99) {
+    row._priceError = '单价超出范围'
+    return
+  }
+  row._priceError = ''
+}
+
+const calculateItemAmount = (row) => {
+  return calculateAmount(row.quantity, row.price)
+}
+
+const totalQuantity = computed(() => {
+  const total = form.value.items.reduce((sum, item) => {
+    return sum + (Number(item.quantity) || 0)
+  }, 0)
+  if (Number.isInteger(total)) return String(total)
+  return total.toString()
+})
 
 const totalAmount = computed(() => {
   return form.value.items.reduce((sum, item) => {
-    return sum + (item.quantity * item.price || 0)
+    return sum + ((Number(item.quantity) || 0) * (Number(item.price) || 0))
   }, 0).toFixed(2)
 })
+
+const getGoodsUnit = (goodsId) => {
+  const goods = goodsList.value.find(g => g.id === goodsId)
+  return goods?.unit || '-'
+}
+
+const availableGoods = (currentIndex) => {
+  const selectedGoodsIds = form.value.items
+    .filter((_, index) => index !== currentIndex)
+    .map(item => item.goods)
+    .filter(id => id)
+  
+  return goodsList.value.filter(goods => !selectedGoodsIds.includes(goods.id))
+}
 
 const loadOrders = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
     if (searchKeyword.value) {
       params.search = searchKeyword.value
     }
@@ -281,9 +438,12 @@ const loadOrders = async () => {
       params.status = statusFilter.value
     }
     const res = await getPurchaseOrders(params)
-    orderList.value = res.data.items || []
+    orderList.value = res.data.items || res.data.results || []
+    total.value = res.data.count || 0
   } catch (error) {
-    ElMessage.error('加载采购订单失败')
+    orderList.value = []
+    total.value = 0
+    ElMessage.error('加载采购订单失败：' + (error.message || '未知错误'))
   } finally {
     loading.value = false
   }
@@ -296,9 +456,9 @@ const loadOptions = async () => {
       getWarehouses(),
       getGoods()
     ])
-    supplierList.value = suppliersRes.data.items || []
-    warehouseList.value = warehousesRes.data.items || []
-    goodsList.value = goodsRes.data.items || []
+    supplierList.value = suppliersRes.data.items || suppliersRes.data.results || []
+    warehouseList.value = warehousesRes.data.items || warehousesRes.data.results || []
+    goodsList.value = goodsRes.data.items || goodsRes.data.results || []
   } catch (error) {
     ElMessage.error('加载选项数据失败')
   }
@@ -327,28 +487,54 @@ const handleAdd = () => {
   form.value = {
     supplier: '',
     warehouse: '',
-    order_date: '',
+    order_date: new Date().toISOString().split('T')[0],
     remark: '',
     items: []
   }
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
-  isEdit.value = true
-  form.value = {
-    id: row.id,
-    supplier: row.supplier,
-    warehouse: row.warehouse,
-    order_date: row.order_date,
-    remark: row.remark,
-    items: row.items ? [...row.items] : []
+const handleEdit = async (row) => {
+  if (row.status !== 'pending') {
+    ElMessage.warning('只有待入库状态的订单才能编辑')
+    return
   }
-  dialogVisible.value = true
+  
+  isEdit.value = true
+  
+  try {
+    const res = await getPurchaseOrder(row.id)
+    const data = res.data.data || res.data
+    
+    form.value = {
+      id: data.id,
+      supplier: data.supplier,
+      warehouse: data.warehouse,
+      order_date: data.order_date,
+      remark: data.remark || '',
+      items: (data.items || []).map(item => ({
+        goods: item.goods,
+        quantity: Number(item.quantity),
+        price: Number(item.price),
+        remark: item.remark || '',
+        _quantityError: '',
+        _priceError: ''
+      }))
+    }
+    dialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取订单详情失败')
+  }
 }
 
-const handleView = (row) => {
-  ElMessage.info('查看采购单功能开发中')
+const handleView = async (row) => {
+  try {
+    const res = await getPurchaseOrder(row.id)
+    viewData.value = res.data.data || res.data
+    viewDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取订单详情失败')
+  }
 }
 
 const handleStockIn = async (row) => {
@@ -356,13 +542,22 @@ const handleStockIn = async (row) => {
     ElMessage.warning('该采购单已全部入库')
     return
   }
+  
+  if (row.status === 'cancelled') {
+    ElMessage.warning('该采购单已取消，无法入库')
+    return
+  }
 
   try {
-    await ElMessageBox.confirm('确定要入库此采购单吗？', '确认入库', {
-      confirmButtonText: '确定入库',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要将采购单「${row.order_no}」入库吗？入库后将更新库存。`,
+      '确认入库',
+      {
+        confirmButtonText: '确定入库',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const stockInData = {
       purchase_order: row.id,
@@ -372,18 +567,24 @@ const handleStockIn = async (row) => {
     }
     
     const stockInRes = await createStockIn(stockInData)
-    await confirmStockIn(stockInRes.data.id)
+    await confirmStockIn(stockInRes.data.id || stockInRes.data.data?.id)
     
     ElMessage.success('入库成功')
     loadOrders()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('入库失败')
+      const errorMsg = error.response?.data?.msg || error.message || '入库失败'
+      ElMessage.error(errorMsg)
     }
   }
 }
 
 const handleDelete = async (row) => {
+  if (row.status !== 'pending') {
+    ElMessage.warning('只有待入库状态的订单才能删除')
+    return
+  }
+  
   try {
     await ElMessageBox.confirm(`确定要删除采购单「${row.order_no}」吗？`, '确认删除', {
       confirmButtonText: '确定删除',
@@ -404,9 +605,11 @@ const handleDelete = async (row) => {
 const addItem = () => {
   form.value.items.push({
     goods: '',
-    quantity: 1,
-    price: 0,
-    remark: ''
+    quantity: null,
+    price: null,
+    remark: '',
+    _quantityError: '',
+    _priceError: ''
   })
 }
 
@@ -414,26 +617,95 @@ const removeItem = (index) => {
   form.value.items.splice(index, 1)
 }
 
-const handleGoodsChange = (row) => {
+const handleGoodsChange = (row, index) => {
   const goods = goodsList.value.find(g => g.id === row.goods)
   if (goods) {
-    row.price = goods.purchase_price || 0
+    row.price = goods.purchase_price ? Number(goods.purchase_price) : null
+    row._priceError = ''
   }
 }
 
+const validateItems = () => {
+  if (form.value.items.length === 0) {
+    ElMessage.warning('请至少添加一条采购明细')
+    return false
+  }
+  
+  let hasError = false
+  
+  for (let i = 0; i < form.value.items.length; i++) {
+    const item = form.value.items[i]
+    
+    if (!item.goods) {
+      ElMessage.warning(`第${i + 1}条明细：请选择商品`)
+      hasError = true
+      continue
+    }
+    
+    if (item.quantity === null || item.quantity === undefined || item.quantity === '') {
+      item._quantityError = '请输入数量'
+      hasError = true
+    } else if (item.quantity <= 0) {
+      item._quantityError = '数量必须大于0'
+      hasError = true
+    }
+    
+    if (item.price === null || item.price === undefined || item.price === '') {
+      item._priceError = '请输入单价'
+      hasError = true
+    } else if (item.price <= 0) {
+      item._priceError = '单价必须大于0'
+      hasError = true
+    }
+  }
+  
+  if (hasError) {
+    return false
+  }
+  
+  const goodsIds = form.value.items.map(item => item.goods)
+  const uniqueIds = new Set(goodsIds)
+  if (goodsIds.length !== uniqueIds.size) {
+    ElMessage.warning('采购明细中存在重复商品，请检查')
+    return false
+  }
+  
+  return true
+}
+
 const handleSubmit = async () => {
+  if (!formRef.value) return
+  
   try {
     await formRef.value.validate()
-    submitLoading.value = true
-    
+  } catch (error) {
+    ElMessage.warning('请检查基本信息是否填写完整')
+    return
+  }
+  
+  if (!validateItems()) {
+    return
+  }
+  
+  submitLoading.value = true
+  
+  try {
     const data = {
-      ...form.value,
-      total_amount: parseFloat(totalAmount.value)
+      supplier: form.value.supplier,
+      warehouse: form.value.warehouse,
+      order_date: form.value.order_date,
+      remark: form.value.remark || '',
+      items: form.value.items.map(item => ({
+        goods: item.goods,
+        quantity: item.quantity,
+        price: item.price,
+        remark: item.remark || ''
+      }))
     }
     
     if (isEdit.value) {
       await updatePurchaseOrder(form.value.id, data)
-      ElMessage.success('更新成功')
+      ElMessage.success('修改成功')
     } else {
       await createPurchaseOrder(data)
       ElMessage.success('创建成功')
@@ -442,8 +714,13 @@ const handleSubmit = async () => {
     dialogVisible.value = false
     loadOrders()
   } catch (error) {
-    if (error !== false) {
-      ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
+    const errorMsg = error.response?.data?.msg || error.response?.data?.data || error.message || '操作失败'
+    
+    if (typeof errorMsg === 'object') {
+      const messages = Object.values(errorMsg).flat().join('；')
+      ElMessage.error(messages)
+    } else {
+      ElMessage.error(errorMsg)
     }
   } finally {
     submitLoading.value = false
@@ -454,6 +731,7 @@ const resetForm = () => {
   if (formRef.value) {
     formRef.value.resetFields()
   }
+  form.value.items = []
 }
 
 onMounted(() => {
@@ -617,26 +895,6 @@ onUnmounted(() => {
   --el-pagination-font-size: 13px;
 }
 
-.pagination-wrapper :deep(.el-pagination .btn-prev),
-.pagination-wrapper :deep(.el-pagination .btn-next) {
-  min-width: 32px;
-  padding: 0 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pager li) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
-  margin-left: 8px;
-}
-
 .form-dialog {
   --el-dialog-border-radius: var(--border-radius-lg);
 }
@@ -648,6 +906,8 @@ onUnmounted(() => {
 
 .form-dialog :deep(.el-dialog__body) {
   padding: var(--spacing-lg) var(--spacing-xl);
+  max-height: 65vh;
+  overflow-y: auto;
 }
 
 .form-dialog :deep(.el-dialog__footer) {
@@ -670,6 +930,15 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-md);
   padding-left: var(--spacing-sm);
   border-left: 3px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.item-count {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .detail-table-wrapper {
@@ -682,10 +951,71 @@ onUnmounted(() => {
   --el-table-header-bg-color: var(--color-bg-light);
 }
 
-.detail-price {
+.unit-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.input-cell {
+  position: relative;
+}
+
+.input-cell.has-error .number-input :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger) inset;
+}
+
+.number-input :deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+.number-input.is-error :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+}
+
+.number-input.price-input :deep(.el-input__inner) {
+  text-align: right;
+}
+
+.input-prefix {
+  color: var(--color-primary);
   font-weight: 600;
+}
+
+.input-suffix {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.error-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 11px;
+  color: var(--color-danger);
+  white-space: nowrap;
+  padding-top: 2px;
+  z-index: 10;
+}
+
+.amount-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.amount-symbol {
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.amount-value {
+  font-weight: 700;
   font-family: 'Monaco', 'Consolas', monospace;
   color: var(--color-primary);
+  font-size: var(--font-size-base);
 }
 
 .detail-footer {
@@ -693,9 +1023,33 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
 }
 
 .total-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.total-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.total-info strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.total-divider {
+  color: var(--color-border);
+}
+
+.total-amount-wrapper {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -717,5 +1071,18 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-sm);
+}
+
+.view-dialog :deep(.el-dialog__body) {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.view-items-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  padding-left: var(--spacing-sm);
+  border-left: 3px solid var(--color-primary);
 }
 </style>

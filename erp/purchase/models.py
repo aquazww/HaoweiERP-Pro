@@ -49,6 +49,18 @@ class PurchaseItem(models.Model):
         db_table = 'biz_purchase_item'
         verbose_name = '采购明细'
         verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(
+                fields=['order', 'goods'],
+                name='unique_purchase_item_goods'
+            )
+        ]
 
     def __str__(self):
         return f'{self.order.order_no} - {self.goods.name}'
+    
+    def save(self, *args, **kwargs):
+        """保存时自动计算金额"""
+        if self.quantity and self.price:
+            self.amount = self.quantity * self.price
+        super().save(*args, **kwargs)

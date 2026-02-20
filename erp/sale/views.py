@@ -3,9 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
 from .models import SaleOrder, SaleItem
-from .serializers import SaleOrderSerializer, SaleItemSerializer
+from .serializers import (
+    SaleOrderSerializer, SaleOrderCreateSerializer, 
+    SaleItemSerializer
+)
 from utils.views import BaseModelViewSet
-from utils.models import generate_order_no
+from utils.order_no import generate_sale_order_no
 from inventory.services import InventoryService
 
 
@@ -19,54 +22,56 @@ class SaleOrderViewSet(BaseModelViewSet):
     search_fields = ['order_no']
     module_name = '销售订单'
 
+    def get_serializer_class(self):
+        """根据动作选择序列化器"""
+        if self.action in ['create', 'update', 'partial_update']:
+            return SaleOrderCreateSerializer
+        return SaleOrderSerializer
+
     def perform_create(self, serializer):
-        """创建销售单时自动生成订单号"""
-        order_no = generate_order_no(prefix='SO')
-        serializer.save(
-            order_no=order_no,
-            created_by=self.request.user
-        )
+        """创建销售单时设置创建人"""
+        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
         """确认出库"""
         sale_order = self.get_object()
+        
         if sale_order.status != 'pending':
             return Response({
                 'code': 400,
-                'msg': '该销售单状态不允许确认',
+                'msg': '该销售单状态不允许确认，只有待出库状态才能确认',
                 'data': None
             })
         
         try:
             with transaction.atomic():
-                # 处理销售订单明细出库
                 for item in sale_order.items.all():
-                    # 计算本次出库数量（待出库数量）
                     shipped_qty = item.quantity - item.shipped_quantity
                     if shipped_qty > 0:
-                        # 执行出库
                         InventoryService.stock_out(
                             goods=item.goods,
                             warehouse=sale_order.warehouse,
                             quantity=shipped_qty,
                             related_order=sale_order,
-                            remark=f'销售出库，单号：{sale_order.order_no}'
+                            remark=f'销售出库，单号：{sale_order.order_no}',
+                            created_by=request.user
                         )
-                        # 更新销售明细的已出库数量
                         item.shipped_quantity = item.quantity
                         item.save()
                 
-                # 更新销售订单状态
                 all_shipped = all(
                     item.shipped_quantity >= item.quantity 
                     for item in sale_order.items.all()
                 )
+                
                 if all_shipped:
                     sale_order.status = 'completed'
                 else:
                     sale_order.status = 'partial'
                 sale_order.save()
+                
+                self.log_action(request, 'confirm', f'确认出库单: {sale_order.order_no}')
                 
                 return Response({
                     'code': 200,
@@ -81,8 +86,8 @@ class SaleOrderViewSet(BaseModelViewSet):
             })
         except Exception as e:
             return Response({
-                'code': 400,
-                'msg': '出库失败',
+                'code': 500,
+                'msg': f'出库失败: {str(e)}',
                 'data': None
             })
 

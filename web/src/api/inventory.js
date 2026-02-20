@@ -4,6 +4,14 @@ export const getInventory = (params) => {
   return request.get('/inventory/inventory/', { params })
 }
 
+export const getInventorySummary = () => {
+  return request.get('/inventory/inventory/summary/')
+}
+
+export const getInventoryWarning = () => {
+  return request.get('/inventory/inventory/warning/')
+}
+
 export const getInventoryLogs = (params) => {
   return request.get('/inventory/logs/', { params })
 }

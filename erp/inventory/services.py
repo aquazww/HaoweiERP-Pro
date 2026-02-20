@@ -7,43 +7,63 @@ class InventoryService:
 
     @staticmethod
     @transaction.atomic
-    def stock_in(goods, warehouse, quantity, related_order=None, remark=''):
+    def stock_in(goods, warehouse, quantity, related_order=None, remark='', created_by=None):
         """
         入库操作
+        :param goods: 商品对象
+        :param warehouse: 仓库对象
+        :param quantity: 入库数量
+        :param related_order: 关联单据对象
+        :param remark: 备注
+        :param created_by: 操作人
         """
-        # 获取或创建库存记录
+        if quantity <= 0:
+            raise ValueError('入库数量必须大于0')
+        
         inventory, created = Inventory.objects.get_or_create(
             goods=goods,
             warehouse=warehouse,
             defaults={'quantity': 0}
         )
         
-        # 更新库存数量
         old_quantity = inventory.quantity
         inventory.quantity += quantity
         inventory.save()
         
-        # 记录库存流水
-        InventoryLog.objects.create(
-            goods=goods,
-            warehouse=warehouse,
-            change_type='in',
-            change_quantity=quantity,
-            before_quantity=old_quantity,
-            after_quantity=inventory.quantity,
-            related_order=related_order,
-            remark=remark
-        )
+        log_data = {
+            'goods': goods,
+            'warehouse': warehouse,
+            'change_type': 'inbound',
+            'change_quantity': quantity,
+            'before_quantity': old_quantity,
+            'after_quantity': inventory.quantity,
+            'remark': remark,
+            'created_by': created_by
+        }
+        
+        if related_order:
+            log_data['related_order_type'] = related_order.__class__.__name__
+            log_data['related_order_id'] = related_order.id
+        
+        InventoryLog.objects.create(**log_data)
         
         return inventory
 
     @staticmethod
     @transaction.atomic
-    def stock_out(goods, warehouse, quantity, related_order=None, remark=''):
+    def stock_out(goods, warehouse, quantity, related_order=None, remark='', created_by=None):
         """
         出库操作
+        :param goods: 商品对象
+        :param warehouse: 仓库对象
+        :param quantity: 出库数量
+        :param related_order: 关联单据对象
+        :param remark: 备注
+        :param created_by: 操作人
         """
-        # 获取库存记录
+        if quantity <= 0:
+            raise ValueError('出库数量必须大于0')
+        
         try:
             inventory = Inventory.objects.get(
                 goods=goods,
@@ -52,25 +72,28 @@ class InventoryService:
         except Inventory.DoesNotExist:
             raise ValueError(f'商品 {goods.name} 在该仓库无库存')
         
-        # 检查库存是否足够
         if inventory.quantity < quantity:
             raise ValueError(f'商品 {goods.name} 库存不足，当前库存：{inventory.quantity}')
         
-        # 更新库存数量
         old_quantity = inventory.quantity
         inventory.quantity -= quantity
         inventory.save()
         
-        # 记录库存流水
-        InventoryLog.objects.create(
-            goods=goods,
-            warehouse=warehouse,
-            change_type='out',
-            change_quantity=quantity,
-            before_quantity=old_quantity,
-            after_quantity=inventory.quantity,
-            related_order=related_order,
-            remark=remark
-        )
+        log_data = {
+            'goods': goods,
+            'warehouse': warehouse,
+            'change_type': 'outbound',
+            'change_quantity': quantity,
+            'before_quantity': old_quantity,
+            'after_quantity': inventory.quantity,
+            'remark': remark,
+            'created_by': created_by
+        }
+        
+        if related_order:
+            log_data['related_order_type'] = related_order.__class__.__name__
+            log_data['related_order_id'] = related_order.id
+        
+        InventoryLog.objects.create(**log_data)
         
         return inventory

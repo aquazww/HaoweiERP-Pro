@@ -55,6 +55,8 @@
             <span>库存管理</span>
           </template>
           <el-menu-item index="/inventory/stock">库存查询</el-menu-item>
+          <el-menu-item index="/inventory/adjust">库存调整</el-menu-item>
+          <el-menu-item index="/inventory/transfer">库存调拨</el-menu-item>
           <el-menu-item index="/inventory/log">库存流水</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="finance">
@@ -164,6 +166,8 @@ const pageTitleMap = {
   '/purchase/orders': '采购订单',
   '/sale/orders': '销售订单',
   '/inventory/stock': '库存查询',
+  '/inventory/adjust': '库存调整',
+  '/inventory/transfer': '库存调拨',
   '/inventory/log': '库存流水',
   '/finance/payments': '收付款管理',
   '/reports/purchase': '采购报表',

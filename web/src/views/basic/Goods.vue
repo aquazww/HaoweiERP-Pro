@@ -210,41 +210,59 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="进货价" prop="purchase_price">
-              <el-input-number 
-                v-model="form.purchase_price" 
-                :precision="2" 
-                :min="0"
-                :max="999999999.99"
-                placeholder="请输入进货价"
-                style="width: 100%"
-                controls-position="right"
-              />
+              <div class="price-input-wrapper" :class="{ 'has-error': priceErrors.purchase_price }">
+                <el-input
+                  :model-value="formatInputNumber(form.purchase_price)"
+                  @input="(val) => handlePriceInput('purchase_price', val)"
+                  @blur="handlePriceBlur('purchase_price')"
+                  placeholder="请输入"
+                  class="price-input"
+                  :class="{ 'is-error': priceErrors.purchase_price }"
+                >
+                  <template #prefix>
+                    <span class="input-prefix">¥</span>
+                  </template>
+                </el-input>
+                <div class="error-tip" v-if="priceErrors.purchase_price">{{ priceErrors.purchase_price }}</div>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="销售价" prop="sale_price">
-              <el-input-number 
-                v-model="form.sale_price" 
-                :precision="2" 
-                :min="0"
-                :max="999999999.99"
-                placeholder="请输入销售价"
-                style="width: 100%"
-                controls-position="right"
-              />
+              <div class="price-input-wrapper" :class="{ 'has-error': priceErrors.sale_price }">
+                <el-input
+                  :model-value="formatInputNumber(form.sale_price)"
+                  @input="(val) => handlePriceInput('sale_price', val)"
+                  @blur="handlePriceBlur('sale_price')"
+                  placeholder="请输入"
+                  class="price-input"
+                  :class="{ 'is-error': priceErrors.sale_price }"
+                >
+                  <template #prefix>
+                    <span class="input-prefix">¥</span>
+                  </template>
+                </el-input>
+                <div class="error-tip" v-if="priceErrors.sale_price">{{ priceErrors.sale_price }}</div>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="零售价" prop="retail_price">
-              <el-input-number 
-                v-model="form.retail_price" 
-                :precision="2" 
-                :min="0"
-                :max="999999999.99"
-                placeholder="请输入零售价"
-                style="width: 100%"
-                controls-position="right"
-              />
+              <div class="price-input-wrapper" :class="{ 'has-error': priceErrors.retail_price }">
+                <el-input
+                  :model-value="formatInputNumber(form.retail_price)"
+                  @input="(val) => handlePriceInput('retail_price', val)"
+                  @blur="handlePriceBlur('retail_price')"
+                  placeholder="请输入"
+                  class="price-input"
+                  :class="{ 'is-error': priceErrors.retail_price }"
+                >
+                  <template #prefix>
+                    <span class="input-prefix">¥</span>
+                  </template>
+                </el-input>
+                <div class="error-tip" v-if="priceErrors.retail_price">{{ priceErrors.retail_price }}</div>
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -315,6 +333,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { getGoods, createGoods, deleteGoods, updateGoods } from '../../api/basic'
 import { getCategories } from '../../api/basic'
+import { formatPrice, formatInputNumber, parseInputNumber } from '../../utils/format'
 
 const loading = ref(false)
 const toggleLoading = ref(null)
@@ -332,6 +351,12 @@ const isEdit = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
 const categoryList = ref([])
+
+const priceErrors = reactive({
+  purchase_price: '',
+  sale_price: '',
+  retail_price: ''
+})
 
 const form = reactive({
   id: null,
@@ -409,14 +434,38 @@ const rules = {
   ]
 }
 
+const handlePriceInput = (field, value) => {
+  priceErrors[field] = ''
+  const num = parseInputNumber(value)
+  form[field] = num
+}
+
+const handlePriceBlur = (field) => {
+  const value = form[field]
+  if (value === null || value === undefined || value === '') {
+    priceErrors[field] = '请输入价格'
+    return
+  }
+  if (value < 0) {
+    priceErrors[field] = '价格不能为负数'
+    return
+  }
+  if (value > 99999999.99) {
+    priceErrors[field] = '价格超出范围'
+    return
+  }
+  
+  if (field === 'sale_price' && form.purchase_price && value < form.purchase_price) {
+    priceErrors[field] = '销售价不能低于进货价'
+    return
+  }
+  
+  priceErrors[field] = ''
+}
+
 const getGoodsInitials = (name) => {
   if (!name) return ''
   return name.slice(0, 2)
-}
-
-const formatPrice = (price) => {
-  if (price === undefined || price === null) return '0.00'
-  return Number(price).toFixed(2)
 }
 
 const calculateProfit = (row) => {
@@ -492,6 +541,9 @@ const resetForm = () => {
   form.max_stock = 0
   form.status = 1
   form.remark = ''
+  priceErrors.purchase_price = ''
+  priceErrors.sale_price = ''
+  priceErrors.retail_price = ''
 }
 
 const handleAdd = () => {
@@ -827,6 +879,44 @@ onUnmounted(() => {
 
 .goods-form :deep(.el-form-item__label) {
   font-weight: 500;
+}
+
+.price-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.price-input-wrapper.has-error .price-input :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger) inset;
+}
+
+.price-input :deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+.price-input :deep(.el-input__inner) {
+  text-align: right;
+}
+
+.price-input.is-error :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+}
+
+.input-prefix {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.error-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 11px;
+  color: var(--color-danger);
+  white-space: nowrap;
+  padding-top: 2px;
+  z-index: 10;
 }
 
 .dialog-footer {

@@ -53,6 +53,16 @@ const routes = [
         component: () => import('../views/inventory/InventoryLog.vue')
       },
       {
+        path: 'inventory/adjust',
+        name: 'InventoryAdjust',
+        component: () => import('../views/inventory/InventoryAdjust.vue')
+      },
+      {
+        path: 'inventory/transfer',
+        name: 'InventoryTransfer',
+        component: () => import('../views/inventory/InventoryTransfer.vue')
+      },
+      {
         path: 'finance/payments',
         name: 'FinancePayments',
         component: () => import('../views/finance/Payments.vue')

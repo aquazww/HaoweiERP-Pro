@@ -61,9 +61,9 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="success" link :icon="Upload" size="small" @click="handleStockOut(row)" v-if="row.status !== 'completed'">出库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="row.status === 'pending'">编辑</el-button>
+                <el-button type="success" link :icon="Upload" size="small" @click="handleStockOut(row)" v-if="row.status !== 'completed' && row.status !== 'cancelled'">出库</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="row.status === 'pending'">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -81,6 +81,43 @@
         </div>
       </div>
     </div>
+
+    <!-- 查看弹窗 -->
+    <el-dialog
+      v-model="viewDialogVisible"
+      title="销售单详情"
+      width="800px"
+      class="view-dialog"
+      destroy-on-close
+    >
+      <el-descriptions :column="2" border class="view-descriptions">
+        <el-descriptions-item label="销售单号">{{ viewData.order_no }}</el-descriptions-item>
+        <el-descriptions-item label="客户">{{ viewData.customer_name }}</el-descriptions-item>
+        <el-descriptions-item label="仓库">{{ viewData.warehouse_name }}</el-descriptions-item>
+        <el-descriptions-item label="销售日期">{{ viewData.order_date }}</el-descriptions-item>
+        <el-descriptions-item label="总金额">¥{{ formatPrice(viewData.total_amount) }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <div class="status-badge" :class="viewData.status">
+            <span class="status-dot"></span>
+            {{ getStatusText(viewData.status) }}
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ viewData.remark || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      
+      <div class="view-items-title">销售明细</div>
+      <el-table :data="viewData.items" border style="width: 100%;">
+        <el-table-column type="index" label="#" width="50" align="center" />
+        <el-table-column prop="goods_name" label="商品名称" min-width="180" />
+        <el-table-column prop="quantity" label="数量" width="100" align="right" />
+        <el-table-column label="单价" width="120" align="right">
+          <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
+        </el-table-column>
+        <el-table-column label="金额" width="120" align="right">
+          <template #default="{ row }">¥{{ formatPrice(row.amount) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
@@ -141,7 +178,7 @@
           
           <div class="detail-table-wrapper">
             <el-table :data="form.items" border style="width: 100%;" class="detail-table">
-              <el-table-column prop="goods" label="商品" min-width="220">
+              <el-table-column prop="goods" label="商品" min-width="200">
                 <template #default="{ row, $index }">
                   <el-select v-model="row.goods" placeholder="选择商品" style="width: 100%" filterable @change="handleGoodsChange(row)">
                     <el-option 
@@ -153,22 +190,53 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column prop="quantity" label="数量" width="130">
+              <el-table-column prop="quantity" label="数量" width="150">
                 <template #default="{ row }">
-                  <el-input-number v-model="row.quantity" :min="0" :precision="2" style="width: 100%" />
+                  <div class="input-cell" :class="{ 'has-error': row._quantityError }">
+                    <el-input
+                      :model-value="formatInputNumber(row.quantity, true)"
+                      @input="(val) => handleQuantityInput(row, val)"
+                      @blur="handleQuantityBlur(row)"
+                      placeholder="请输入"
+                      class="number-input"
+                      :class="{ 'is-error': row._quantityError }"
+                    >
+                      <template #suffix>
+                        <span class="input-suffix" v-if="row.quantity">{{ getGoodsUnit(row.goods) }}</span>
+                      </template>
+                    </el-input>
+                    <div class="error-tip" v-if="row._quantityError">{{ row._quantityError }}</div>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="price" label="单价" width="130">
+              <el-table-column prop="price" label="单价(元)" width="150">
                 <template #default="{ row }">
-                  <el-input-number v-model="row.price" :min="0" :precision="2" style="width: 100%" />
+                  <div class="input-cell" :class="{ 'has-error': row._priceError }">
+                    <el-input
+                      :model-value="formatInputNumber(row.price)"
+                      @input="(val) => handlePriceInput(row, val)"
+                      @blur="handlePriceBlur(row)"
+                      placeholder="请输入"
+                      class="number-input price-input"
+                      :class="{ 'is-error': row._priceError }"
+                    >
+                      <template #prefix>
+                        <span class="input-prefix">¥</span>
+                      </template>
+                    </el-input>
+                    <div class="error-tip" v-if="row._priceError">{{ row._priceError }}</div>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column prop="amount" label="金额" width="140">
+              <el-table-column prop="amount" label="金额(元)" width="130" align="right">
                 <template #default="{ row }">
-                  <span class="detail-price">¥{{ (row.quantity * row.price).toFixed(2) }}</span>
+                  <div class="amount-display">
+                    <span class="amount-symbol">¥</span>
+                    <span class="amount-value">{{ calculateItemAmount(row) }}</span>
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="80">
+              <el-table-column label="操作" width="70" align="center">
                 <template #default="{ $index }">
                   <el-button type="danger" link :icon="Delete" size="small" @click="removeItem($index)"></el-button>
                 </template>
@@ -179,8 +247,15 @@
           <div class="detail-footer">
             <el-button type="primary" plain :icon="Plus" @click="addItem">添加明细</el-button>
             <div class="total-section">
-              <span class="total-label">合计金额：</span>
-              <span class="total-amount">¥{{ totalAmount }}</span>
+              <div class="total-info">
+                <span class="total-items">共 <strong>{{ form.items.length }}</strong> 项</span>
+                <span class="total-divider">|</span>
+                <span class="total-quantity">合计数量: <strong>{{ totalQuantity }}</strong></span>
+              </div>
+              <div class="total-amount-wrapper">
+                <span class="total-label">合计金额：</span>
+                <span class="total-amount">¥{{ totalAmount }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -201,18 +276,19 @@
 <script setup>
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ShoppingBag, Search, Refresh, Plus, Edit, Delete, View, Upload } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, View, Upload } from '@element-plus/icons-vue'
 import { 
   getSaleOrders, createSaleOrder, 
   updateSaleOrder, deleteSaleOrder,
-  confirmSaleOrder
+  getSaleOrder, confirmSaleOrder
 } from '../../api/sale'
 import { getCustomers, getWarehouses, getGoods } from '../../api/basic'
-import { createStockOut } from '../../api/inventory'
+import { formatPrice, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
 
 const loading = ref(false)
 const submitLoading = ref(false)
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
 const orderList = ref([])
@@ -225,6 +301,17 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
+
+const viewData = ref({
+  order_no: '',
+  customer_name: '',
+  warehouse_name: '',
+  order_date: '',
+  total_amount: 0,
+  status: '',
+  remark: '',
+  items: []
+})
 
 const form = ref({
   customer: '',
@@ -240,16 +327,6 @@ const rules = {
   order_date: [{ required: true, message: '请选择日期', trigger: 'change' }]
 }
 
-const getStatusType = (status) => {
-  const typeMap = {
-    'pending': 'warning',
-    'partial': 'info',
-    'completed': 'success',
-    'cancelled': 'danger'
-  }
-  return typeMap[status] || ''
-}
-
 const getStatusText = (status) => {
   const textMap = {
     'pending': '待出库',
@@ -260,21 +337,80 @@ const getStatusText = (status) => {
   return textMap[status] || status
 }
 
-const formatPrice = (price) => {
-  if (price === undefined || price === null) return '0.00'
-  return Number(price).toFixed(2)
-}
+const totalQuantity = computed(() => {
+  const total = form.value.items.reduce((sum, item) => {
+    return sum + (Number(item.quantity) || 0)
+  }, 0)
+  if (Number.isInteger(total)) return String(total)
+  return total.toString()
+})
 
 const totalAmount = computed(() => {
   return form.value.items.reduce((sum, item) => {
-    return sum + (item.quantity * item.price || 0)
+    return sum + ((Number(item.quantity) || 0) * (Number(item.price) || 0))
   }, 0).toFixed(2)
 })
+
+const calculateItemAmount = (row) => {
+  return calculateAmount(row.quantity, row.price)
+}
+
+const getGoodsUnit = (goodsId) => {
+  const goods = goodsList.value.find(g => g.id === goodsId)
+  return goods?.unit || ''
+}
+
+const handleQuantityInput = (row, value) => {
+  row._quantityError = ''
+  const num = parseInputNumber(value)
+  row.quantity = num
+}
+
+const handleQuantityBlur = (row) => {
+  if (row.quantity === null || row.quantity === undefined || row.quantity === '') {
+    row._quantityError = '请输入数量'
+    return
+  }
+  if (row.quantity <= 0) {
+    row._quantityError = '数量必须大于0'
+    return
+  }
+  if (row.quantity > 999999.99) {
+    row._quantityError = '数量超出范围'
+    return
+  }
+  row._quantityError = ''
+}
+
+const handlePriceInput = (row, value) => {
+  row._priceError = ''
+  const num = parseInputNumber(value)
+  row.price = num
+}
+
+const handlePriceBlur = (row) => {
+  if (row.price === null || row.price === undefined || row.price === '') {
+    row._priceError = '请输入单价'
+    return
+  }
+  if (row.price <= 0) {
+    row._priceError = '单价必须大于0'
+    return
+  }
+  if (row.price > 99999999.99) {
+    row._priceError = '单价超出范围'
+    return
+  }
+  row._priceError = ''
+}
 
 const loadOrders = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
     if (searchKeyword.value) {
       params.search = searchKeyword.value
     }
@@ -282,9 +418,12 @@ const loadOrders = async () => {
       params.status = statusFilter.value
     }
     const res = await getSaleOrders(params)
-    orderList.value = res.data.items || []
+    orderList.value = res.data.items || res.data.results || []
+    total.value = res.data.count || 0
   } catch (error) {
-    ElMessage.error('加载销售订单失败')
+    orderList.value = []
+    total.value = 0
+    ElMessage.error('加载销售订单失败：' + (error.message || '未知错误'))
   } finally {
     loading.value = false
   }
@@ -297,9 +436,9 @@ const loadOptions = async () => {
       getWarehouses(),
       getGoods()
     ])
-    customerList.value = customersRes.data.items || []
-    warehouseList.value = warehousesRes.data.items || []
-    goodsList.value = goodsRes.data.items || []
+    customerList.value = customersRes.data.items || customersRes.data.results || []
+    warehouseList.value = warehousesRes.data.items || warehousesRes.data.results || []
+    goodsList.value = goodsRes.data.items || goodsRes.data.results || []
   } catch (error) {
     ElMessage.error('加载选项数据失败')
   }
@@ -335,21 +474,40 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
-  isEdit.value = true
-  form.value = {
-    id: row.id,
-    customer: row.customer,
-    warehouse: row.warehouse,
-    order_date: row.order_date,
-    remark: row.remark,
-    items: row.items ? [...row.items] : []
+const handleView = async (row) => {
+  try {
+    const res = await getSaleOrder(row.id)
+    viewData.value = res.data.data || res.data
+    viewDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('加载销售单详情失败')
   }
-  dialogVisible.value = true
 }
 
-const handleView = (row) => {
-  ElMessage.info('查看销售单功能开发中')
+const handleEdit = async (row) => {
+  try {
+    const res = await getSaleOrder(row.id)
+    const data = res.data.data || res.data
+    isEdit.value = true
+    form.value = {
+      id: data.id,
+      customer: data.customer,
+      warehouse: data.warehouse,
+      order_date: data.order_date,
+      remark: data.remark,
+      items: (data.items || []).map(item => ({
+        goods: item.goods,
+        quantity: item.quantity,
+        price: item.price,
+        remark: item.remark || '',
+        _quantityError: '',
+        _priceError: ''
+      }))
+    }
+    dialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('加载销售单详情失败')
+  }
 }
 
 const handleStockOut = async (row) => {
@@ -365,21 +523,12 @@ const handleStockOut = async (row) => {
       type: 'warning'
     })
 
-    const stockOutData = {
-      sale_order: row.id,
-      warehouse: row.warehouse,
-      total_amount: row.total_amount,
-      remark: `销售单 ${row.order_no} 出库`
-    }
-    
-    await createStockOut(stockOutData)
     await confirmSaleOrder(row.id)
-    
     ElMessage.success('出库成功')
     loadOrders()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('出库失败')
+      ElMessage.error('出库失败：' + (error.response?.data?.msg || error.message || '未知错误'))
     }
   }
 }
@@ -405,9 +554,11 @@ const handleDelete = async (row) => {
 const addItem = () => {
   form.value.items.push({
     goods: '',
-    quantity: 1,
-    price: 0,
-    remark: ''
+    quantity: null,
+    price: null,
+    remark: '',
+    _quantityError: '',
+    _priceError: ''
   })
 }
 
@@ -425,11 +576,43 @@ const handleGoodsChange = (row) => {
 const handleSubmit = async () => {
   try {
     await formRef.value.validate()
-    submitLoading.value = true
-    
+  } catch (error) {
+    ElMessage.warning('请检查表单填写是否正确')
+    return
+  }
+  
+  const hasError = form.value.items.some(item => item._quantityError || item._priceError)
+  if (hasError) {
+    ElMessage.warning('请检查明细数据是否正确')
+    return
+  }
+  
+  if (form.value.items.length === 0) {
+    ElMessage.warning('请添加销售明细')
+    return
+  }
+  
+  const goodsIds = form.value.items.map(item => item.goods).filter(id => id)
+  const uniqueGoodsIds = [...new Set(goodsIds)]
+  if (goodsIds.length !== uniqueGoodsIds.length) {
+    ElMessage.warning('销售明细中存在重复商品，请移除重复项或合并数量')
+    return
+  }
+  
+  submitLoading.value = true
+  
+  try {
     const data = {
-      ...form.value,
-      total_amount: parseFloat(totalAmount.value)
+      customer: form.value.customer,
+      warehouse: form.value.warehouse,
+      order_date: form.value.order_date,
+      remark: form.value.remark,
+      items: form.value.items.map(item => ({
+        goods: item.goods,
+        quantity: item.quantity,
+        price: item.price,
+        remark: item.remark || ''
+      }))
     }
     
     if (isEdit.value) {
@@ -443,12 +626,56 @@ const handleSubmit = async () => {
     dialogVisible.value = false
     loadOrders()
   } catch (error) {
-    if (error !== false) {
-      ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
-    }
+    const errorMsg = parseErrorMessage(error)
+    ElMessage.error(errorMsg)
   } finally {
     submitLoading.value = false
   }
+}
+
+const parseErrorMessage = (error) => {
+  const responseData = error.response?.data
+  if (!responseData) {
+    return error.message || '操作失败，请稍后重试'
+  }
+  
+  if (responseData.msg) {
+    return responseData.msg
+  }
+  
+  if (responseData.items) {
+    const itemsErrors = responseData.items
+    if (Array.isArray(itemsErrors)) {
+      for (const err of itemsErrors) {
+        if (typeof err === 'string') return err
+        if (err.string) return err.string
+        if (err.message) return err.message
+      }
+    }
+    if (typeof itemsErrors === 'string') return itemsErrors
+    return '销售明细数据有误，请检查后重试'
+  }
+  
+  if (responseData.non_field_errors) {
+    const errors = responseData.non_field_errors
+    if (Array.isArray(errors) && errors.length > 0) {
+      return typeof errors[0] === 'string' ? errors[0] : errors[0]?.string || '数据验证失败'
+    }
+    return String(errors)
+  }
+  
+  const firstKey = Object.keys(responseData)[0]
+  if (firstKey && responseData[firstKey]) {
+    const value = responseData[firstKey]
+    if (typeof value === 'string') return value
+    if (Array.isArray(value) && value.length > 0) {
+      const firstItem = value[0]
+      if (typeof firstItem === 'string') return firstItem
+      if (firstItem.string) return firstItem.string
+    }
+  }
+  
+  return '操作失败，请稍后重试'
 }
 
 const resetForm = () => {
@@ -618,24 +845,21 @@ onUnmounted(() => {
   --el-pagination-font-size: 13px;
 }
 
-.pagination-wrapper :deep(.el-pagination .btn-prev),
-.pagination-wrapper :deep(.el-pagination .btn-next) {
-  min-width: 32px;
-  padding: 0 8px;
+.view-dialog :deep(.el-dialog__body) {
+  padding: var(--spacing-lg);
 }
 
-.pagination-wrapper :deep(.el-pagination .el-pager li) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
+.view-descriptions {
+  margin-bottom: var(--spacing-lg);
 }
 
-.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
-  margin-left: 8px;
+.view-items-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-sm);
+  border-left: 3px solid var(--color-primary);
 }
 
 .form-dialog {
@@ -683,10 +907,62 @@ onUnmounted(() => {
   --el-table-header-bg-color: var(--color-bg-light);
 }
 
-.detail-price {
+.input-cell {
+  position: relative;
+}
+
+.input-cell.has-error .number-input :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger) inset;
+}
+
+.number-input :deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+.number-input :deep(.el-input__inner) {
+  text-align: right;
+}
+
+.number-input.is-error :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+}
+
+.input-prefix {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.input-suffix {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.error-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 11px;
+  color: var(--color-danger);
+  white-space: nowrap;
+  padding-top: 2px;
+  z-index: 10;
+}
+
+.amount-display {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.amount-symbol {
+  color: var(--color-text-tertiary);
+}
+
+.amount-value {
   font-weight: 600;
   font-family: 'Monaco', 'Consolas', monospace;
-  color: var(--color-primary);
 }
 
 .detail-footer {
@@ -697,6 +973,29 @@ onUnmounted(() => {
 }
 
 .total-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.total-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.total-info strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.total-divider {
+  color: var(--color-border);
+}
+
+.total-amount-wrapper {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -717,6 +1016,6 @@ onUnmounted(() => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--spacing-sm);
+  gap: 12px;
 }
 </style>

@@ -115,6 +115,7 @@ const handleLogin = async () => {
     
     const res = await request.post('/auth/login/', loginForm.value)
     localStorage.setItem('token', res.data.access)
+    localStorage.setItem('refresh_token', res.data.refresh)
     ElMessage.success('登录成功，欢迎回来！')
     
     setTimeout(() => {
@@ -131,6 +132,7 @@ const handleLogin = async () => {
 
 onMounted(() => {
   localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
 })
 </script>
 

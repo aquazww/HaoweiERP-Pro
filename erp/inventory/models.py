@@ -117,3 +117,104 @@ class StockOut(models.Model):
 
     def __str__(self):
         return self.order_no
+
+
+class StockAdjust(models.Model):
+    """库存调整单"""
+    ADJUST_TYPE_CHOICES = [
+        ('increase', '库存增加'),
+        ('decrease', '库存减少'),
+    ]
+    
+    REASON_CHOICES = [
+        ('check', '盘点调整'),
+        ('damage', '商品损耗'),
+        ('return', '退货入库'),
+        ('other', '其他原因'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('draft', '草稿'),
+        ('confirmed', '已确认'),
+        ('cancelled', '已取消'),
+    ]
+
+    order_no = models.CharField(max_length=30, unique=True, verbose_name='调整单号')
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, verbose_name='仓库')
+    adjust_type = models.CharField(max_length=20, choices=ADJUST_TYPE_CHOICES, verbose_name='调整类型')
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES, verbose_name='调整原因')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name='状态')
+    remark = models.TextField(blank=True, verbose_name='备注')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, verbose_name='创建人')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name='确认时间')
+
+    class Meta:
+        db_table = 'biz_stock_adjust'
+        verbose_name = '库存调整单'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.order_no
+
+
+class StockAdjustItem(models.Model):
+    """库存调整明细"""
+    adjust = models.ForeignKey(StockAdjust, on_delete=models.CASCADE, related_name='items', verbose_name='调整单')
+    goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
+    before_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整前数量')
+    adjust_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整数量')
+    after_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整后数量')
+    remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
+
+    class Meta:
+        db_table = 'biz_stock_adjust_item'
+        verbose_name = '库存调整明细'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.goods.name} - {self.adjust_quantity}'
+
+
+class StockTransfer(models.Model):
+    """库存调拨单"""
+    STATUS_CHOICES = [
+        ('draft', '草稿'),
+        ('confirmed', '已确认'),
+        ('cancelled', '已取消'),
+    ]
+
+    order_no = models.CharField(max_length=30, unique=True, verbose_name='调拨单号')
+    from_warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='transfer_out', verbose_name='调出仓库')
+    to_warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='transfer_in', verbose_name='调入仓库')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name='状态')
+    remark = models.TextField(blank=True, verbose_name='备注')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, verbose_name='创建人')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name='确认时间')
+
+    class Meta:
+        db_table = 'biz_stock_transfer'
+        verbose_name = '库存调拨单'
+        verbose_name_plural = verbose_name
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.order_no
+
+
+class StockTransferItem(models.Model):
+    """库存调拨明细"""
+    transfer = models.ForeignKey(StockTransfer, on_delete=models.CASCADE, related_name='items', verbose_name='调拨单')
+    goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调拨数量')
+    remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
+
+    class Meta:
+        db_table = 'biz_stock_transfer_item'
+        verbose_name = '库存调拨明细'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.goods.name} - {self.quantity}'

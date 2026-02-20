@@ -36,6 +36,7 @@ class Warehouse(models.Model):
         db_table = 'biz_warehouse'
         verbose_name = '仓库'
         verbose_name_plural = verbose_name
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.name
@@ -68,6 +69,7 @@ class Supplier(models.Model):
         db_table = 'biz_supplier'
         verbose_name = '供应商'
         verbose_name_plural = verbose_name
+        ordering = ['-created_at']
         indexes = [
             models.Index(fields=['code']),
             models.Index(fields=['name']),
@@ -104,6 +106,7 @@ class Customer(models.Model):
         db_table = 'biz_customer'
         verbose_name = '客户'
         verbose_name_plural = verbose_name
+        ordering = ['-created_at']
         indexes = [
             models.Index(fields=['code']),
             models.Index(fields=['name']),
@@ -140,6 +143,7 @@ class Goods(models.Model):
         db_table = 'biz_goods'
         verbose_name = '商品'
         verbose_name_plural = verbose_name
+        ordering = ['-created_at']
         indexes = [
             models.Index(fields=['code']),
             models.Index(fields=['name']),
