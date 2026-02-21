@@ -8,11 +8,12 @@ class SaleItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
     unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = SaleItem
-        fields = ['id', 'goods', 'goods_name', 'goods_code', 'unit',
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit',
                   'quantity', 'shipped_quantity', 'price', 'amount', 'remark']
         read_only_fields = ['id', 'amount']
 
@@ -35,15 +36,17 @@ class SaleOrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     items = SaleItemSerializer(many=True, read_only=True)
     
     class Meta:
         model = SaleOrder
         fields = ['id', 'order_no', 'customer', 'customer_name', 'warehouse',
                   'warehouse_name', 'order_date', 'total_amount', 'received_amount',
-                  'status', 'remark', 'items', 'created_at', 'updated_at']
+                  'status', 'remark', 'items', 'created_by', 'created_by_name',
+                  'created_at', 'updated_at']
         read_only_fields = ['id', 'order_no', 'total_amount', 'received_amount',
-                           'created_at', 'updated_at']
+                           'created_by', 'created_at', 'updated_at']
 
 
 class SaleOrderCreateSerializer(serializers.ModelSerializer):

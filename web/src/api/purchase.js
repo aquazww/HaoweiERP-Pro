@@ -8,6 +8,10 @@ export const getPurchaseOrder = (id) => {
   return request.get(`/purchase/orders/${id}/`)
 }
 
+export const getPurchaseOrderByNo = (orderNo) => {
+  return request.get(`/purchase/orders/by-no/${orderNo}/`)
+}
+
 export const createPurchaseOrder = (data) => {
   return request.post('/purchase/orders/', data)
 }

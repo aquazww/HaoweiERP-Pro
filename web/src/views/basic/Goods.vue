@@ -51,6 +51,11 @@
               </div>
             </template>
           </el-table-column>
+          <el-table-column prop="spec" label="规格" min-width="120" align="center">
+            <template #default="{ row }">
+              <span class="spec-text">{{ row.spec || '-' }}</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="unit_name" label="单位" width="80" align="center" />
           <el-table-column prop="purchase_price" label="进货价" width="120" align="right">
             <template #default="{ row }">
@@ -393,14 +398,6 @@ const validateName = (rule, value, callback) => {
   }
 }
 
-const validateSalePrice = (rule, value, callback) => {
-  if (value < form.purchase_price) {
-    callback(new Error('销售价不能低于进货价'))
-  } else {
-    callback()
-  }
-}
-
 const validateMaxStock = (rule, value, callback) => {
   if (value < form.min_stock) {
     callback(new Error('最高库存不能低于最低库存'))
@@ -421,9 +418,6 @@ const rules = {
   ],
   unit: [
     { required: true, message: '请选择或输入计量单位', trigger: 'change' }
-  ],
-  sale_price: [
-    { validator: validateSalePrice, trigger: 'blur' }
   ],
   max_stock: [
     { validator: validateMaxStock, trigger: 'blur' }
@@ -587,6 +581,17 @@ const handleDialogClose = () => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
+  
+  // 先验证价格
+  handlePriceBlur('purchase_price')
+  handlePriceBlur('sale_price')
+  handlePriceBlur('retail_price')
+  
+  // 检查是否有价格错误
+  if (priceErrors.purchase_price || priceErrors.sale_price || priceErrors.retail_price) {
+    ElMessage.warning('请检查价格填写是否正确')
+    return
+  }
   
   try {
     await formRef.value.validate()
@@ -814,6 +819,11 @@ onUnmounted(() => {
 .goods-category {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+.spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
 .price-text {

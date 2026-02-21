@@ -35,15 +35,18 @@
           stripe
         >
           <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column prop="username" label="用户名" min-width="140">
+          <el-table-column prop="username" label="用户名" min-width="120">
             <template #default="{ row }">
               <div class="user-info">
-                <el-avatar :size="32" class="user-avatar">{{ row.username?.charAt(0)?.toUpperCase() }}</el-avatar>
-                <span class="username">{{ row.username }}</span>
+                <el-avatar :size="32" class="user-avatar">{{ (row.name || row.username)?.charAt(0)?.toUpperCase() }}</el-avatar>
+                <div class="user-detail">
+                  <span class="username">{{ row.username }}</span>
+                  <span class="name" v-if="row.name">{{ row.name }}</span>
+                </div>
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="role_name" label="角色" min-width="120">
+          <el-table-column prop="role_name" label="角色" min-width="100">
             <template #default="{ row }">
               <el-tag size="small" v-if="row.role_name">{{ row.role_name }}</el-tag>
               <span v-else class="text-muted">未分配</span>
@@ -54,10 +57,14 @@
           </el-table-column>
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
-              <div class="status-badge" :class="row.is_active ? 'active' : 'inactive'">
-                <span class="status-dot"></span>
-                {{ row.is_active ? '启用' : '禁用' }}
-              </div>
+              <el-switch
+                v-model="row.is_active"
+                active-color="#165DFF"
+                inactive-color="#9ca3af"
+                :loading="toggleLoading === row.id"
+                @change="handleToggleStatus(row)"
+                :disabled="row.username === 'admin'"
+              />
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="创建时间" width="180">
@@ -92,6 +99,9 @@
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" placeholder="请输入用户名" :disabled="!!editingId" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="form.name" placeholder="请输入姓名" maxlength="50" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input v-model="form.password" type="password" :placeholder="editingId ? '留空则不修改密码（至少6位）' : '请输入密码（至少6位）'" show-password maxlength="50" />
@@ -151,6 +161,7 @@ import { getUsers, createUser, updateUser, deleteUser, resetPassword, getRoles }
 const loading = ref(false)
 const submitLoading = ref(false)
 const resetLoading = ref(false)
+const toggleLoading = ref(null)
 const tableData = ref([])
 const roles = ref([])
 const formRef = ref(null)
@@ -165,6 +176,7 @@ const tableHeight = ref(0)
 
 const form = ref({
   username: '',
+  name: '',
   password: '',
   password_confirm: '',
   role: null,
@@ -224,6 +236,9 @@ const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 50, message: '用户名长度为2-50个字符', trigger: 'blur' }
+  ],
+  name: [
+    { max: 50, message: '姓名不能超过50个字符', trigger: 'blur' }
   ],
   password: [
     { validator: validatePassword, trigger: 'blur' }
@@ -303,7 +318,7 @@ const loadRoles = async () => {
 const handleAdd = () => {
   dialogTitle.value = '新增用户'
   editingId.value = null
-  form.value = { username: '', password: '', password_confirm: '', role: null, phone: '', is_active: true }
+  form.value = { username: '', name: '', password: '', password_confirm: '', role: null, phone: '', is_active: true }
   dialogVisible.value = true
 }
 
@@ -312,6 +327,7 @@ const handleEdit = (row) => {
   editingId.value = row.id
   form.value = { 
     username: row.username, 
+    name: row.name || '', 
     password: '', 
     password_confirm: '',
     role: row.role, 
@@ -341,6 +357,42 @@ const handleDelete = async (row) => {
     if (error !== 'cancel') {
       ElMessage.error('删除失败：' + (error.response?.data?.msg || error.message || '未知错误'))
     }
+  }
+}
+
+/**
+ * 切换用户状态
+ */
+const handleToggleStatus = async (row) => {
+  if (row.username === 'admin') {
+    ElMessage.warning('不能禁用管理员账户')
+    row.is_active = true
+    return
+  }
+  
+  const originalStatus = !row.is_active
+  try {
+    await ElMessageBox.confirm(
+      `确定要${row.is_active ? '启用' : '禁用'}用户「${row.username}」吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    toggleLoading.value = row.id
+    await updateUser(row.id, { is_active: row.is_active })
+    ElMessage.success('操作成功')
+    loadData()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败：' + (error.response?.data?.msg || error.message || '未知错误'))
+    }
+    row.is_active = originalStatus
+  } finally {
+    toggleLoading.value = null
   }
 }
 
@@ -387,6 +439,7 @@ const handleSubmit = async () => {
     if (editingId.value) {
       const submitData = {
         username: form.value.username,
+        name: form.value.name,
         role: form.value.role,
         phone: form.value.phone,
         is_active: form.value.is_active
@@ -507,39 +560,23 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .username {
   font-weight: 500;
 }
 
+.name {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
 .text-muted {
   color: var(--color-text-tertiary);
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  font-size: var(--font-size-sm);
-  border-radius: 20px;
-  font-weight: 500;
-}
-
-.status-badge.active {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--color-success);
-}
-
-.status-badge.inactive {
-  background-color: rgba(156, 163, 175, 0.1);
-  color: var(--color-text-tertiary);
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
 }
 
 .action-buttons {

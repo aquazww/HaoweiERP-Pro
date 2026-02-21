@@ -279,7 +279,7 @@ class InventoryLogViewSet(BaseModelViewSet):
     module_name = '库存流水'
 
     def get_queryset(self):
-        """支持日期范围筛选"""
+        """支持日期范围筛选和交易类型筛选"""
         queryset = super().get_queryset()
         
         params = self.request.query_params
@@ -295,6 +295,20 @@ class InventoryLogViewSet(BaseModelViewSet):
         related_order_type = params.get('related_order_type')
         if related_order_type:
             queryset = queryset.filter(related_order_type=related_order_type)
+        
+        # 交易类型筛选
+        transaction_type = params.get('transaction_type')
+        if transaction_type:
+            if transaction_type == 'purchase_in':
+                queryset = queryset.filter(remark__contains='采购入库')
+            elif transaction_type == 'sale_out':
+                queryset = queryset.filter(remark__contains='销售出库')
+            elif transaction_type == 'transfer_in':
+                queryset = queryset.filter(remark__contains='调拨入库')
+            elif transaction_type == 'transfer_out':
+                queryset = queryset.filter(remark__contains='调拨出库')
+            elif transaction_type == 'adjust':
+                queryset = queryset.filter(remark__contains='库存调整')
         
         return queryset
 
@@ -358,7 +372,7 @@ class StockInViewSet(BaseModelViewSet):
                             warehouse=stock_in.warehouse,
                             quantity=received_qty,
                             related_order=stock_in,
-                            remark=f'采购入库，单号：{purchase_order.order_no}',
+                            remark=f'采购入库 - {purchase_order.order_no}',
                             created_by=request.user
                         )
                         item.received_quantity = item.quantity
@@ -443,8 +457,22 @@ class StockAdjustViewSet(BaseModelViewSet):
         from utils.order_no import generate_stock_adjust_no
         order_no = generate_stock_adjust_no()
         adjust = serializer.save(order_no=order_no, created_by=self.request.user)
-        
-        items_data = serializer.validated_data.get('items', [])
+        self._create_adjust_items(adjust)
+
+    @action(detail=False, methods=['get'], url_path='by-no/(?P<order_no>[^/.]+)')
+    def by_no(self, request, order_no=None):
+        """根据单号获取调整单详情"""
+        from django.shortcuts import get_object_or_404
+        adjust = get_object_or_404(StockAdjust, order_no=order_no)
+        serializer = self.get_serializer(adjust)
+        return Response({
+            'code': 200,
+            'msg': '获取成功',
+            'data': serializer.data
+        })
+
+    def _create_adjust_items(self, adjust):
+        items_data = self.request.data.get('items', [])
         for item_data in items_data:
             goods = item_data['goods']
             adjust_qty = item_data['adjust_quantity']
@@ -542,6 +570,18 @@ class StockTransferViewSet(BaseModelViewSet):
                 quantity=item_data['quantity'],
                 remark=item_data.get('remark', '')
             )
+
+    @action(detail=False, methods=['get'], url_path='by-no/(?P<order_no>[^/.]+)')
+    def by_no(self, request, order_no=None):
+        """根据单号获取调拨单详情"""
+        from django.shortcuts import get_object_or_404
+        transfer = get_object_or_404(StockTransfer, order_no=order_no)
+        serializer = self.get_serializer(transfer)
+        return Response({
+            'code': 200,
+            'msg': '获取成功',
+            'data': serializer.data
+        })
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):

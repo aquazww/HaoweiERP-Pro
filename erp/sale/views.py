@@ -2,6 +2,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from .models import SaleOrder, SaleItem
 from .serializers import (
     SaleOrderSerializer, SaleOrderCreateSerializer, 
@@ -31,6 +32,17 @@ class SaleOrderViewSet(BaseModelViewSet):
     def perform_create(self, serializer):
         """创建销售单时设置创建人"""
         serializer.save(created_by=self.request.user)
+    
+    @action(detail=False, methods=['get'], url_path='by-no/(?P<order_no>[^/.]+)')
+    def by_no(self, request, order_no=None):
+        """根据单号获取订单详情"""
+        order = get_object_or_404(SaleOrder, order_no=order_no)
+        serializer = self.get_serializer(order)
+        return Response({
+            'code': 200,
+            'msg': '获取成功',
+            'data': serializer.data
+        })
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
@@ -54,7 +66,7 @@ class SaleOrderViewSet(BaseModelViewSet):
                             warehouse=sale_order.warehouse,
                             quantity=shipped_qty,
                             related_order=sale_order,
-                            remark=f'销售出库，单号：{sale_order.order_no}',
+                            remark=f'销售出库 - {sale_order.order_no}',
                             created_by=request.user
                         )
                         item.shipped_quantity = item.quantity

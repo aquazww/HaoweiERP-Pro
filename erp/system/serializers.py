@@ -18,6 +18,29 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['role'] = user.role.name
         return token
 
+    def validate(self, attrs):
+        """
+        验证用户登录，检查账户状态
+        """
+        username = attrs.get('username')
+        password = attrs.get('password')
+        
+        try:
+            user = User.objects.get(username=username)
+            
+            # 检查账户是否被禁用
+            if not user.is_active:
+                raise serializers.ValidationError('账户已被禁用，请联系管理员')
+            
+            # 验证密码
+            if not user.check_password(password):
+                raise serializers.ValidationError('用户名或密码错误')
+                
+        except User.DoesNotExist:
+            raise serializers.ValidationError('用户名或密码错误')
+        
+        return super().validate(attrs)
+
 
 class RoleSerializer(serializers.ModelSerializer):
     """角色序列化器"""
@@ -75,7 +98,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'role', 'role_name', 'phone', 'is_active', 'created_at']
+        fields = ['id', 'username', 'name', 'role', 'role_name', 'phone', 'is_active', 'created_at']
         read_only_fields = ['id', 'created_at']
     
     def validate_username(self, value):
@@ -88,6 +111,12 @@ class UserSerializer(serializers.ModelSerializer):
         if not re.match(r'^[\w.@+-]+$', value):
             raise serializers.ValidationError('用户名只能包含字母、数字和@/./+/-/_字符')
         return value.strip()
+    
+    def validate_name(self, value):
+        """验证姓名"""
+        if value and len(value) > 50:
+            raise serializers.ValidationError('姓名不能超过50个字符')
+        return value.strip() if value else ''
     
     def validate_phone(self, value):
         """验证手机号"""
@@ -105,8 +134,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'password_confirm', 'role', 'phone', 'is_active']
+        fields = ['id', 'username', 'name', 'password', 'password_confirm', 'role', 'phone', 'is_active']
         read_only_fields = ['id']
+    
+    def validate_name(self, value):
+        """验证姓名"""
+        if value and len(value) > 50:
+            raise serializers.ValidationError('姓名不能超过50个字符')
+        return value.strip() if value else ''
     
     def validate_password(self, value):
         """验证密码格式"""
@@ -137,8 +172,20 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'password_confirm', 'role', 'phone', 'is_active']
+        fields = ['id', 'username', 'name', 'password', 'password_confirm', 'role', 'phone', 'is_active']
         read_only_fields = ['id']
+        extra_kwargs = {
+            'username': {'required': False},
+            'name': {'required': False},
+            'role': {'required': False},
+            'phone': {'required': False}
+        }
+    
+    def validate_name(self, value):
+        """验证姓名"""
+        if value and len(value) > 50:
+            raise serializers.ValidationError('姓名不能超过50个字符')
+        return value.strip() if value else ''
     
     def validate_password(self, value):
         """验证密码格式"""
@@ -179,10 +226,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class LogSerializer(serializers.ModelSerializer):
     """日志序列化器"""
     username = serializers.CharField(source='user.username', read_only=True)
+    user_name = serializers.CharField(source='user.name', read_only=True)
     
     class Meta:
         model = Log
-        fields = ['id', 'user', 'username', 'action', 'module', 'detail', 'ip_address', 'created_at']
+        fields = ['id', 'user', 'username', 'user_name', 'action', 'module', 'detail', 'ip_address', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 

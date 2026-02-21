@@ -8,6 +8,10 @@ export const getSaleOrder = (id) => {
   return request.get(`/sale/orders/${id}/`)
 }
 
+export const getSaleOrderByNo = (orderNo) => {
+  return request.get(`/sale/orders/by-no/${orderNo}/`)
+}
+
 export const createSaleOrder = (data) => {
   return request.post('/sale/orders/', data)
 }

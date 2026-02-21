@@ -14,6 +14,8 @@ class BaseModelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, HasModulePermission]
     module_name = None
     read_serializer_class = None
+    log_display_field = 'name'
+    log_exclude_fields = ['created_at', 'updated_at', 'id']
 
     def get_client_ip(self, request):
         """获取客户端 IP 地址"""
@@ -40,6 +42,75 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             logger.error(f'记录日志失败: {str(e)}')
+
+    def get_display_name(self, instance):
+        """获取实例的显示名称"""
+        if hasattr(instance, self.log_display_field):
+            return getattr(instance, self.log_display_field)
+        if hasattr(instance, 'name'):
+            return instance.name
+        if hasattr(instance, 'username'):
+            return instance.username
+        if hasattr(instance, 'code'):
+            return instance.code
+        return f'ID={instance.id}'
+
+    def get_changes(self, old_data, new_data):
+        """获取变更详情"""
+        changes = []
+        for field, new_value in new_data.items():
+            if field in self.log_exclude_fields:
+                continue
+            if field not in old_data:
+                continue
+            old_value = old_data[field]
+            if old_value != new_value:
+                field_display = self.get_field_display_name(field)
+                old_display = self.format_value(old_value)
+                new_display = self.format_value(new_value)
+                changes.append(f'{field_display}: "{old_display}" → "{new_display}"')
+        return changes
+
+    def get_field_display_name(self, field):
+        """获取字段的中文名称"""
+        field_names = {
+            'name': '姓名',
+            'username': '用户名',
+            'code': '编码',
+            'status': '状态',
+            'is_active': '状态',
+            'phone': '手机号',
+            'role': '角色',
+            'category': '分类',
+            'unit': '单位',
+            'purchase_price': '进货价',
+            'sale_price': '销售价',
+            'retail_price': '零售价',
+            'min_stock': '最低库存',
+            'max_stock': '最高库存',
+            'spec': '规格',
+            'barcode': '条形码',
+            'remark': '备注',
+            'address': '地址',
+            'contact': '联系人',
+            'description': '描述',
+            'sort_order': '排序',
+            'parent': '上级分类',
+        }
+        return field_names.get(field, field)
+
+    def format_value(self, value):
+        """格式化值用于显示"""
+        if value is None or value == '':
+            return '空'
+        if isinstance(value, bool):
+            return '启用' if value else '禁用'
+        if isinstance(value, int):
+            if value == 1 and hasattr(self, 'log_display_field'):
+                return '启用'
+            if value == 0 and hasattr(self, 'log_display_field'):
+                return '禁用'
+        return str(value)
 
     def get_read_serializer_class(self):
         """获取读取序列化器类"""
@@ -109,13 +180,16 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             
-            instance_id = serializer.instance.id if serializer.instance else ''
-            self.log_action(request, 'create', f'创建数据: ID={instance_id}')
+            instance = serializer.instance
+            display_name = self.get_display_name(instance)
+            module = self.module_name or self.__class__.__name__.replace('ViewSet', '')
+            detail = f'创建{module}: {display_name}'
+            self.log_action(request, 'create', detail)
             
             return Response({
                 'code': 200,
                 'msg': '创建成功',
-                'data': {'id': instance_id}
+                'data': {'id': instance.id}
             })
         except Exception as e:
             from rest_framework.exceptions import ValidationError
@@ -160,21 +234,33 @@ class BaseModelViewSet(viewsets.ModelViewSet):
         try:
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            instance_id = instance.id
+            
+            old_serializer = self.get_read_serializer_class()(instance)
+            old_data = old_serializer.data.copy()
+            
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
             
-            self.log_action(request, 'update', f'更新数据: ID={instance_id}')
-            
             instance.refresh_from_db()
-            read_serializer_class = self.get_read_serializer_class()
-            read_serializer = read_serializer_class(instance)
+            display_name = self.get_display_name(instance)
+            module = self.module_name or self.__class__.__name__.replace('ViewSet', '')
+            
+            new_serializer = self.get_read_serializer_class()(instance)
+            new_data = new_serializer.data
+            
+            changes = self.get_changes(old_data, new_data)
+            if changes:
+                detail = f'更新{module}「{display_name}」: {"; ".join(changes)}'
+            else:
+                detail = f'更新{module}「{display_name}」: 无变更'
+            
+            self.log_action(request, 'update', detail)
             
             return Response({
                 'code': 200,
                 'msg': '更新成功',
-                'data': read_serializer.data
+                'data': new_serializer.data
             })
         except Exception as e:
             from rest_framework.exceptions import ValidationError
@@ -204,9 +290,12 @@ class BaseModelViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            instance_id = instance.id
+            display_name = self.get_display_name(instance)
+            module = self.module_name or self.__class__.__name__.replace('ViewSet', '')
+            detail = f'删除{module}: {display_name}'
+            
             self.perform_destroy(instance)
-            self.log_action(request, 'delete', f'删除数据: ID={instance_id}')
+            self.log_action(request, 'delete', detail)
             return Response({
                 'code': 200,
                 'msg': '删除成功',

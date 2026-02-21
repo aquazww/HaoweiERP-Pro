@@ -22,6 +22,7 @@ class Role(models.Model):
 
 class User(AbstractUser):
     """用户表（扩展 Django 默认 User）"""
+    name = models.CharField(max_length=50, blank=True, verbose_name='姓名')
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='角色')
     phone = models.CharField(max_length=20, blank=True, verbose_name='手机号')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='头像')
@@ -35,7 +36,7 @@ class User(AbstractUser):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.username
+        return self.name or self.username
 
 
 class Log(models.Model):

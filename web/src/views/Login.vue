@@ -113,7 +113,9 @@ const handleLogin = async () => {
     await formRef.value.validate()
     loading.value = true
     
-    const res = await request.post('/auth/login/', loginForm.value)
+    const res = await request.post('/auth/login/', loginForm.value, {
+      _skipAuthRedirect: true
+    })
     localStorage.setItem('token', res.data.access)
     localStorage.setItem('refresh_token', res.data.refresh)
     ElMessage.success('登录成功，欢迎回来！')
@@ -123,7 +125,9 @@ const handleLogin = async () => {
     }, 500)
   } catch (error) {
     if (error !== false) {
-      ElMessage.error('登录失败，请检查用户名和密码')
+      // 优先使用后端返回的错误信息
+      const errorMsg = error.response?.data?.msg || error.message || '登录失败，请检查用户名和密码'
+      ElMessage.error(errorMsg)
     }
   } finally {
     loading.value = false
@@ -305,6 +309,8 @@ onMounted(() => {
   align-items: center;
   width: 100%;
   height: 48px;
+  overflow: hidden;
+  border-radius: 10px;
 }
 
 /* 图标样式统一 */
@@ -334,6 +340,7 @@ onMounted(() => {
   border-radius: 10px;
   box-shadow: 0 0 0 1px var(--color-border) inset;
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .login-input :deep(.el-input__wrapper:hover) {
@@ -348,6 +355,15 @@ onMounted(() => {
   height: 48px;
   line-height: 48px;
   font-size: 15px;
+}
+
+/* 限制文本选中背景在输入框内部 */
+.login-input :deep(.el-input__inner::selection) {
+  background-color: rgba(22, 93, 255, 0.2);
+}
+
+.login-input :deep(.el-input__inner::-moz-selection) {
+  background-color: rgba(22, 93, 255, 0.2);
 }
 
 /* 密码输入框的显示密码按钮位置调整 */

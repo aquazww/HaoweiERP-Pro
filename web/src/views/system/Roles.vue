@@ -32,7 +32,9 @@
           <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="name" label="角色名称" width="200" />
           <el-table-column prop="description" label="描述" />
-          <el-table-column prop="created_at" label="创建时间" width="180" />
+          <el-table-column label="创建时间" width="160">
+            <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+          </el-table-column>
           <el-table-column label="操作" width="140" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
@@ -116,6 +118,23 @@ const pagination = ref({
   pageSize: 20,
   total: 0
 })
+
+/**
+ * 格式化日期时间，移除时区信息
+ */
+const formatDateTime = (datetime) => {
+  if (!datetime) return '-'
+  
+  const date = new Date(datetime)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
 
 const calculateTableHeight = () => {
   nextTick(() => {

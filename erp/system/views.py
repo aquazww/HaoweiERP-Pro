@@ -29,25 +29,68 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        user = User.objects.get(username=request.data.get('username'))
+        username = request.data.get('username')
         
-        Log.objects.create(
-            user=user,
-            action='login',
-            module='系统',
-            detail=f'用户 {user.username} 登录成功',
-            ip_address=self.get_client_ip(request)
-        )
-        
-        return Response({
-            'code': 200,
-            'msg': '登录成功',
-            'data': {
-                'access': response.data['access'],
-                'refresh': response.data['refresh']
-            }
-        })
+        try:
+            user = User.objects.get(username=username)
+            
+            # 检查账户是否被禁用
+            if not user.is_active:
+                # 记录禁用账户的登录尝试
+                Log.objects.create(
+                    user=user,
+                    action='login',
+                    module='系统',
+                    detail=f'禁用账户 {user.username} 尝试登录',
+                    ip_address=self.get_client_ip(request)
+                )
+                return Response({
+                    'code': 401,
+                    'msg': '账户已被禁用，请联系管理员',
+                    'data': None
+                }, status=401)
+            
+            # 调用父类方法进行正常登录验证
+            response = super().post(request, *args, **kwargs)
+            
+            # 记录成功登录日志
+            Log.objects.create(
+                user=user,
+                action='login',
+                module='系统',
+                detail=f'用户 {user.username} 登录成功',
+                ip_address=self.get_client_ip(request)
+            )
+            
+            return Response({
+                'code': 200,
+                'msg': '登录成功',
+                'data': {
+                    'access': response.data['access'],
+                    'refresh': response.data['refresh']
+                }
+            })
+            
+        except User.DoesNotExist:
+            return Response({
+                'code': 401,
+                'msg': '用户名或密码错误',
+                'data': None
+            }, status=401)
+        except Exception as e:
+            # 处理其他异常（如密码错误等）
+            error_msg = str(e)
+            if 'detail' in error_msg or '用户名或密码' in error_msg:
+                return Response({
+                    'code': 401,
+                    'msg': '用户名或密码错误',
+                    'data': None
+                }, status=401)
+            return Response({
+                'code': 401,
+                'msg': '登录失败，请检查用户名和密码',
+                'data': None
+            }, status=401)
     
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')

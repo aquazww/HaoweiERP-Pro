@@ -20,26 +20,26 @@
       </div>
 
       <div class="table-card">
-        <el-table :data="transferList" style="width: 100%" v-loading="loading" :height="tableHeight" class="data-table" stripe>
+        <el-table :data="transferList" style="width: 100%" v-loading="loading" :height="tableHeight" class="data-table" stripe :header-cell-style="{ background: 'var(--color-bg-light)' }">
           <el-table-column type="index" label="#" width="50" align="center" />
-          <el-table-column prop="order_no" label="调拨单号" width="160">
+          <el-table-column prop="order_no" label="调拨单号" min-width="150" align="center">
             <template #default="{ row }">
               <span class="order-no-badge">{{ row.order_no }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="from_warehouse_name" label="调出仓库" width="120" />
+          <el-table-column prop="from_warehouse_name" label="调出仓库" min-width="100" show-overflow-tooltip />
           <el-table-column width="50" align="center">
             <template #default>
               <el-icon class="transfer-icon"><Right /></el-icon>
             </template>
           </el-table-column>
-          <el-table-column prop="to_warehouse_name" label="调入仓库" width="120" />
-          <el-table-column label="调拨明细" min-width="200">
+          <el-table-column prop="to_warehouse_name" label="调入仓库" min-width="100" show-overflow-tooltip />
+          <el-table-column label="调拨明细" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
               <span class="items-preview">{{ getItemsPreview(row.items) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="90">
+          <el-table-column prop="status" label="状态" min-width="80" align="center">
             <template #default="{ row }">
               <div class="status-badge" :class="row.status">
                 <span class="status-dot"></span>
@@ -47,10 +47,10 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" label="创建时间" width="160">
+          <el-table-column label="创建时间" min-width="140">
             <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="180" fixed="right">
+          <el-table-column label="操作" min-width="160" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
@@ -135,26 +135,87 @@
     </el-dialog>
 
     <!-- 查看弹窗 -->
-    <el-dialog v-model="viewDialogVisible" title="调拨单详情" width="800px" class="view-dialog" destroy-on-close>
-      <el-descriptions :column="2" border class="view-descriptions">
-        <el-descriptions-item label="调拨单号">{{ viewData.order_no }}</el-descriptions-item>
-        <el-descriptions-item label="调出仓库">{{ viewData.from_warehouse_name }}</el-descriptions-item>
-        <el-descriptions-item label="调入仓库">{{ viewData.to_warehouse_name }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <div class="status-badge" :class="viewData.status">
+    <el-dialog
+      v-model="viewDialogVisible"
+      width="700px"
+      class="view-dialog"
+      :show-close="false"
+    >
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">调拨单详情</span>
+          <div class="status-badge small" :class="viewData?.status" v-if="viewData">
             <span class="status-dot"></span>
-            {{ getStatusText(viewData.status) }}
+            {{ getStatusText(viewData?.status) }}
           </div>
-        </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDateTime(viewData.created_at) }}</el-descriptions-item>
-        <el-descriptions-item label="备注">{{ viewData.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
-      <div class="view-items-title">调拨明细</div>
-      <el-table :data="viewData.items" border style="width: 100%;">
-        <el-table-column type="index" label="#" width="50" align="center" />
-        <el-table-column prop="goods_name" label="商品名称" min-width="180" />
-        <el-table-column prop="quantity" label="调拨数量" width="120" align="right" />
-      </el-table>
+        </div>
+        <span class="close-btn" @click="viewDialogVisible = false">×</span>
+      </template>
+      
+      <div class="detail-container" v-if="viewData">
+        <div class="info-section">
+          <div class="info-row highlight-row">
+            <div class="info-item-group">
+              <span class="info-label">调出仓库</span>
+              <span class="info-value">{{ viewData.from_warehouse_name }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">调拨单号</span>
+              <span class="info-value primary">{{ viewData.order_no }}</span>
+            </div>
+          </div>
+          <div class="info-row highlight-row">
+            <div class="info-item-group">
+              <span class="info-label">调入仓库</span>
+              <span class="info-value">{{ viewData.to_warehouse_name }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">创建时间</span>
+              <span class="info-value">{{ formatDateTime(viewData.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="remark-box" v-if="viewData.remark">
+          <div class="remark-header">
+            <el-icon class="remark-icon"><Document /></el-icon>
+            <span>备注</span>
+          </div>
+          <div class="remark-text">{{ viewData.remark }}</div>
+        </div>
+        
+        <div class="items-section">
+          <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+            <div class="header-left">
+              <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+              <span class="header-title">调拨明细</span>
+              <span class="header-count">{{ viewData.items?.length || 0 }}项</span>
+            </div>
+            <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+          </div>
+          <el-collapse-transition>
+            <div class="items-body" v-show="itemsExpanded">
+              <el-table :data="viewData.items" border size="small" class="detail-table">
+                <el-table-column type="index" label="#" width="45" align="center" />
+                <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <template #default="{ row }">
+                    <div class="goods-cell">
+                      <span class="goods-name">{{ row.goods_name }}</span>
+                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="unit" label="单位" width="55" align="center" />
+                <el-table-column prop="quantity" label="调拨数量" width="90" align="center">
+                  <template #default="{ row }">
+                    <span class="quantity-cell">{{ row.quantity }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-collapse-transition>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -162,7 +223,7 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Delete, View, Right } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Delete, View, Right, Document, ArrowRight } from '@element-plus/icons-vue'
 import { getWarehouses, getGoods } from '../../api/basic'
 import { getInventory } from '../../api/inventory'
 import { formatInputNumber, parseInputNumber } from '../../utils/format'
@@ -182,6 +243,7 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
+const itemsExpanded = ref(false)
 
 const viewData = ref({ items: [] })
 
@@ -404,5 +466,246 @@ onUnmounted(() => {
 .transfer-icon {
   color: var(--color-primary);
   font-size: 16px;
+}
+
+.view-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.view-dialog :deep(.el-dialog__body) {
+  padding: 12px 16px;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  border-bottom: 1px solid #bae0ff;
+  border-radius: var(--el-dialog-border-radius) var(--el-dialog-border-radius) 0 0;
+  padding-right: 50px;
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 300;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s;
+  border-radius: 0 var(--el-dialog-border-radius) 0 6px;
+  background: transparent;
+}
+
+.close-btn:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-section {
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 0;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+}
+
+.info-row {
+  display: flex;
+  gap: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row.highlight-row {
+  background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.info-item-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 4px 8px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #999;
+  min-width: 56px;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.info-value.primary {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.remark-box {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.remark-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #d48806;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.remark-icon {
+  font-size: 14px;
+}
+
+.remark-text {
+  font-size: 13px;
+  color: #614700;
+  line-height: 1.6;
+  padding-left: 20px;
+}
+
+.items-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.items-header:hover {
+  background: #efefef;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expand-icon {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.expand-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.items-body {
+  border-top: 1px solid #e8e8e8;
+}
+
+.detail-table {
+  --el-table-header-bg-color: #f5f7fa;
+  --el-table-border-color: #ebeef5;
+  --el-table-row-hover-bg-color: #f0f5ff;
+}
+
+.detail-table :deep(.el-table__header th) {
+  font-weight: 600;
+  font-size: 12px;
+  color: #606266;
+  padding: 10px 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 100%);
+  border-bottom: 2px solid #e0e6ed;
+}
+
+.detail-table :deep(.el-table__body td) {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.goods-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.goods-cell .goods-name {
+  font-size: 13px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.goods-cell .goods-spec {
+  font-size: 10px;
+  color: #909399;
+  font-family: 'Monaco', 'Consolas', monospace;
+  background: #f4f4f5;
+  padding: 0 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.quantity-cell {
+  font-weight: 600;
+  color: #409eff;
+  font-family: 'Monaco', 'Consolas', monospace;
 }
 </style>

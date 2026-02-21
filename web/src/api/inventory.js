@@ -40,6 +40,34 @@ export const getStockOutList = (params) => {
   return request.get('/inventory/stock-out/', { params })
 }
 
+export const getStockOut = (id) => {
+  return request.get(`/inventory/stock-out/${id}/`)
+}
+
 export const createStockOut = (data) => {
   return request.post('/inventory/stock-out/', data)
+}
+
+export const getStockAdjustList = (params) => {
+  return request.get('/inventory/adjust/', { params })
+}
+
+export const getStockAdjust = (id) => {
+  return request.get(`/inventory/adjust/${id}/`)
+}
+
+export const getStockAdjustByNo = (orderNo) => {
+  return request.get(`/inventory/adjust/by-no/${orderNo}/`)
+}
+
+export const getStockTransferList = (params) => {
+  return request.get('/inventory/transfer/', { params })
+}
+
+export const getStockTransfer = (id) => {
+  return request.get(`/inventory/transfer/${id}/`)
+}
+
+export const getStockTransferByNo = (orderNo) => {
+  return request.get(`/inventory/transfer/by-no/${orderNo}/`)
 }

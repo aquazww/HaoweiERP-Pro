@@ -76,36 +76,37 @@
           class="data-table"
           stripe
           :height="tableHeight"
+          :header-cell-style="{ background: 'var(--color-bg-light)' }"
           @sort-change="handleSortChange"
         >
           <el-table-column type="index" label="#" width="50" align="center" />
-          <el-table-column prop="goods_code" label="商品编码" width="120" sortable="custom" />
-          <el-table-column prop="goods_name" label="商品名称" min-width="180" sortable="custom" />
-          <el-table-column prop="category_name" label="分类" width="100" />
-          <el-table-column prop="warehouse_name" label="仓库" width="100" />
-          <el-table-column prop="unit" label="单位" width="70" align="center" />
-          <el-table-column prop="quantity" label="库存数量" width="100" align="right" sortable="custom">
+          <el-table-column prop="goods_code" label="商品编码" min-width="110" sortable="custom" show-overflow-tooltip />
+          <el-table-column prop="goods_name" label="商品名称" min-width="160" sortable="custom" show-overflow-tooltip />
+          <el-table-column prop="category_name" label="分类" min-width="90" show-overflow-tooltip />
+          <el-table-column prop="warehouse_name" label="仓库" min-width="90" show-overflow-tooltip />
+          <el-table-column prop="unit" label="单位" min-width="60" align="center" />
+          <el-table-column prop="quantity" label="库存数量" min-width="90" align="right" sortable="custom">
             <template #default="{ row }">
               <span :class="getQuantityClass(row)">{{ formatNumber(row.quantity) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="min_stock" label="安全库存" width="90" align="right">
+          <el-table-column prop="min_stock" label="安全库存" min-width="80" align="right">
             <template #default="{ row }">{{ row.min_stock || '-' }}</template>
           </el-table-column>
-          <el-table-column prop="max_stock" label="库存上限" width="90" align="right">
+          <el-table-column prop="max_stock" label="库存上限" min-width="80" align="right">
             <template #default="{ row }">{{ row.max_stock || '-' }}</template>
           </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
+          <el-table-column label="状态" min-width="80" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.stock_status?.code)" size="small">
                 {{ row.stock_status?.text || '-' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="updated_at" label="更新时间" width="160">
+          <el-table-column label="更新时间" min-width="140">
             <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
+          <el-table-column label="操作" min-width="100" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link size="small" @click="handleViewLogs(row)">流水</el-button>
@@ -544,6 +545,24 @@ onUnmounted(() => {
   --el-table-header-bg-color: var(--color-bg-light);
 }
 
+.data-table :deep(.el-table__header-wrapper) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table :deep(.el-table__body-wrapper) {
+  overflow-y: auto;
+}
+
+.data-table :deep(.el-table__row) {
+  height: 48px;
+}
+
+.data-table :deep(.el-table__cell) {
+  padding: 8px 0;
+}
+
 .quantity-out {
   color: var(--color-danger);
   font-weight: 600;
@@ -600,5 +619,100 @@ onUnmounted(() => {
 
 .warning-dialog .warning-empty {
   padding: 24px;
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 1400px) {
+  .search-input {
+    width: 280px;
+  }
+  
+  .data-table :deep(.el-table__row) {
+    height: 44px;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .search-input {
+    width: 240px;
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    gap: var(--spacing-sm);
+  }
+  
+  .stats-cards {
+    gap: var(--spacing-sm);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-sm);
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .toolbar-card {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .data-table :deep(.el-table__row) {
+    height: 40px;
+  }
+  
+  .data-table :deep(.el-table__cell) {
+    padding: 6px 0;
+    font-size: var(--font-size-sm);
+  }
+  
+  .stats-cards {
+    flex-wrap: wrap;
+  }
+  
+  .stat-card {
+    flex: 1 1 calc(50% - var(--spacing-sm));
+    min-width: 150px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .inventory-page {
+    padding: 4px;
+  }
+  
+  .page-content {
+    gap: 4px;
+  }
+  
+  .toolbar-card,
+  .table-card {
+    border-radius: var(--border-radius-md);
+  }
+  
+  .stat-card {
+    flex: 1 1 100%;
+  }
+  
+  .pagination-wrapper {
+    padding: 4px var(--spacing-sm);
+  }
+  
+  .pagination-wrapper :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 </style>

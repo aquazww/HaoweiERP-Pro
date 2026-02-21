@@ -63,6 +63,11 @@ request.interceptors.response.use(
   async error => {
     const originalRequest = error.config
     
+    // 如果请求标记了跳过认证重定向，直接返回错误
+    if (error.response?.status === 401 && originalRequest._skipAuthRedirect) {
+      return Promise.reject(error)
+    }
+    
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise(resolve => {

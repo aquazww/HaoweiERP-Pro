@@ -13,9 +13,15 @@
             <el-table :data="unitList" v-loading="unitLoading" style="width: 100%;" class="data-table" stripe>
               <el-table-column type="index" label="#" width="60" align="center" />
               <el-table-column prop="name" label="单位名称" min-width="200" />
-              <el-table-column label="状态" width="100">
+              <el-table-column label="状态" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+                  <el-switch
+                    v-model="row.is_active"
+                    active-color="#165DFF"
+                    inactive-color="#9ca3af"
+                    :loading="unitToggleLoading === row.id"
+                    @change="handleToggleUnitStatus(row)"
+                  />
                 </template>
               </el-table-column>
               <el-table-column prop="created_at" label="创建时间" width="180">
@@ -43,9 +49,15 @@
               <el-table-column prop="address" label="仓库地址" min-width="200" />
               <el-table-column prop="contact" label="联系人" width="120" />
               <el-table-column prop="phone" label="联系电话" width="140" />
-              <el-table-column label="状态" width="100">
+              <el-table-column label="状态" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+                  <el-switch
+                    v-model="row.is_active"
+                    active-color="#165DFF"
+                    inactive-color="#9ca3af"
+                    :loading="warehouseToggleLoading === row.id"
+                    @change="handleToggleWarehouseStatus(row)"
+                  />
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
@@ -76,7 +88,13 @@
               <el-table-column prop="sort_order" label="排序" width="80" align="center" />
               <el-table-column label="状态" width="80" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.is_active ? 'success' : 'info'" size="small">{{ row.is_active ? '启用' : '禁用' }}</el-tag>
+                  <el-switch
+                    v-model="row.is_active"
+                    active-color="#165DFF"
+                    inactive-color="#9ca3af"
+                    :loading="categoryToggleLoading === row.id"
+                    @change="handleToggleCategoryStatus(row)"
+                  />
                 </template>
               </el-table-column>
               <el-table-column prop="created_at" label="创建时间" width="160">
@@ -229,6 +247,7 @@ const unitDialogTitle = ref('')
 const unitFormRef = ref(null)
 const unitSubmitLoading = ref(false)
 const unitEditingId = ref(null)
+const unitToggleLoading = ref(null)
 const unitForm = ref({ name: '', is_active: true })
 const unitRules = { name: [{ required: true, message: '请输入单位名称', trigger: 'blur' }] }
 
@@ -296,6 +315,32 @@ const handleDeleteUnit = async (row) => {
   }
 }
 
+/**
+ * 切换计量单位状态
+ */
+const handleToggleUnitStatus = async (row) => {
+  const originalStatus = !row.is_active
+  try {
+    await ElMessageBox.confirm(
+      `确定要${row.is_active ? '启用' : '禁用'}计量单位「${row.name}」吗？`,
+      '提示',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    
+    unitToggleLoading.value = row.id
+    await updateUnit(row.id, { name: row.name, is_active: row.is_active })
+    ElMessage.success('操作成功')
+    loadUnits()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败：' + (error.response?.data?.msg || error.message || '未知错误'))
+    }
+    row.is_active = originalStatus
+  } finally {
+    unitToggleLoading.value = null
+  }
+}
+
 const handleUnitSubmit = async () => {
   try { await unitFormRef.value.validate() } catch { return }
   unitSubmitLoading.value = true
@@ -325,6 +370,7 @@ const warehouseDialogTitle = ref('')
 const warehouseFormRef = ref(null)
 const warehouseSubmitLoading = ref(false)
 const warehouseEditingId = ref(null)
+const warehouseToggleLoading = ref(null)
 const warehouseForm = ref({ name: '', address: '', contact: '', phone: '', is_active: true })
 const warehouseRules = { name: [{ required: true, message: '请输入仓库名称', trigger: 'blur' }] }
 
@@ -392,6 +438,32 @@ const handleDeleteWarehouse = async (row) => {
   }
 }
 
+/**
+ * 切换仓库状态
+ */
+const handleToggleWarehouseStatus = async (row) => {
+  const originalStatus = !row.is_active
+  try {
+    await ElMessageBox.confirm(
+      `确定要${row.is_active ? '启用' : '禁用'}仓库「${row.name}」吗？`,
+      '提示',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    
+    warehouseToggleLoading.value = row.id
+    await updateWarehouse(row.id, { name: row.name, address: row.address, contact: row.contact, phone: row.phone, is_active: row.is_active })
+    ElMessage.success('操作成功')
+    loadWarehouses()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败：' + (error.response?.data?.msg || error.message || '未知错误'))
+    }
+    row.is_active = originalStatus
+  } finally {
+    warehouseToggleLoading.value = null
+  }
+}
+
 const handleWarehouseSubmit = async () => {
   try { await warehouseFormRef.value.validate() } catch { return }
   warehouseSubmitLoading.value = true
@@ -421,6 +493,7 @@ const categoryDialogTitle = ref('')
 const categoryFormRef = ref(null)
 const categorySubmitLoading = ref(false)
 const categoryEditingId = ref(null)
+const categoryToggleLoading = ref(null)
 const categoryForm = ref({ name: '', parent: null, sort_order: 0, is_active: true })
 const categoryRules = { name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }] }
 
@@ -507,6 +580,32 @@ const handleDeleteCategory = async (row) => {
     } else {
       ElMessage.error('删除失败：' + (error.message || '网络错误，请稍后重试'))
     }
+  }
+}
+
+/**
+ * 切换商品分类状态
+ */
+const handleToggleCategoryStatus = async (row) => {
+  const originalStatus = !row.is_active
+  try {
+    await ElMessageBox.confirm(
+      `确定要${row.is_active ? '启用' : '禁用'}商品分类「${row.name}」吗？`,
+      '提示',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    
+    categoryToggleLoading.value = row.id
+    await updateCategory(row.id, { name: row.name, parent: row.parent, sort_order: row.sort_order, is_active: row.is_active })
+    ElMessage.success('操作成功')
+    loadCategories()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败：' + (error.response?.data?.msg || error.message || '未知错误'))
+    }
+    row.is_active = originalStatus
+  } finally {
+    categoryToggleLoading.value = null
   }
 }
 

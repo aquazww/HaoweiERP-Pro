@@ -8,11 +8,12 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
     unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = PurchaseItem
-        fields = ['id', 'goods', 'goods_name', 'goods_code', 'unit', 
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit', 
                   'quantity', 'price', 'amount', 'remark']
         read_only_fields = ['id', 'amount']
     
@@ -55,15 +56,35 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     """采购单序列化器"""
     supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     items = PurchaseItemSerializer(many=True, read_only=True)
+    stock_in_time = serializers.SerializerMethodField(read_only=True)
+    stock_in_remark = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = PurchaseOrder
         fields = ['id', 'order_no', 'supplier', 'supplier_name', 'warehouse', 
                   'warehouse_name', 'order_date', 'total_amount', 'paid_amount', 
-                  'status', 'remark', 'items', 'created_at', 'updated_at']
+                  'status', 'remark', 'items', 'created_by', 'created_by_name',
+                  'created_at', 'updated_at', 'stock_in_time', 'stock_in_remark']
         read_only_fields = ['id', 'order_no', 'total_amount', 'paid_amount', 
-                           'created_at', 'updated_at']
+                           'created_by', 'created_at', 'updated_at']
+    
+    def get_stock_in_time(self, obj):
+        """获取入库时间"""
+        from inventory.models import StockIn
+        stock_in = StockIn.objects.filter(purchase_order=obj, status='confirmed').first()
+        if stock_in:
+            return stock_in.created_at
+        return None
+    
+    def get_stock_in_remark(self, obj):
+        """获取入库备注"""
+        from inventory.models import StockIn
+        stock_in = StockIn.objects.filter(purchase_order=obj, status='confirmed').first()
+        if stock_in:
+            return stock_in.remark
+        return None
     
     def validate_status(self, value):
         """验证状态"""

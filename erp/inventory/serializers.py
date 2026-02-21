@@ -81,7 +81,7 @@ class InventoryLogSerializer(serializers.ModelSerializer):
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     change_type_display = serializers.CharField(source='get_change_type_display', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     
     class Meta:
         model = InventoryLog
@@ -99,7 +99,7 @@ class StockInSerializer(serializers.ModelSerializer):
     purchase_order = serializers.IntegerField(source='purchase_order.id', read_only=True)
     purchase_order_no = serializers.CharField(source='purchase_order.order_no', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     
     class Meta:
         model = StockIn
@@ -124,7 +124,7 @@ class StockOutSerializer(serializers.ModelSerializer):
     sale_order = serializers.IntegerField(source='sale_order.id', read_only=True)
     sale_order_no = serializers.CharField(source='sale_order.order_no', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     
     class Meta:
         model = StockOut
@@ -139,11 +139,12 @@ class StockAdjustItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
     unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = StockAdjustItem
-        fields = ['id', 'goods', 'goods_name', 'goods_code', 'unit', 
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit', 
                   'before_quantity', 'adjust_quantity', 'after_quantity', 'remark']
 
 
@@ -162,7 +163,7 @@ class StockAdjustSerializer(serializers.ModelSerializer):
     adjust_type_display = serializers.CharField(source='get_adjust_type_display', read_only=True)
     reason_display = serializers.CharField(source='get_reason_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     items = StockAdjustItemSerializer(many=True, read_only=True)
     
     class Meta:
@@ -202,11 +203,12 @@ class StockTransferItemSerializer(serializers.ModelSerializer):
     goods = serializers.IntegerField(source='goods.id', read_only=True)
     goods_name = serializers.CharField(source='goods.name', read_only=True)
     goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
     unit = serializers.CharField(source='goods.unit.name', read_only=True)
     
     class Meta:
         model = StockTransferItem
-        fields = ['id', 'goods', 'goods_name', 'goods_code', 'unit', 'quantity', 'remark']
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit', 'quantity', 'remark']
 
 
 class StockTransferItemCreateSerializer(serializers.ModelSerializer):
@@ -224,7 +226,7 @@ class StockTransferSerializer(serializers.ModelSerializer):
     to_warehouse = serializers.IntegerField(source='to_warehouse.id', read_only=True)
     to_warehouse_name = serializers.CharField(source='to_warehouse.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     items = StockTransferItemSerializer(many=True, read_only=True)
     
     class Meta:

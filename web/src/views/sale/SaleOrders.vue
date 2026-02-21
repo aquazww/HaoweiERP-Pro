@@ -35,21 +35,22 @@
           :height="tableHeight"
           class="data-table"
           stripe
+          :header-cell-style="{ background: 'var(--color-bg-light)' }"
         >
           <el-table-column type="index" label="#" width="60" align="center" />
-          <el-table-column prop="order_no" label="销售单号" width="160">
+          <el-table-column prop="order_no" label="销售单号" min-width="150" align="center">
             <template #default="{ row }">
               <span class="order-no-badge">{{ row.order_no }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="customer_name" label="客户" min-width="160" />
-          <el-table-column prop="warehouse_name" label="仓库" width="130" />
-          <el-table-column prop="total_amount" label="总金额" width="140" align="right">
+          <el-table-column prop="customer_name" label="客户" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="warehouse_name" label="仓库" min-width="120" align="center" show-overflow-tooltip />
+          <el-table-column prop="total_amount" label="总金额" min-width="120" align="right">
             <template #default="{ row }">
               <span class="price-text">¥{{ formatPrice(row.total_amount) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="110">
+          <el-table-column prop="status" label="状态" min-width="100" align="center">
             <template #default="{ row }">
               <div class="status-badge" :class="row.status">
                 <span class="status-dot"></span>
@@ -57,7 +58,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column label="操作" min-width="240" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
@@ -82,43 +83,112 @@
       </div>
     </div>
 
-    <!-- 查看弹窗 -->
+    <!-- 查看详情弹窗 -->
     <el-dialog
       v-model="viewDialogVisible"
-      title="销售单详情"
-      width="800px"
+      width="700px"
       class="view-dialog"
-      destroy-on-close
+      :show-close="false"
     >
-      <el-descriptions :column="2" border class="view-descriptions">
-        <el-descriptions-item label="销售单号">{{ viewData.order_no }}</el-descriptions-item>
-        <el-descriptions-item label="客户">{{ viewData.customer_name }}</el-descriptions-item>
-        <el-descriptions-item label="仓库">{{ viewData.warehouse_name }}</el-descriptions-item>
-        <el-descriptions-item label="销售日期">{{ viewData.order_date }}</el-descriptions-item>
-        <el-descriptions-item label="总金额">¥{{ formatPrice(viewData.total_amount) }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <div class="status-badge" :class="viewData.status">
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">销售单详情</span>
+          <div class="status-badge small" :class="viewData?.status" v-if="viewData">
             <span class="status-dot"></span>
-            {{ getStatusText(viewData.status) }}
+            {{ getStatusText(viewData?.status) }}
           </div>
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ viewData.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
+        </div>
+        <span class="close-btn" @click="viewDialogVisible = false">×</span>
+      </template>
       
-      <div class="view-items-title">销售明细</div>
-      <el-table :data="viewData.items" border style="width: 100%;">
-        <el-table-column type="index" label="#" width="50" align="center" />
-        <el-table-column prop="goods_name" label="商品名称" min-width="180" />
-        <el-table-column prop="quantity" label="数量" width="100" align="right">
-          <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
-        </el-table-column>
-        <el-table-column label="单价" width="120" align="right">
-          <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
-        </el-table-column>
-        <el-table-column label="金额" width="120" align="right">
-          <template #default="{ row }">¥{{ formatPrice(row.amount) }}</template>
-        </el-table-column>
-      </el-table>
+      <div class="detail-container" v-if="viewData">
+        <div class="info-section">
+          <div class="info-row highlight-row">
+            <div class="info-item-group">
+              <span class="info-label">客户</span>
+              <span class="info-value">{{ viewData.customer_name }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">销售单号</span>
+              <span class="info-value primary">{{ viewData.order_no }}</span>
+            </div>
+          </div>
+          <div class="info-row highlight-row">
+            <div class="info-item-group">
+              <span class="info-label">仓库</span>
+              <span class="info-value">{{ viewData.warehouse_name }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">总金额</span>
+              <span class="info-value price">¥{{ formatPrice(viewData.total_amount) }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">销售日期</span>
+              <span class="info-value">{{ viewData.order_date }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">创建人</span>
+              <span class="info-value">{{ viewData.created_by_name || '-' }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">创建时间</span>
+              <span class="info-value">{{ formatDateTime(viewData.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="remark-box" v-if="viewData.remark">
+          <div class="remark-header">
+            <el-icon class="remark-icon"><Document /></el-icon>
+            <span>销售备注</span>
+          </div>
+          <div class="remark-text">{{ viewData.remark }}</div>
+        </div>
+        
+        <div class="items-section">
+          <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+            <div class="header-left">
+              <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+              <span class="header-title">销售明细</span>
+              <span class="header-count">{{ viewData.items?.length || 0 }}项</span>
+            </div>
+            <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+          </div>
+          <el-collapse-transition>
+            <div class="items-body" v-show="itemsExpanded">
+              <el-table :data="viewData.items" border size="small" class="detail-table">
+                <el-table-column type="index" label="#" width="45" align="center" />
+                <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <template #default="{ row }">
+                    <div class="goods-cell">
+                      <span class="goods-name">{{ row.goods_name }}</span>
+                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="unit" label="单位" width="55" align="center" />
+                <el-table-column prop="quantity" label="数量" width="75" align="center">
+                  <template #default="{ row }">
+                    <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="price" label="单价" width="85" align="right">
+                  <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
+                </el-table-column>
+                <el-table-column prop="amount" label="金额" width="95" align="right">
+                  <template #default="{ row }">
+                    <span class="amount-cell">¥{{ formatPrice(row.amount) }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-collapse-transition>
+        </div>
+      </div>
     </el-dialog>
 
     <!-- 新增/编辑弹窗 -->
@@ -278,7 +348,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, View, Upload } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, View, Upload, Document, ArrowRight } from '@element-plus/icons-vue'
 import { 
   getSaleOrders, createSaleOrder, 
   updateSaleOrder, deleteSaleOrder,
@@ -303,6 +373,19 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
+const itemsExpanded = ref(false)
+
+const formatDateTime = (datetime) => {
+  if (!datetime) return '-'
+  const date = new Date(datetime)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
 
 const viewData = ref({
   order_no: '',
@@ -770,6 +853,24 @@ onUnmounted(() => {
   --el-table-header-bg-color: var(--color-bg-light);
 }
 
+.data-table :deep(.el-table__header-wrapper) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table :deep(.el-table__body-wrapper) {
+  overflow-y: auto;
+}
+
+.data-table :deep(.el-table__row) {
+  height: 48px;
+}
+
+.data-table :deep(.el-table__cell) {
+  padding: 8px 0;
+}
+
 .order-no-badge {
   display: inline-block;
   padding: 2px 10px;
@@ -847,21 +948,268 @@ onUnmounted(() => {
   --el-pagination-font-size: 13px;
 }
 
+.view-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
 .view-dialog :deep(.el-dialog__body) {
-  padding: var(--spacing-lg);
+  padding: 12px 16px;
 }
 
-.view-descriptions {
-  margin-bottom: var(--spacing-lg);
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  border-bottom: 1px solid #bae0ff;
+  border-radius: var(--el-dialog-border-radius) var(--el-dialog-border-radius) 0 0;
+  padding-right: 50px;
 }
 
-.view-items-title {
-  font-size: 15px;
+.dialog-title {
+  font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-md);
-  padding-left: var(--spacing-sm);
-  border-left: 3px solid var(--color-primary);
+  color: #333;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 300;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s;
+  border-radius: 0 var(--el-dialog-border-radius) 0 6px;
+  background: transparent;
+}
+
+.close-btn:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-section {
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 0;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+}
+
+.info-row {
+  display: flex;
+  gap: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row.highlight-row {
+  background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.info-item-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 4px 8px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #999;
+  min-width: 56px;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.info-value.primary {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.info-value.price {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.remark-box {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.remark-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #d48806;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.remark-icon {
+  font-size: 14px;
+}
+
+.remark-text {
+  font-size: 13px;
+  color: #614700;
+  line-height: 1.6;
+  padding-left: 20px;
+}
+
+.items-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.items-header:hover {
+  background: #efefef;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expand-icon {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.expand-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.items-body {
+  border-top: 1px solid #e8e8e8;
+}
+
+.detail-table {
+  --el-table-header-bg-color: #f5f7fa;
+  --el-table-border-color: #ebeef5;
+  --el-table-row-hover-bg-color: #f0f5ff;
+}
+
+.detail-table :deep(.el-table__header th) {
+  font-weight: 600;
+  font-size: 12px;
+  color: #606266;
+  padding: 10px 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 100%);
+  border-bottom: 2px solid #e0e6ed;
+}
+
+.detail-table :deep(.el-table__body td) {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.detail-table :deep(.el-table__body tr:hover > td) {
+  background-color: #f5f9ff !important;
+}
+
+.goods-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.goods-cell .goods-name {
+  font-size: 13px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.goods-cell .goods-spec {
+  font-size: 10px;
+  color: #909399;
+  font-family: 'Monaco', 'Consolas', monospace;
+  background: #f4f4f5;
+  padding: 0 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.quantity-cell {
+  font-weight: 600;
+  color: #409eff;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.amount-cell {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
 }
 
 .form-dialog {
@@ -1019,5 +1367,94 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 1400px) {
+  .search-input {
+    width: 280px;
+  }
+  
+  .data-table :deep(.el-table__row) {
+    height: 44px;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .search-input {
+    width: 240px;
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    gap: var(--spacing-sm);
+  }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .toolbar-card {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .data-table :deep(.el-table__row) {
+    height: 40px;
+  }
+  
+  .data-table :deep(.el-table__cell) {
+    padding: 6px 0;
+    font-size: var(--font-size-sm);
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .sale-page {
+    padding: 4px;
+  }
+  
+  .page-content {
+    gap: 4px;
+  }
+  
+  .toolbar-card {
+    border-radius: var(--border-radius-md);
+  }
+  
+  .table-card {
+    border-radius: var(--border-radius-md);
+  }
+  
+  .action-buttons {
+    gap: 2px;
+  }
+  
+  .action-buttons .el-button {
+    padding: 4px 8px;
+  }
+  
+  .pagination-wrapper {
+    padding: 4px var(--spacing-sm);
+  }
+  
+  .pagination-wrapper :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 </style>

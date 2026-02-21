@@ -321,12 +321,17 @@ onMounted(() => {
 .sidebar-menu .el-sub-menu__title {
   color: var(--sidebar-text-secondary);
   border-radius: var(--border-radius-sm);
-  margin: 2px 0;
-  height: 40px;
-  line-height: 40px;
+  margin: 4px 0;
+  height: 36px;
+  line-height: 36px;
   transition: all var(--transition-fast);
   position: relative;
   overflow: visible;
+}
+
+/* 父菜单项字体加粗 */
+.sidebar-menu .el-sub-menu__title span {
+  font-weight: 600;
 }
 
 .sidebar-menu:not(.el-menu--collapse) .el-menu-item,
@@ -391,6 +396,23 @@ onMounted(() => {
   height: 36px;
   line-height: 36px;
   overflow: visible;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-menu .el-sub-menu .el-menu-item::before {
+  content: '•';
+  margin-right: 6px;
+  color: var(--color-text-tertiary);
+}
+
+.sidebar-menu .el-sub-menu .el-menu-item.is-active {
+  background-color: #ADD8E6;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.sidebar-menu .el-sub-menu .el-menu-item.is-active::before {
+  color: var(--color-primary);
 }
 
 .sidebar-menu.el-menu--collapse .el-sub-menu .el-menu-item {
@@ -420,6 +442,21 @@ onMounted(() => {
 
 .sidebar-menu .el-sub-menu.is-opened > .el-sub-menu__title .el-icon {
   color: var(--color-primary);
+}
+
+/* 父菜单项选中状态联动（当子菜单项选中时）- 优先级高于展开状态 */
+.sidebar-menu .el-sub-menu.is-active > .el-sub-menu__title {
+  background-color: #8FBCD4;
+  color: var(--color-primary);
+}
+
+.sidebar-menu .el-sub-menu.is-active > .el-sub-menu__title .el-icon {
+  color: var(--color-primary);
+}
+
+/* 同时展开且选中时的样式 */
+.sidebar-menu .el-sub-menu.is-active.is-opened > .el-sub-menu__title {
+  background-color: #8FBCD4;
 }
 
 /* 覆盖Element Plus默认的菜单文字颜色 */
