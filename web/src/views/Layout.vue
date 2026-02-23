@@ -19,6 +19,8 @@
         :default-active="activeMenu"
         :collapse="isCollapse"
         :collapse-transition="true"
+        :unique-opened="false"
+        :popper-append-to-body="true"
         router
         class="sidebar-menu"
       >
@@ -26,21 +28,21 @@
           <el-icon><DataLine /></el-icon>
           <template #title>概览</template>
         </el-menu-item>
-        <el-sub-menu index="purchase">
+        <el-sub-menu index="purchase" v-if="showPurchaseMenu">
           <template #title>
             <el-icon><ShoppingCart /></el-icon>
             <span>采购管理</span>
           </template>
           <el-menu-item index="/purchase/orders">采购订单</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="sale">
+        <el-sub-menu index="sale" v-if="showSaleMenu">
           <template #title>
             <el-icon><Sell /></el-icon>
             <span>销售管理</span>
           </template>
           <el-menu-item index="/sale/orders">销售订单</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="inventory">
+        <el-sub-menu index="inventory" v-if="showInventoryMenu">
           <template #title>
             <el-icon><Goods /></el-icon>
             <span>库存管理</span>
@@ -50,14 +52,14 @@
           <el-menu-item index="/inventory/transfer">库存调拨</el-menu-item>
           <el-menu-item index="/inventory/log">库存流水</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="finance">
+        <el-sub-menu index="finance" v-if="showFinanceMenu">
           <template #title>
             <el-icon><Wallet /></el-icon>
             <span>财务管理</span>
           </template>
           <el-menu-item index="/finance/payments">收付款管理</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="reports">
+        <el-sub-menu index="reports" v-if="showReportsMenu">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>报表中心</span>
@@ -67,7 +69,7 @@
           <el-menu-item index="/reports/inventory">库存报表</el-menu-item>
           <el-menu-item index="/reports/finance">财务报表</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="basic">
+        <el-sub-menu index="basic" v-if="showBasicMenu">
           <template #title>
             <el-icon><Box /></el-icon>
             <span>基础资料</span>
@@ -77,12 +79,11 @@
           <el-menu-item index="/basic/suppliers">供应商管理</el-menu-item>
           <el-menu-item index="/basic/customers">客户管理</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="system" v-if="isAdmin">
+        <el-sub-menu index="system" v-if="showSystemMenu">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/system/roles">角色管理</el-menu-item>
           <el-menu-item index="/system/users">用户管理</el-menu-item>
           <el-menu-item index="/system/logs">操作日志</el-menu-item>
         </el-sub-menu>
@@ -160,6 +161,7 @@ const router = useRouter()
 const route = useRoute()
 const isCollapse = ref(false)
 const userInfo = ref({})
+const permissions = ref({})
 
 const pageTitleMap = {
   '/dashboard': '控制台',
@@ -178,7 +180,6 @@ const pageTitleMap = {
   '/reports/sale': '销售报表',
   '/reports/inventory': '库存报表',
   '/reports/finance': '财务报表',
-  '/system/roles': '角色管理',
   '/system/users': '用户管理',
   '/system/logs': '操作日志'
 }
@@ -187,11 +188,19 @@ const activeMenu = computed(() => route.path)
 
 const currentPageTitle = computed(() => pageTitleMap[route.path] || '页面')
 
-const isAdmin = computed(() => {
-  return userInfo.value.username === 'admin' || 
-         userInfo.value.role_name === 'admin' || 
-         userInfo.value.role_name === '管理员'
-})
+const hasPermission = (module) => {
+  const username = userInfo.value.username || localStorage.getItem('username')
+  if (username === 'admin') return true
+  return permissions.value[module]?.view === true
+}
+
+const showBasicMenu = computed(() => hasPermission('basic'))
+const showPurchaseMenu = computed(() => hasPermission('purchase'))
+const showSaleMenu = computed(() => hasPermission('sale'))
+const showInventoryMenu = computed(() => hasPermission('inventory'))
+const showFinanceMenu = computed(() => hasPermission('finance'))
+const showReportsMenu = computed(() => hasPermission('reports'))
+const showSystemMenu = computed(() => hasPermission('system'))
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
@@ -201,6 +210,10 @@ const loadUserInfo = async () => {
   try {
     const res = await request.get('/auth/user/')
     userInfo.value = res.data.data || res.data
+    const storedPerms = localStorage.getItem('permissions')
+    if (storedPerms) {
+      permissions.value = JSON.parse(storedPerms)
+    }
   } catch (error) {
     console.error('获取用户信息失败')
   }
@@ -214,8 +227,9 @@ const handleCommand = async (command) => {
         cancelButtonText: '取消',
         type: 'warning'
       })
-      localStorage.removeItem('token')
-      localStorage.removeItem('refresh_token')
+      await request.post('/auth/logout/')
+      localStorage.removeItem('permissions')
+      localStorage.removeItem('username')
       ElMessage.success('已退出登录')
       router.push('/login')
     } catch {

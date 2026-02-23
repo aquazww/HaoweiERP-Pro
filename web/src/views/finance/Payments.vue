@@ -40,7 +40,6 @@
           stripe
           :height="tableHeight"
         >
-          <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="order_no" label="单号" min-width="150" />
           <el-table-column label="类型" width="90" align="center">
             <template #default="{ row }">
@@ -70,8 +69,8 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="success" link size="small" @click="handlePay(row)">付款</el-button>
-                <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="success" link size="small" @click="handlePay(row)" v-if="canEditFinance">付款</el-button>
+                <el-button type="danger" link size="small" @click="handleDelete(row)" v-if="canDeleteFinance">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -93,10 +92,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { getPayments, deletePayment } from '../../api/finance'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
+
+const canAddFinance = computed(() => canAdd('finance'))
+const canEditFinance = computed(() => canEdit('finance'))
+const canDeleteFinance = computed(() => canDelete('finance'))
 
 const loading = ref(false)
 const paymentList = ref([])

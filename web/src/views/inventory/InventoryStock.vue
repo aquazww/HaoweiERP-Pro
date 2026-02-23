@@ -79,7 +79,6 @@
           :header-cell-style="{ background: 'var(--color-bg-light)' }"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="goods_code" label="商品编码" min-width="110" sortable="custom" show-overflow-tooltip />
           <el-table-column prop="goods_name" label="商品名称" min-width="160" sortable="custom" show-overflow-tooltip />
           <el-table-column prop="category_name" label="分类" min-width="90" show-overflow-tooltip />
@@ -136,7 +135,6 @@
         <span>仓库：{{ currentGoods?.warehouse_name }}</span>
       </div>
       <el-table :data="logList" v-loading="logLoading" style="width: 100%;" max-height="400">
-        <el-table-column type="index" label="#" width="50" align="center" />
         <el-table-column prop="change_type_display" label="类型" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.change_type === 'inbound' ? 'success' : 'danger'" size="small">
@@ -168,7 +166,6 @@
     <!-- 库存预警弹窗 -->
     <el-dialog v-model="warningDialogVisible" title="库存预警" width="800px" class="warning-dialog">
       <el-table :data="warningList" v-loading="warningLoading" style="width: 100%;" max-height="450">
-        <el-table-column type="index" label="#" width="50" align="center" />
         <el-table-column prop="goods_code" label="商品编码" width="120" />
         <el-table-column prop="goods_name" label="商品名称" min-width="180" />
         <el-table-column prop="warehouse_name" label="仓库" width="100" />

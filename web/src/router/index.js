@@ -7,6 +7,11 @@ const routes = [
     component: () => import('../views/Login.vue')
   },
   {
+    path: '/forbidden',
+    name: 'Forbidden',
+    component: () => import('../views/Forbidden.vue')
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('../views/Layout.vue'),
@@ -93,11 +98,6 @@ const routes = [
         component: () => import('../views/reports/FinanceReport.vue')
       },
       {
-        path: 'system/roles',
-        name: 'SystemRoles',
-        component: () => import('../views/system/Roles.vue')
-      },
-      {
         path: 'system/users',
         name: 'SystemUsers',
         component: () => import('../views/system/Users.vue')
@@ -116,15 +116,67 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  if (to.path !== '/login' && !token) {
-    next('/login')
-  } else if (to.path === '/login' && token) {
-    next('/')
-  } else {
-    next()
+const MODULE_PERMISSION_MAP = {
+  '/basic': 'basic',
+  '/purchase': 'purchase',
+  '/sale': 'sale',
+  '/inventory': 'inventory',
+  '/finance': 'finance',
+  '/reports': 'reports',
+  '/system': 'system'
+}
+
+const getModuleFromPath = (path) => {
+  for (const [prefix, module] of Object.entries(MODULE_PERMISSION_MAP)) {
+    if (path.startsWith(prefix)) {
+      return module
+    }
   }
+  return null
+}
+
+const checkPermission = (module) => {
+  const username = localStorage.getItem('username')
+  if (username === 'admin') {
+    return true
+  }
+  const permissions = JSON.parse(localStorage.getItem('permissions') || '{}')
+  if (!permissions || !permissions[module]) {
+    return false
+  }
+  return permissions[module].view === true
+}
+
+router.beforeEach((to, from, next) => {
+  const username = localStorage.getItem('username')
+  
+  if (to.path !== '/login' && to.path !== '/forbidden' && !username) {
+    next('/login')
+    return
+  }
+  
+  if (to.path === '/login' && username) {
+    next('/')
+    return
+  }
+  
+  if (to.path === '/forbidden' || to.path === '/login' || to.path === '/') {
+    next()
+    return
+  }
+  
+  if (to.path === '/dashboard') {
+    next()
+    return
+  }
+  
+  const module = getModuleFromPath(to.path)
+  if (module && !checkPermission(module)) {
+    next({ path: '/forbidden', query: { module } })
+    return
+  }
+  
+  next()
 })
 
 export default router

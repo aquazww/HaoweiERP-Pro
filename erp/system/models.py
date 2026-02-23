@@ -23,9 +23,10 @@ class Role(models.Model):
 class User(AbstractUser):
     """用户表（扩展 Django 默认 User）"""
     name = models.CharField(max_length=50, blank=True, verbose_name='姓名')
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='角色')
     phone = models.CharField(max_length=20, blank=True, verbose_name='手机号')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='头像')
+    permissions = models.JSONField(default=dict, blank=True, verbose_name='权限列表')
+    token_version = models.IntegerField(default=0, verbose_name='Token版本号')
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
@@ -37,6 +38,37 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.name or self.username
+    
+    def get_permissions(self):
+        """获取用户权限"""
+        return self.permissions if self.permissions else {}
+    
+    def has_permission(self, module, action='view'):
+        """检查用户是否有指定模块的权限"""
+        if self.username == 'admin':
+            return True
+        permissions = self.get_permissions()
+        module_perms = permissions.get(module, {})
+        return module_perms.get(action, False) if isinstance(module_perms, dict) else module_perms
+    
+    def get_all_permissions(self):
+        """获取用户所有权限（用于前端菜单显示）"""
+        if self.username == 'admin':
+            return {
+                'basic': {'view': True, 'add': True, 'edit': True, 'delete': True},
+                'purchase': {'view': True, 'add': True, 'edit': True, 'delete': True},
+                'sale': {'view': True, 'add': True, 'edit': True, 'delete': True},
+                'inventory': {'view': True, 'add': True, 'edit': True, 'delete': True},
+                'finance': {'view': True, 'add': True, 'edit': True, 'delete': True},
+                'reports': {'view': True},
+                'system': {'view': True, 'add': True, 'edit': True, 'delete': True}
+            }
+        return self.get_permissions()
+    
+    def invalidate_tokens(self):
+        """使所有token失效"""
+        self.token_version += 1
+        self.save(update_fields=['token_version'])
 
 
 class Log(models.Model):

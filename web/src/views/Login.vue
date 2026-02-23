@@ -82,12 +82,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import request from '../api/index'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref(null)
 const loading = ref(false)
 
@@ -116,8 +117,11 @@ const handleLogin = async () => {
     const res = await request.post('/auth/login/', loginForm.value, {
       _skipAuthRedirect: true
     })
-    localStorage.setItem('token', res.data.access)
-    localStorage.setItem('refresh_token', res.data.refresh)
+    
+    localStorage.setItem('username', res.data.username)
+    if (res.data.permissions) {
+      localStorage.setItem('permissions', JSON.stringify(res.data.permissions))
+    }
     ElMessage.success('登录成功，欢迎回来！')
     
     setTimeout(() => {
@@ -125,7 +129,6 @@ const handleLogin = async () => {
     }, 500)
   } catch (error) {
     if (error !== false) {
-      // 优先使用后端返回的错误信息
       const errorMsg = error.response?.data?.msg || error.message || '登录失败，请检查用户名和密码'
       ElMessage.error(errorMsg)
     }
@@ -135,8 +138,12 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('permissions')
+  localStorage.removeItem('username')
+  
+  if (route.query.reason === 'permission_changed') {
+    ElMessage.warning('您的账户权限已变更，请重新登录')
+  }
 })
 </script>
 

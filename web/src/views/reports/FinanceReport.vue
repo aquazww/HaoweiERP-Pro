@@ -76,8 +76,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="supplier_name" label="供应商" width="150" />
-        <el-table-column prop="customer_name" label="客户" width="150" />
+        <el-table-column prop="related_party_name" label="往来单位" width="180" />
         <el-table-column prop="amount" label="金额" width="120">
           <template #default="{ row }">
             <span :style="{ color: row.payment_type === '收款' ? '#67c23a' : '#f56c6c' }">
@@ -95,7 +94,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Download } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import { getFinanceReport } from '../../api/reports'
 import { ElMessage } from 'element-plus'
 import { exportToExcel } from '../../utils/export'
@@ -175,8 +174,7 @@ const handleExport = () => {
   const columns = [
     { key: 'payment_no', title: '收付款单号' },
     { key: 'payment_type', title: '类型' },
-    { key: 'supplier_name', title: '供应商' },
-    { key: 'customer_name', title: '客户' },
+    { key: 'related_party_name', title: '往来单位' },
     { key: 'amount', title: '金额' },
     { key: 'payment_date', title: '日期' },
     { key: 'payment_method', title: '支付方式' },

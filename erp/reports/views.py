@@ -7,11 +7,23 @@ from purchase.models import PurchaseOrder
 from sale.models import SaleOrder
 from inventory.models import Inventory
 from finance.models import Payment
+from system.permissions import ModulePermission
+
+
+class ReportsModulePermission(ModulePermission):
+    MODULE_MAP = {
+        '采购报表': 'reports',
+        '销售报表': 'reports',
+        '库存报表': 'reports',
+        '财务报表': 'reports',
+        '仪表盘': 'reports',
+    }
 
 
 class PurchaseReportView(APIView):
     """采购报表"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ReportsModulePermission]
+    module_name = '采购报表'
 
     def get(self, request):
         start_date = request.query_params.get('start_date')
@@ -53,7 +65,8 @@ class PurchaseReportView(APIView):
 
 class SaleReportView(APIView):
     """销售报表"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ReportsModulePermission]
+    module_name = '销售报表'
 
     def get(self, request):
         start_date = request.query_params.get('start_date')
@@ -95,7 +108,8 @@ class SaleReportView(APIView):
 
 class InventoryReportView(APIView):
     """库存报表"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ReportsModulePermission]
+    module_name = '库存报表'
 
     def get(self, request):
         from basic.models import Goods, Unit, Category
@@ -123,7 +137,7 @@ class InventoryReportView(APIView):
                 'id': inv.id,
                 'goods_name': goods.name,
                 'goods_code': goods.code,
-                'specification': goods.specification or '',
+                'specification': goods.spec or '',
                 'unit_name': goods.unit.name if goods.unit else '',
                 'category_name': goods.category.name if goods.category else '',
                 'quantity': float(inv.quantity),
@@ -149,29 +163,22 @@ class DashboardView(APIView):
     def get(self, request):
         today = timezone.now().date()
         
-        # 今日采购
         today_purchase = PurchaseOrder.objects.filter(
             order_date=today,
             status='completed'
         ).aggregate(total=Sum('total_amount'))['total'] or 0
         
-        # 今日销售
         today_sale = SaleOrder.objects.filter(
             order_date=today,
             status='completed'
         ).aggregate(total=Sum('total_amount'))['total'] or 0
         
-        # 采购订单数
         purchase_count = PurchaseOrder.objects.count()
-        
-        # 销售订单数
         sale_count = SaleOrder.objects.count()
         
-        # 商品种类
         from basic.models import Goods
         goods_count = Goods.objects.filter(status=1).count()
         
-        # 最近7天销售数据
         from datetime import timedelta
         last_7_days = []
         last_7_days_sales = []
@@ -193,8 +200,6 @@ class DashboardView(APIView):
             ).aggregate(total=Sum('total_amount'))['total'] or 0
             last_7_days_purchases.append(float(purchase_amount))
         
-        # 库存价值分布（按商品分类）
-        from inventory.models import Inventory
         category_value = {}
         total_inventory_value = 0
         for inv in Inventory.objects.select_related('goods').all():
@@ -232,38 +237,54 @@ class DashboardView(APIView):
 
 class FinanceReportView(APIView):
     """财务报表"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ReportsModulePermission]
+    module_name = '财务报表'
 
     def get(self, request):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         payment_type = request.query_params.get('payment_type')
         
-        queryset = Payment.objects.select_related('purchase_order', 'sale_order', 'supplier', 'customer').all()
+        queryset = Payment.objects.all()
         
         if start_date:
-            queryset = queryset.filter(payment_date__gte=start_date)
+            queryset = queryset.filter(created_at__date__gte=start_date)
         if end_date:
-            queryset = queryset.filter(payment_date__lte=end_date)
+            queryset = queryset.filter(created_at__date__lte=end_date)
         if payment_type:
-            queryset = queryset.filter(payment_type=payment_type)
+            queryset = queryset.filter(type=payment_type)
         
         total_payment = queryset.aggregate(total=Sum('amount'))['total'] or 0
         
-        income = queryset.filter(payment_type='income').aggregate(total=Sum('amount'))['total'] or 0
-        expense = queryset.filter(payment_type='expense').aggregate(total=Sum('amount'))['total'] or 0
+        income = queryset.filter(type='receive').aggregate(total=Sum('amount'))['total'] or 0
+        expense = queryset.filter(type='pay').aggregate(total=Sum('amount'))['total'] or 0
         
         payments = []
         for payment in queryset[:50]:
+            related_party_name = ''
+            if payment.related_party_type == 'supplier':
+                from basic.models import Supplier
+                try:
+                    supplier = Supplier.objects.get(id=payment.related_party_id)
+                    related_party_name = supplier.name
+                except:
+                    pass
+            elif payment.related_party_type == 'customer':
+                from basic.models import Customer
+                try:
+                    customer = Customer.objects.get(id=payment.related_party_id)
+                    related_party_name = customer.name
+                except:
+                    pass
+            
             payments.append({
                 'id': payment.id,
-                'payment_no': payment.payment_no,
-                'payment_type': payment.get_payment_type_display(),
-                'supplier_name': payment.supplier.name if payment.supplier else '',
-                'customer_name': payment.customer.name if payment.customer else '',
+                'payment_no': payment.order_no,
+                'payment_type': payment.get_type_display(),
+                'related_party_name': related_party_name,
                 'amount': float(payment.amount),
-                'payment_date': payment.payment_date,
-                'payment_method': payment.get_payment_method_display() if payment.payment_method else '',
+                'payment_date': payment.created_at.strftime('%Y-%m-%d') if payment.created_at else '',
+                'payment_method': payment.payment_method or '',
                 'remark': payment.remark or ''
             })
         

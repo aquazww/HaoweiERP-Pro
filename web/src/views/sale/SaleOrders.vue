@@ -23,7 +23,7 @@
         </div>
         <div class="toolbar-right">
           <el-button :icon="Refresh" @click="loadOrders">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增销售单</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd" v-if="canAddSale">新增销售单</el-button>
         </div>
       </div>
 
@@ -37,7 +37,6 @@
           stripe
           :header-cell-style="{ background: 'var(--color-bg-light)' }"
         >
-          <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="order_no" label="销售单号" min-width="150" align="center">
             <template #default="{ row }">
               <span class="order-no-badge">{{ row.order_no }}</span>
@@ -62,9 +61,9 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="row.status === 'pending'">编辑</el-button>
-                <el-button type="success" link :icon="Upload" size="small" @click="handleStockOut(row)" v-if="row.status !== 'completed' && row.status !== 'cancelled'">出库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="row.status === 'pending'">删除</el-button>
+                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditSale && row.status === 'pending'">编辑</el-button>
+                <el-button type="success" link :icon="Upload" size="small" @click="handleStockOut(row)" v-if="canStockOut && row.status !== 'completed' && row.status !== 'cancelled'">出库</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteSale && row.status === 'pending'">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -161,7 +160,6 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData.items" border size="small" class="detail-table">
-                <el-table-column type="index" label="#" width="45" align="center" />
                 <el-table-column prop="goods_name" label="商品" min-width="140">
                   <template #default="{ row }">
                     <div class="goods-cell">
@@ -356,6 +354,12 @@ import {
 } from '../../api/sale'
 import { getCustomers, getWarehouses, getGoods } from '../../api/basic'
 import { formatPrice, formatQuantity, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
+
+const canAddSale = computed(() => canAdd('sale'))
+const canEditSale = computed(() => canEdit('sale'))
+const canDeleteSale = computed(() => canDelete('sale'))
+const canStockOut = computed(() => canAdd('inventory'))
 
 const loading = ref(false)
 const submitLoading = ref(false)

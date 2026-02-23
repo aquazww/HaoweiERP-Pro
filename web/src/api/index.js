@@ -2,7 +2,8 @@ import axios from 'axios'
 
 const request = axios.create({
   baseURL: '/api/v1',
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true
 })
 
 let isRefreshing = false
@@ -12,37 +13,27 @@ const subscribeTokenRefresh = (cb) => {
   refreshSubscribers.push(cb)
 }
 
-const onRefreshed = (token) => {
-  refreshSubscribers.forEach(cb => cb(token))
+const onRefreshed = () => {
+  refreshSubscribers.forEach(cb => cb())
   refreshSubscribers = []
 }
 
 const onRefreshFailed = () => {
   refreshSubscribers = []
-  localStorage.removeItem('token')
-  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('permissions')
+  localStorage.removeItem('username')
   window.location.href = '/login'
 }
 
 const refreshToken = async () => {
-  const refreshToken = localStorage.getItem('refresh_token')
-  if (!refreshToken) {
-    throw new Error('No refresh token')
-  }
-  
-  const response = await axios.post('/api/v1/auth/refresh/', {
-    refresh: refreshToken
+  const response = await axios.post('/api/v1/auth/refresh/', {}, {
+    withCredentials: true
   })
-  
   return response.data
 }
 
 request.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
     return config
   },
   error => {
@@ -63,7 +54,6 @@ request.interceptors.response.use(
   async error => {
     const originalRequest = error.config
     
-    // 如果请求标记了跳过认证重定向，直接返回错误
     if (error.response?.status === 401 && originalRequest._skipAuthRedirect) {
       return Promise.reject(error)
     }
@@ -71,8 +61,7 @@ request.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise(resolve => {
-          subscribeTokenRefresh(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
+          subscribeTokenRefresh(() => {
             resolve(request(originalRequest))
           })
         })
@@ -82,18 +71,9 @@ request.interceptors.response.use(
       isRefreshing = true
       
       try {
-        const res = await refreshToken()
-        const newToken = res.data.access
-        localStorage.setItem('token', newToken)
-        
-        if (res.data.refresh) {
-          localStorage.setItem('refresh_token', res.data.refresh)
-        }
-        
-        onRefreshed(newToken)
+        await refreshToken()
+        onRefreshed()
         isRefreshing = false
-        
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
         return request(originalRequest)
       } catch (refreshError) {
         isRefreshing = false
@@ -103,9 +83,36 @@ request.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('refresh_token')
-      window.location.href = '/login'
+      const msg = error.response?.data?.msg || '登录已过期'
+      localStorage.removeItem('permissions')
+      localStorage.removeItem('username')
+      
+      if (msg.includes('权限已变更') || msg.includes('重新登录')) {
+        window.location.href = '/login?reason=permission_changed'
+      } else {
+        window.location.href = '/login'
+      }
+    }
+    
+    if (error.response?.status === 403) {
+      const msg = error.response?.data?.msg || error.response?.data?.message || '您没有权限执行此操作'
+      return Promise.reject(new Error(msg))
+    }
+    
+    if (error.response?.status === 500) {
+      return Promise.reject(new Error('服务器内部错误，请稍后重试'))
+    }
+    
+    if (error.response?.status === 404) {
+      return Promise.reject(new Error('请求的资源不存在'))
+    }
+    
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('请求超时，请检查网络连接'))
+    }
+    
+    if (!error.response) {
+      return Promise.reject(new Error('网络连接失败，请检查网络'))
     }
     
     return Promise.reject(error)

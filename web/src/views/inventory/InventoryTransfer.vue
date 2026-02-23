@@ -15,13 +15,12 @@
         </div>
         <div class="toolbar-right">
           <el-button :icon="Refresh" @click="loadTransfers">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增调拨单</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd" v-if="canAddInventory">新增调拨单</el-button>
         </div>
       </div>
 
       <div class="table-card">
         <el-table :data="transferList" style="width: 100%" v-loading="loading" :height="tableHeight" class="data-table" stripe :header-cell-style="{ background: 'var(--color-bg-light)' }">
-          <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="order_no" label="调拨单号" min-width="150" align="center">
             <template #default="{ row }">
               <span class="order-no-badge">{{ row.order_no }}</span>
@@ -54,8 +53,8 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="success" link size="small" @click="handleConfirm(row)" v-if="row.status === 'draft'">确认</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="row.status === 'draft'">删除</el-button>
+                <el-button type="success" link size="small" @click="handleConfirm(row)" v-if="canEditInventory && row.status === 'draft'">确认</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteInventory && row.status === 'draft'">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -196,7 +195,6 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData.items" border size="small" class="detail-table">
-                <el-table-column type="index" label="#" width="45" align="center" />
                 <el-table-column prop="goods_name" label="商品" min-width="140">
                   <template #default="{ row }">
                     <div class="goods-cell">
@@ -221,13 +219,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Delete, View, Right, Document, ArrowRight } from '@element-plus/icons-vue'
 import { getWarehouses, getGoods } from '../../api/basic'
 import { getInventory } from '../../api/inventory'
 import { formatInputNumber, parseInputNumber } from '../../utils/format'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
 import request from '../../api/index'
+
+const canAddInventory = computed(() => canAdd('inventory'))
+const canEditInventory = computed(() => canEdit('inventory'))
+const canDeleteInventory = computed(() => canDelete('inventory'))
 
 const loading = ref(false)
 const submitLoading = ref(false)

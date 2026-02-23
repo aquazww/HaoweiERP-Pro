@@ -23,7 +23,7 @@
         </div>
         <div class="toolbar-right">
           <el-button :icon="Refresh" @click="loadOrders">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增采购单</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd" v-if="canAddPurchase">新增采购单</el-button>
         </div>
       </div>
 
@@ -37,7 +37,6 @@
           stripe
           :header-cell-style="{ background: 'var(--color-bg-light)' }"
         >
-          <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="order_no" label="采购单号" min-width="150" align="center">
             <template #default="{ row }">
               <span class="order-no-badge">{{ row.order_no }}</span>
@@ -62,9 +61,9 @@
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="row.status === 'pending'">编辑</el-button>
-                <el-button type="success" link :icon="Download" size="small" @click="handleStockIn(row)" v-if="row.status !== 'completed' && row.status !== 'cancelled'">入库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="row.status === 'pending'">删除</el-button>
+                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditPurchase && row.status === 'pending'">编辑</el-button>
+                <el-button type="success" link :icon="Download" size="small" @click="handleStockIn(row)" v-if="canStockIn && row.status !== 'completed' && row.status !== 'cancelled'">入库</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeletePurchase && row.status === 'pending'">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -155,7 +154,6 @@
           </div>
           <div class="form-section-body no-padding">
             <el-table :data="form.items" border size="small" class="form-table">
-              <el-table-column type="index" label="#" width="45" align="center" />
               <el-table-column prop="goods" label="商品" min-width="160">
                 <template #default="{ row, $index }">
                   <el-select 
@@ -337,7 +335,6 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData?.items || []" border size="small" class="detail-table">
-                <el-table-column type="index" label="#" width="45" align="center" />
                 <el-table-column prop="goods_name" label="商品" min-width="140">
                   <template #default="{ row }">
                     <div class="goods-cell">
@@ -381,6 +378,12 @@ import {
 import { getSuppliers, getWarehouses, getGoods } from '../../api/basic'
 import { createStockIn, confirmStockIn } from '../../api/inventory'
 import { formatPrice, formatQuantity, formatInputNumber, parseInputNumber, calculateAmount } from '../../utils/format'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
+
+const canAddPurchase = computed(() => canAdd('purchase'))
+const canEditPurchase = computed(() => canEdit('purchase'))
+const canDeletePurchase = computed(() => canDelete('purchase'))
+const canStockIn = computed(() => canAdd('inventory'))
 
 /**
  * 格式化日期时间，移除时区信息

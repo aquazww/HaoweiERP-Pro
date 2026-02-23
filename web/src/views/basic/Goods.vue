@@ -21,7 +21,7 @@
         </div>
         <div class="toolbar-right">
           <el-button :icon="Refresh" @click="loadGoods">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增商品</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd" v-if="canAddGoods">新增商品</el-button>
         </div>
       </div>
 
@@ -34,7 +34,6 @@
           stripe
           :height="tableHeight"
         >
-          <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="code" label="商品编码" width="140">
             <template #default="{ row }">
               <span class="code-badge">{{ row.code }}</span>
@@ -88,8 +87,8 @@
           <el-table-column label="操作" width="140" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditGoods">编辑</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteGoods">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -151,19 +150,33 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="商品分类" prop="category">
-              <el-select 
-                v-model="form.category" 
+              <el-tree-select
+                v-model="form.category"
+                :data="categoryTreeData"
+                :props="{ value: 'id', label: 'name', children: 'children' }"
                 placeholder="请选择商品分类"
                 style="width: 100%"
                 filterable
+                clearable
+                :filter-node-method="filterCategoryNode"
+                check-strictly
+                :render-after-expand="false"
+                node-key="id"
+                highlight-current
               >
-                <el-option 
-                  v-for="item in categoryList" 
-                  :key="item.id" 
-                  :label="item.name" 
-                  :value="item.id"
-                />
-              </el-select>
+                <template #default="{ node, data }">
+                  <div class="category-option" :class="`level-${data.level}`">
+                    <span class="category-icon" v-if="data.children && data.children.length">
+                      <el-icon><Folder /></el-icon>
+                    </span>
+                    <span class="category-icon leaf" v-else>
+                      <el-icon><Document /></el-icon>
+                    </span>
+                    <span class="category-name">{{ data.name }}</span>
+                    <span class="category-code" v-if="data.code">{{ data.code }}</span>
+                  </div>
+                </template>
+              </el-tree-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -329,11 +342,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, Folder, Document } from '@element-plus/icons-vue'
 import { getGoods, createGoods, deleteGoods, updateGoods, getCategories, getUnits } from '../../api/basic'
 import { formatPrice, formatInputNumber, parseInputNumber } from '../../utils/format'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
 
 const loading = ref(false)
 const toggleLoading = ref(null)
@@ -345,12 +359,17 @@ const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
 
+const canAddGoods = computed(() => canAdd('basic'))
+const canEditGoods = computed(() => canEdit('basic'))
+const canDeleteGoods = computed(() => canDelete('basic'))
+
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增商品')
 const isEdit = ref(false)
 const submitLoading = ref(false)
 const formRef = ref(null)
 const categoryList = ref([])
+const categoryTreeData = ref([])
 const unitList = ref([])
 
 const priceErrors = reactive({
@@ -482,13 +501,50 @@ const calculateTableHeight = () => {
   })
 }
 
+const filterCategoryNode = (value, data) => {
+  if (!value) return true
+  return data.name.includes(value) || (data.code && data.code.toLowerCase().includes(value.toLowerCase()))
+}
+
 const loadCategories = async () => {
   try {
     const res = await getCategories({ page_size: 1000, is_active: true })
     categoryList.value = res.data.items || res.data.results || []
+    categoryTreeData.value = buildCategoryTree(categoryList.value)
   } catch (error) {
     categoryList.value = []
+    categoryTreeData.value = []
   }
+}
+
+const buildCategoryTree = (categories) => {
+  const map = {}
+  const roots = []
+  
+  categories.forEach(cat => {
+    map[cat.id] = { ...cat, children: [] }
+  })
+  
+  categories.forEach(cat => {
+    if (cat.parent && map[cat.parent]) {
+      map[cat.parent].children.push(map[cat.id])
+    } else {
+      roots.push(map[cat.id])
+    }
+  })
+  
+  const removeEmptyChildren = (nodes) => {
+    nodes.forEach(node => {
+      if (node.children && node.children.length === 0) {
+        delete node.children
+      } else if (node.children) {
+        removeEmptyChildren(node.children)
+      }
+    })
+  }
+  
+  removeEmptyChildren(roots)
+  return roots
 }
 
 const loadUnits = async () => {
@@ -819,6 +875,64 @@ onUnmounted(() => {
 .goods-category {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.category-option.level-1 {
+  font-weight: 600;
+}
+
+.category-option.level-2 {
+  padding-left: 8px;
+  color: #606266;
+}
+
+.category-option.level-3 {
+  padding-left: 16px;
+  font-size: 13px;
+}
+
+.category-option.level-4 {
+  padding-left: 24px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.category-option.level-5 {
+  padding-left: 32px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.category-icon {
+  display: flex;
+  align-items: center;
+  color: #165DFF;
+  font-size: 14px;
+}
+
+.category-icon.leaf {
+  color: #909399;
+  font-size: 12px;
+}
+
+.category-name {
+  flex: 1;
+}
+
+.category-code {
+  font-size: 11px;
+  color: #909399;
+  background: #f4f4f5;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Consolas', monospace;
 }
 
 .spec-text {

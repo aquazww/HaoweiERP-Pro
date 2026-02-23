@@ -8,11 +8,12 @@ from .serializers import (
     PurchaseItemSerializer
 )
 from utils.views import BaseModelViewSet
+from system.permissions import ModulePermission
 
 
 class PurchaseOrderViewSet(BaseModelViewSet):
     """采购订单视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = PurchaseOrder.objects.select_related(
         'supplier', 'warehouse', 'created_by'
     ).prefetch_related('items').all()
@@ -46,8 +47,8 @@ class PurchaseOrderViewSet(BaseModelViewSet):
 
 class PurchaseItemViewSet(BaseModelViewSet):
     """采购明细视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = PurchaseItem.objects.select_related('order', 'goods').all()
     serializer_class = PurchaseItemSerializer
     filterset_fields = ['order', 'goods']
-    module_name = '采购明细'
+    module_name = '采购订单'

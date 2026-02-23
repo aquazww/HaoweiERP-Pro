@@ -62,7 +62,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Download } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import { getInventoryReport } from '../../api/reports'
 import { ElMessage } from 'element-plus'
 import { exportToExcel } from '../../utils/export'

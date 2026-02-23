@@ -20,6 +20,18 @@ export const getCategories = (params) => {
   return request.get('/basic/categories/', { params })
 }
 
+export const getCategoryTree = () => {
+  return request.get('/basic/categories/tree/')
+}
+
+export const getCategoryDetail = (id) => {
+  return request.get(`/basic/categories/${id}/`)
+}
+
+export const getCategoryOptions = () => {
+  return request.get('/basic/categories/options/')
+}
+
 export const createCategory = (data) => {
   return request.post('/basic/categories/', data)
 }
@@ -30,6 +42,10 @@ export const updateCategory = (id, data) => {
 
 export const deleteCategory = (id) => {
   return request.delete(`/basic/categories/${id}/`)
+}
+
+export const batchUpdateCategorySort = (data) => {
+  return request.post('/basic/categories/batch_update_sort/', data)
 }
 
 export const getWarehouses = (params) => {

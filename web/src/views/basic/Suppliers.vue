@@ -21,7 +21,7 @@
         </div>
         <div class="toolbar-right">
           <el-button :icon="Refresh" @click="loadSuppliers">刷新</el-button>
-          <el-button type="primary" :icon="Plus" @click="handleAdd">新增供应商</el-button>
+          <el-button type="primary" :icon="Plus" @click="handleAdd" v-if="canAddBasic">新增供应商</el-button>
         </div>
       </div>
 
@@ -34,7 +34,6 @@
           stripe
           :height="tableHeight"
         >
-          <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column prop="code" label="编码" width="120">
             <template #default="{ row }">
               <span class="code-badge">{{ row.code }}</span>
@@ -69,8 +68,8 @@
           <el-table-column label="操作" width="140" align="center">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)">编辑</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)">删除</el-button>
+                <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditBasic">编辑</el-button>
+                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteBasic">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -254,10 +253,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, nextTick, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { getSuppliers, createSupplier, deleteSupplier, updateSupplier } from '../../api/basic'
+import { canAdd, canEdit, canDelete } from '../../utils/permission'
+
+const canAddBasic = computed(() => canAdd('basic'))
+const canEditBasic = computed(() => canEdit('basic'))
+const canDeleteBasic = computed(() => canDelete('basic'))
 
 const loading = ref(false)
 const toggleLoading = ref(null)

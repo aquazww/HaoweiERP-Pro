@@ -13,10 +13,10 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .serializers import (
     CustomTokenObtainPairSerializer, UserSerializer, UserCreateSerializer, 
-    UserUpdateSerializer, RoleSerializer, LogSerializer, ResetPasswordSerializer
+    UserUpdateSerializer, LogSerializer, ResetPasswordSerializer, PERMISSION_MODULES
 )
-from .models import Role, Log
-from .permissions import IsAdminUser, IsAdminOrReadOnly
+from .models import Log
+from .permissions import IsAdminUser, IsAdminOrReadOnly, ModulePermission
 from utils.views import BaseModelViewSet
 
 logger = logging.getLogger(__name__)
@@ -34,9 +34,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         try:
             user = User.objects.get(username=username)
             
-            # 检查账户是否被禁用
             if not user.is_active:
-                # 记录禁用账户的登录尝试
                 Log.objects.create(
                     user=user,
                     action='login',
@@ -50,10 +48,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     'data': None
                 }, status=401)
             
-            # 调用父类方法进行正常登录验证
             response = super().post(request, *args, **kwargs)
             
-            # 记录成功登录日志
             Log.objects.create(
                 user=user,
                 action='login',
@@ -62,14 +58,39 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 ip_address=self.get_client_ip(request)
             )
             
-            return Response({
+            from django.conf import settings
+            from django.http import JsonResponse
+            
+            response_data = JsonResponse({
                 'code': 200,
                 'msg': '登录成功',
                 'data': {
-                    'access': response.data['access'],
-                    'refresh': response.data['refresh']
+                    'permissions': user.get_all_permissions(),
+                    'username': user.username
                 }
             })
+            
+            response_data.set_cookie(
+                'access_token',
+                response.data['access'],
+                max_age=7200,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                path='/'
+            )
+            
+            response_data.set_cookie(
+                'refresh_token',
+                response.data['refresh'],
+                max_age=604800,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                path='/api/v1/auth/refresh/'
+            )
+            
+            return response_data
             
         except User.DoesNotExist:
             return Response({
@@ -78,7 +99,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 'data': None
             }, status=401)
         except Exception as e:
-            # 处理其他异常（如密码错误等）
             error_msg = str(e)
             if 'detail' in error_msg or '用户名或密码' in error_msg:
                 return Response({
@@ -106,15 +126,48 @@ class CustomTokenRefreshView(TokenRefreshView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({
+                'code': 401,
+                'msg': '未找到刷新令牌',
+                'data': None
+            }, status=401)
+        
+        request.data['refresh'] = refresh_token
         response = super().post(request, *args, **kwargs)
-        return Response({
+        
+        from django.conf import settings
+        from django.http import JsonResponse
+        
+        response_data = JsonResponse({
             'code': 200,
             'msg': '刷新成功',
-            'data': {
-                'access': response.data['access'],
-                'refresh': response.data.get('refresh')
-            }
+            'data': {}
         })
+        
+        response_data.set_cookie(
+            'access_token',
+            response.data['access'],
+            max_age=7200,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            path='/'
+        )
+        
+        if response.data.get('refresh'):
+            response_data.set_cookie(
+                'refresh_token',
+                response.data['refresh'],
+                max_age=604800,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+                path='/api/v1/auth/refresh/'
+            )
+        
+        return response_data
 
 
 class UserInfoView(APIView):
@@ -130,22 +183,30 @@ class UserInfoView(APIView):
         })
 
 
-class RoleViewSet(BaseModelViewSet):
-    """角色管理"""
-    queryset = Role.objects.all()
-    serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    module_name = '角色'
+class LogoutView(APIView):
+    """登出视图，清除Cookie"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from django.http import JsonResponse
+        response = JsonResponse({
+            'code': 200,
+            'msg': '登出成功',
+            'data': None
+        })
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
 
 
 class UserViewSet(BaseModelViewSet):
     """用户管理"""
-    queryset = User.objects.select_related('role').all()
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     read_serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, ModulePermission]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['is_active', 'role']
+    filterset_fields = ['is_active']
     search_fields = ['username', 'phone']
     ordering_fields = ['created_at', 'username']
     ordering = ['-created_at']
@@ -164,7 +225,15 @@ class UserViewSet(BaseModelViewSet):
         logger.info(f'用户 {self.request.user.username} 创建了新用户 {user.username}')
 
     def perform_update(self, serializer):
+        instance = serializer.instance
+        old_permissions = instance.permissions if instance.permissions else {}
         user = serializer.save()
+        new_permissions = user.permissions if user.permissions else {}
+        
+        if old_permissions != new_permissions:
+            user.invalidate_tokens()
+            logger.info(f'用户 {user.username} 权限已变更，已使token失效')
+        
         self.log_action(self.request, 'update', f'更新用户: {user.username}')
         logger.info(f'用户 {self.request.user.username} 更新了用户 {user.username}')
 
@@ -186,15 +255,24 @@ class UserViewSet(BaseModelViewSet):
         
         new_password = serializer.validated_data['new_password']
         user.set_password(new_password)
-        user.save()
+        user.invalidate_tokens()
         
         self.log_action(request, 'update', f'重置用户密码: {user.username}')
         logger.info(f'用户 {request.user.username} 重置了用户 {user.username} 的密码')
         
         return Response({
             'code': 200,
-            'msg': '密码重置成功',
+            'msg': '密码重置成功，用户需重新登录',
             'data': None
+        })
+
+    @action(detail=False, methods=['get'])
+    def permission_modules(self, request):
+        """获取权限模块列表"""
+        return Response({
+            'code': 200,
+            'msg': '成功',
+            'data': PERMISSION_MODULES
         })
 
 

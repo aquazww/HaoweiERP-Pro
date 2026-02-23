@@ -38,7 +38,6 @@
           stripe
           :height="tableHeight"
         >
-          <el-table-column type="index" label="#" width="60" align="center" />
           <el-table-column label="操作用户" width="150">
             <template #default="{ row }">
               {{ row.user_name || row.username }}

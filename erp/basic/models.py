@@ -5,7 +5,14 @@ from django.utils import timezone
 class Unit(models.Model):
     """计量单位表"""
     name = models.CharField(max_length=50, unique=True, verbose_name='单位名称')
+    symbol = models.CharField(max_length=10, blank=True, verbose_name='单位符号')
+    base_unit = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='derived_units', verbose_name='基准单位')
+    conversion_factor = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True,
+                                            verbose_name='换算系数')
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='units', verbose_name='创建人')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -22,10 +29,16 @@ class Unit(models.Model):
 class Category(models.Model):
     """商品分类表"""
     name = models.CharField(max_length=100, verbose_name='分类名称')
+    code = models.CharField(max_length=50, blank=True, verbose_name='分类编码')
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, 
                                related_name='children', verbose_name='父分类')
+    level = models.IntegerField(default=1, verbose_name='层级深度')
+    path = models.CharField(max_length=500, blank=True, verbose_name='分类路径')
     sort_order = models.IntegerField(default=0, verbose_name='排序')
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='categories', verbose_name='创建人')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -34,9 +47,57 @@ class Category(models.Model):
         verbose_name = '商品分类'
         verbose_name_plural = verbose_name
         ordering = ['sort_order', 'id']
+        indexes = [
+            models.Index(fields=['parent']),
+            models.Index(fields=['level']),
+            models.Index(fields=['path']),
+        ]
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if self.parent:
+            self.level = self.parent.level + 1
+            self.path = f"{self.parent.path}/{self.id}" if self.parent.path else str(self.parent.id)
+        else:
+            self.level = 1
+            self.path = ''
+        super().save(*args, **kwargs)
+        
+        if self.path and not self.path.endswith(str(self.id)):
+            if self.parent:
+                self.path = f"{self.parent.path}/{self.id}" if self.parent.path else str(self.id)
+            else:
+                self.path = str(self.id)
+            super().save(update_fields=['path'])
+    
+    def get_full_path(self):
+        """获取完整分类路径名称"""
+        if not self.path:
+            return self.name
+        path_ids = [int(id) for id in self.path.split('/') if id]
+        path_ids.append(self.id)
+        categories = Category.objects.filter(id__in=path_ids).order_by('level')
+        return ' > '.join([c.name for c in categories])
+    
+    def get_children_count(self):
+        """获取直接子分类数量"""
+        return self.children.count()
+    
+    def get_all_children_ids(self):
+        """获取所有子分类ID列表（递归）"""
+        children_ids = list(self.children.values_list('id', flat=True))
+        for child in self.children.all():
+            children_ids.extend(child.get_all_children_ids())
+        return children_ids
+    
+    def get_all_descendants(self):
+        """获取所有子孙分类对象（递归）"""
+        descendants = list(self.children.all())
+        for child in self.children.all():
+            descendants.extend(child.get_all_descendants())
+        return descendants
 
 
 class Warehouse(models.Model):

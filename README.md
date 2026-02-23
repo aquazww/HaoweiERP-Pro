@@ -1,102 +1,115 @@
-# HaoweiERP-Pro 企业资源管理系统
+# ERP 进销存管理系统
 
-一套完整的企业ERP管理系统，涵盖采购管理、销售管理、库存管理、财务管理等核心业务模块。
+一个基于 Django + Vue 3 的全栈进销存管理系统，适用于个人及小微企业的采购、销售、库存和财务管理。
 
 ## 项目简介
 
-HaoweiERP-Pro 是基于 Django + Vue3 开发的企业资源管理系统，提供完整的进销存管理功能，支持多仓库、多供应商、多客户的业务场景。
+本系统是一个完整的ERP进销存解决方案，涵盖采购管理、销售管理、库存管理、财务管理及报表分析等核心功能模块。系统采用前后端分离架构，后端使用 Django REST Framework 提供 API 接口，前端使用 Vue 3 + Element Plus 构建现代化用户界面。
 
-### 主要功能
+### 主要特性
 
-- **基础数据管理**：商品管理、供应商管理、客户管理、仓库管理、参数设置
-- **采购管理**：采购订单创建、审核、入库、付款跟踪
-- **销售管理**：销售订单创建、审核、出库、收款跟踪
-- **库存管理**：库存查询、库存调拨、库存调整、库存流水
-- **财务管理**：付款单管理、收款单管理
+- **采购管理**：采购订单创建、入库确认、供应商管理
+- **销售管理**：销售订单创建、出库确认、客户管理
+- **库存管理**：实时库存查询、库存流水、库存调拨、库存盘点
+- **财务管理**：收付款管理、应收应付统计
 - **报表中心**：采购报表、销售报表、库存报表、财务报表
-- **系统管理**：用户管理、角色管理、操作日志
+- **系统管理**：用户管理、权限控制、操作日志
 
 ## 技术栈
 
-### 后端
-- Python 3.10+
-- Django 4.2
-- Django REST Framework 3.14
-- MySQL / PyMySQL
-- JWT 认证 (djangorestframework-simplejwt)
+### 后端技术
 
-### 前端
-- Vue 3.5
-- Vite 7
-- Element Plus 2.13
-- Vue Router 5
-- Axios
-- ECharts 6
-- XLSX (Excel导出)
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| Python | 3.10+ | 开发语言 |
+| Django | 4.2 LTS | Web框架 |
+| Django REST Framework | 3.14+ | RESTful API框架 |
+| MySQL | 8.0+ | 关系型数据库 |
+| djangorestframework-simplejwt | 5.3+ | JWT认证 |
+| django-filter | 23.5+ | 数据过滤 |
+| django-cors-headers | 4.0+ | 跨域处理 |
 
-## 目录结构
+### 前端技术
+
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| Vue | 3.x | 前端框架 |
+| Vite | 4.x | 构建工具 |
+| Element Plus | 2.x | UI组件库 |
+| Vue Router | 4.x | 路由管理 |
+| Axios | 1.x | HTTP客户端 |
+| xlsx | 0.18+ | Excel导出 |
+
+## 项目结构
 
 ```
-haowei-erp/
+trae_projects/
 ├── erp/                          # 后端项目
-│   ├── erp/                      # Django配置
-│   │   ├── settings.py           # 项目配置
-│   │   ├── urls.py               # 路由配置
+│   ├── erp/                      # 项目配置
+│   │   ├── settings.py           # Django配置
+│   │   ├── urls.py               # 主路由
 │   │   └── wsgi.py               # WSGI配置
-│   ├── basic/                    # 基础数据模块
-│   │   ├── models.py             # 数据模型
+│   ├── system/                   # 系统模块
+│   │   ├── models.py             # 用户、角色、日志模型
+│   │   ├── views.py              # 认证、权限视图
 │   │   ├── serializers.py        # 序列化器
-│   │   ├── views.py              # 视图
-│   │   └── urls.py               # 路由
-│   ├── purchase/                 # 采购管理模块
-│   ├── sale/                     # 销售管理模块
-│   ├── inventory/                # 库存管理模块
-│   ├── finance/                  # 财务管理模块
-│   ├── reports/                  # 报表中心模块
-│   ├── system/                   # 系统管理模块
-│   ├── utils/                    # 公共工具
-│   ├── manage.py                 # Django入口
+│   │   └── urls.py               # 路由配置
+│   ├── basic/                    # 基础资料模块
+│   │   ├── models.py             # 商品、分类、供应商、客户、仓库、单位
+│   │   ├── views.py              # CRUD视图
+│   │   └── ...
+│   ├── purchase/                 # 采购模块
+│   │   ├── models.py             # 采购单、采购明细
+│   │   └── ...
+│   ├── sale/                     # 销售模块
+│   │   ├── models.py             # 销售单、销售明细
+│   │   └── ...
+│   ├── inventory/                # 库存模块
+│   │   ├── models.py             # 库存、库存流水、入库单、出库单
+│   │   └── ...
+│   ├── finance/                  # 财务模块
+│   │   ├── models.py             # 收付款记录
+│   │   └── ...
+│   ├── reports/                  # 报表模块
+│   │   └── views.py              # 各类报表视图
+│   ├── utils/                    # 工具模块
+│   │   ├── views.py              # 基础视图集
+│   │   ├── permissions.py        # 权限类
+│   │   └── ...
+│   ├── manage.py                 # Django管理脚本
 │   └── requirements.txt          # Python依赖
 ├── web/                          # 前端项目
 │   ├── src/
 │   │   ├── api/                  # API接口
-│   │   ├── router/               # 路由配置
-│   │   ├── styles/               # 全局样式
-│   │   ├── utils/                # 工具函数
 │   │   ├── views/                # 页面组件
-│   │   ├── App.vue               # 根组件
-│   │   └── main.js               # 入口文件
-│   ├── index.html                # HTML模板
-│   ├── vite.config.js            # Vite配置
-│   └── package.json              # 前端依赖
+│   │   │   ├── basic/            # 基础资料页面
+│   │   │   ├── purchase/         # 采购页面
+│   │   │   ├── sale/             # 销售页面
+│   │   │   ├── inventory/        # 库存页面
+│   │   │   ├── finance/          # 财务页面
+│   │   │   ├── reports/          # 报表页面
+│   │   │   └── system/           # 系统管理页面
+│   │   ├── router/               # 路由配置
+│   │   ├── utils/                # 工具函数
+│   │   └── styles/               # 样式文件
+│   ├── package.json              # 前端依赖
+│   └── vite.config.js            # Vite配置
 ├── deploy/                       # 部署配置
 │   ├── docker-compose.yml        # Docker编排
 │   ├── backend/                  # 后端Docker配置
-│   └── nginx/                    # Nginx配置
+│   └── web/                      # 前端Docker配置
 └── README.md                     # 项目说明
 ```
 
-## 环境要求
+## 快速开始
 
-### 后端环境
-- Python 3.10 或更高版本
-- MySQL 5.7 或更高版本
-- pip 包管理器
+### 环境要求
 
-### 前端环境
-- Node.js 18.0 或更高版本
-- npm 9.0 或更高版本
+- Python 3.10+
+- Node.js 16+
+- MySQL 8.0+
 
-## 安装部署
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/aquazww/HaoweiERP-Pro.git
-cd HaoweiERP-Pro
-```
-
-### 2. 后端配置
+### 后端安装
 
 ```bash
 # 进入后端目录
@@ -110,36 +123,32 @@ source venv/bin/activate  # Linux/Mac
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置数据库 (修改 erp/settings.py)
+# 配置数据库（修改 erp/settings.py）
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'erp_db',
-#         'USER': 'root',
-#         'PASSWORD': 'your_password',
 #         'HOST': 'localhost',
 #         'PORT': '3306',
+#         'NAME': 'erp',
+#         'USER': 'root',
+#         'PASSWORD': 'your_password',
 #     }
 # }
 
-# 创建数据库
-mysql -u root -p -e "CREATE DATABASE erp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 执行数据库迁移
-python manage.py makemigrations
+# 数据库迁移
 python manage.py migrate
 
-# 初始化系统数据
-python manage.py init_system
-
-# 创建超级管理员
+# 创建管理员
 python manage.py createsuperuser
 
-# 启动开发服务器
-python manage.py runserver 0.0.0.0:8000
+# 初始化数据
+python manage.py init_data
+
+# 启动服务
+python manage.py runserver
 ```
 
-### 3. 前端配置
+### 前端安装
 
 ```bash
 # 进入前端目录
@@ -155,107 +164,185 @@ npm run dev
 npm run build
 ```
 
-### 4. 访问系统
+### 访问系统
 
 - 前端地址：http://localhost:5173
 - 后端API：http://localhost:8000/api/v1/
 - 管理后台：http://localhost:8000/admin/
 
-默认管理员账号：admin / admin123
+默认管理员账号：`admin` / `admin123`
+
+## 功能模块
+
+### 1. 基础资料
+
+- **商品管理**：商品CRUD、分类管理、规格设置、价格管理
+- **商品分类**：多级分类、树形展示、拖拽排序
+- **计量单位**：单位管理、单位换算
+- **供应商管理**：供应商信息、应付余额
+- **客户管理**：客户信息、应收余额
+- **仓库管理**：仓库设置
+
+### 2. 采购管理
+
+- 创建采购订单
+- 采购订单列表与详情
+- 采购入库确认
+- 库存自动增加
+- 应付账款生成
+
+### 3. 销售管理
+
+- 创建销售订单
+- 库存校验
+- 销售出库确认
+- 库存自动扣减
+- 应收账款生成
+
+### 4. 库存管理
+
+- 实时库存查询
+- 库存流水记录
+- 库存调拨
+- 库存盘点
+- 库存预警
+
+### 5. 财务管理
+
+- 收款管理
+- 付款管理
+- 应收应付统计
+- 收支记录
+
+### 6. 报表中心
+
+- 采购报表
+- 销售报表
+- 库存报表
+- 财务报表
+- 数据导出
+
+### 7. 系统管理
+
+- 用户管理
+- 权限控制
+- 操作日志
 
 ## API 接口
 
-系统提供 RESTful API 接口，主要接口如下：
+### 认证接口
 
-| 模块 | 接口路径 | 说明 |
-|------|----------|------|
-| 认证 | /api/v1/auth/ | 登录、刷新Token |
-| 基础数据 | /api/v1/basic/ | 商品、供应商、客户、仓库 |
-| 采购管理 | /api/v1/purchase/ | 采购单、采购明细 |
-| 销售管理 | /api/v1/sale/ | 销售单、销售明细 |
-| 库存管理 | /api/v1/inventory/ | 库存、调拨、调整 |
-| 财务管理 | /api/v1/finance/ | 付款单、收款单 |
-| 系统管理 | /api/v1/system/ | 用户、角色、日志 |
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/auth/login/ | 用户登录 |
+| POST | /api/v1/auth/logout/ | 用户登出 |
+| GET | /api/v1/auth/user/ | 获取当前用户 |
+| POST | /api/v1/auth/refresh/ | 刷新Token |
 
-## 数据库设计
+### 业务接口
 
-### 核心数据表
+| 模块 | 路径 | 说明 |
+|------|------|------|
+| 商品 | /api/v1/basic/goods/ | 商品CRUD |
+| 分类 | /api/v1/basic/categories/ | 分类CRUD |
+| 供应商 | /api/v1/basic/suppliers/ | 供应商CRUD |
+| 客户 | /api/v1/basic/customers/ | 客户CRUD |
+| 采购单 | /api/v1/purchase/orders/ | 采购单CRUD |
+| 销售单 | /api/v1/sale/orders/ | 销售单CRUD |
+| 库存 | /api/v1/inventory/stock/ | 库存查询 |
+| 收付款 | /api/v1/finance/payments/ | 收付款CRUD |
 
-- **商品表 (goods)**：商品基本信息、规格、单位、价格
-- **供应商表 (supplier)**：供应商信息、联系方式
-- **客户表 (customer)**：客户信息、联系方式
-- **仓库表 (warehouse)**：仓库信息、地址
-- **采购单表 (purchase_order)**：采购订单主表
-- **销售单表 (sale_order)**：销售订单主表
-- **库存表 (inventory)**：商品库存信息
-- **库存流水表 (inventory_log)**：库存变动记录
+## 部署说明
 
-## 常见问题
-
-### 1. 数据库连接失败
-
-检查 MySQL 服务是否启动，确认 `settings.py` 中的数据库配置正确。
+### Docker 部署
 
 ```bash
-# 检查MySQL状态
-mysql -u root -p -e "SELECT 1;"
+# 进入部署目录
+cd deploy
+
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，配置数据库连接等
+
+# 构建并启动
+docker-compose up -d --build
+
+# 数据库迁移
+docker-compose exec backend python manage.py migrate
+
+# 创建管理员
+docker-compose exec backend python manage.py createsuperuser
 ```
 
-### 2. 前端跨域问题
+### 生产环境配置
 
-后端已配置 `django-cors-headers`，如需修改请编辑 `settings.py`：
+1. 修改 `erp/settings.py`：
+   - `DEBUG = False`
+   - `ALLOWED_HOSTS = ['your-domain.com']`
+   - 配置静态文件收集
 
-```python
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-```
+2. 配置 Nginx 反向代理
 
-### 3. Token 认证失败
+3. 使用 Gunicorn 运行：
+   ```bash
+   gunicorn --bind 0.0.0.0:8000 erp.wsgi:application
+   ```
 
-检查请求头是否包含 Authorization：
-
-```
-Authorization: Bearer <your_access_token>
-```
-
-Token 有效期默认为 1 小时，可在 `settings.py` 中修改。
-
-### 4. 静态文件加载失败
-
-生产环境需配置静态文件：
+## 数据备份
 
 ```bash
-python manage.py collectstatic
+# 备份数据库
+mysqldump -u root -p erp > backup_$(date +%Y%m%d).sql
+
+# 恢复数据库
+mysql -u root -p erp < backup_20260224.sql
 ```
 
 ## 开发指南
 
-### 添加新模块
+### 代码规范
 
-1. 在 `erp/` 目录下创建新应用
-2. 在 `settings.py` 的 `INSTALLED_APPS` 中注册
-3. 创建 models、serializers、views、urls
-4. 在主 `urls.py` 中引入路由
+- Python：遵循 PEP 8 规范
+- JavaScript：使用 ESLint 检查
+- 提交信息：使用语义化提交
 
-### 前端开发规范
+### 分支管理
 
-- 组件使用 `<script setup>` 语法
-- 样式使用 `<style scoped>` 作用域
-- API 调用统一放在 `src/api/` 目录
-- 遵循 Element Plus 组件库设计规范
+- `main`：主分支，稳定版本
+- `develop`：开发分支
+- `feature/*`：功能分支
+- `bugfix/*`：修复分支
 
-## 版本历史
+## 常见问题
 
-- **v1.0.0** - 初始版本，完成基础功能模块
-- **v1.1.0** - 添加库存调拨、库存调整功能
-- **v1.2.0** - 优化UI界面，统一详情页风格
+### Q: 登录后Token过期怎么办？
+
+A: 系统默认Token有效期为2小时，Token过期后会自动刷新。如果刷新失败，请重新登录。
+
+### Q: 如何添加新用户？
+
+A: 使用管理员账号登录，进入「系统管理」→「用户管理」，点击「新增用户」。
+
+### Q: 如何备份数据？
+
+A: 使用MySQL的mysqldump命令进行备份，或配置定时任务自动备份。
+
+## 贡献指南
+
+1. Fork 本仓库
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 Pull Request
 
 ## 许可证
 
-MIT License
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
 
 ## 联系方式
 
 如有问题或建议，请提交 Issue 或 Pull Request。
+
+---
+
+**注意**：本项目仅供学习和参考使用，生产环境使用请进行充分测试和安全评估。

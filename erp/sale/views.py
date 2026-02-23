@@ -11,10 +11,11 @@ from .serializers import (
 from utils.views import BaseModelViewSet
 from utils.order_no import generate_sale_order_no
 from inventory.services import InventoryService
+from system.permissions import ModulePermission
 
 
 class SaleOrderViewSet(BaseModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = SaleOrder.objects.select_related(
         'customer', 'warehouse', 'created_by'
     ).prefetch_related('items').all()
@@ -105,8 +106,8 @@ class SaleOrderViewSet(BaseModelViewSet):
 
 
 class SaleItemViewSet(BaseModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = SaleItem.objects.select_related('order', 'goods').all()
     serializer_class = SaleItemSerializer
     filterset_fields = ['order', 'goods']
-    module_name = '销售明细'
+    module_name = '销售订单'

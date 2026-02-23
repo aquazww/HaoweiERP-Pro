@@ -85,146 +85,373 @@
     <!-- 订单详情弹窗 -->
     <el-dialog
       v-model="orderDetailVisible"
-      :title="orderDetailTitle"
-      width="800px"
+      width="700px"
       class="view-dialog"
-      destroy-on-close
+      :show-close="false"
     >
-      <div v-loading="orderDetailLoading">
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">{{ orderDetailTitle }}</span>
+          <div class="status-badge small" :class="orderDetail?.status" v-if="orderDetail && orderType !== 'transfer'">
+            <span class="status-dot"></span>
+            {{ getStatusText(orderDetail?.status) }}
+          </div>
+        </div>
+        <span class="close-btn" @click="orderDetailVisible = false">×</span>
+      </template>
+      
+      <div class="detail-container" v-if="orderDetail" v-loading="orderDetailLoading">
         <!-- 采购订单详情 -->
-        <template v-if="orderType === 'purchase' && orderDetail">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="采购单号">{{ orderDetail.order_no }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <div class="status-badge" :class="orderDetail.status">
-                <span class="status-dot"></span>
-                {{ getStatusText(orderDetail.status) }}
+        <template v-if="orderType === 'purchase'">
+          <div class="info-section">
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">供应商</span>
+                <span class="info-value">{{ orderDetail.supplier_name }}</span>
               </div>
-            </el-descriptions-item>
-            <el-descriptions-item label="供应商">{{ orderDetail.supplier_name }}</el-descriptions-item>
-            <el-descriptions-item label="仓库">{{ orderDetail.warehouse_name }}</el-descriptions-item>
-            <el-descriptions-item label="采购日期">{{ orderDetail.order_date }}</el-descriptions-item>
-            <el-descriptions-item label="总金额">¥{{ formatPrice(orderDetail.total_amount) }}</el-descriptions-item>
-            <el-descriptions-item label="创建人">{{ orderDetail.created_by_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ formatDateTime(orderDetail.created_at) }}</el-descriptions-item>
-            <el-descriptions-item label="备注" :span="2">{{ orderDetail.remark || '-' }}</el-descriptions-item>
-          </el-descriptions>
-          <div class="view-items-title">采购明细</div>
-          <el-table :data="orderDetail.items || []" border style="width: 100%;">
-            <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="goods_name" label="商品名称" min-width="150" />
-            <el-table-column prop="goods_code" label="商品编码" width="100" />
-            <el-table-column prop="unit" label="单位" width="70" align="center" />
-            <el-table-column prop="quantity" label="数量" width="80" align="right">
-              <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
-            </el-table-column>
-            <el-table-column label="单价" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
-            </el-table-column>
-            <el-table-column label="金额" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.amount) }}</template>
-            </el-table-column>
-          </el-table>
+              <div class="info-item-group">
+                <span class="info-label">采购单号</span>
+                <span class="info-value primary">{{ orderDetail.order_no }}</span>
+              </div>
+            </div>
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">仓库</span>
+                <span class="info-value">{{ orderDetail.warehouse_name }}</span>
+              </div>
+              <div class="info-item-group">
+                <span class="info-label">总金额</span>
+                <span class="info-value price">¥{{ formatPrice(orderDetail.total_amount) }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">采购日期</span>
+                <span class="info-value">{{ orderDetail.order_date }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">入库时间</span>
+                <span class="info-value">{{ orderDetail.stock_in_time ? formatDateTime(orderDetail.stock_in_time) : '-' }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">创建人</span>
+                <span class="info-value">{{ orderDetail.created_by_name || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ formatDateTime(orderDetail.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="remark-box" v-if="orderDetail.remark">
+            <div class="remark-header">
+              <el-icon class="remark-icon"><Document /></el-icon>
+              <span>采购备注</span>
+            </div>
+            <div class="remark-text">{{ orderDetail.remark }}</div>
+          </div>
+          
+          <div class="items-section">
+            <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+              <div class="header-left">
+                <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+                <span class="header-title">采购明细</span>
+                <span class="header-count">{{ orderDetail.items?.length || 0 }}项</span>
+              </div>
+              <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+            </div>
+            <el-collapse-transition>
+              <div class="items-body" v-show="itemsExpanded">
+                <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
+                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                    <template #default="{ row }">
+                      <div class="goods-cell">
+                        <span class="goods-name">{{ row.goods_name }}</span>
+                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="unit" label="单位" width="55" align="center" />
+                  <el-table-column prop="quantity" label="数量" width="75" align="center">
+                    <template #default="{ row }">
+                      <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="price" label="单价" width="85" align="right">
+                    <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="amount" label="金额" width="95" align="right">
+                    <template #default="{ row }">
+                      <span class="amount-cell">¥{{ formatPrice(row.amount) }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </el-collapse-transition>
+          </div>
         </template>
 
         <!-- 销售订单详情 -->
-        <template v-if="orderType === 'sale' && orderDetail">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="销售单号">{{ orderDetail.order_no }}</el-descriptions-item>
-            <el-descriptions-item label="客户">{{ orderDetail.customer_name }}</el-descriptions-item>
-            <el-descriptions-item label="仓库">{{ orderDetail.warehouse_name }}</el-descriptions-item>
-            <el-descriptions-item label="销售日期">{{ orderDetail.order_date }}</el-descriptions-item>
-            <el-descriptions-item label="总金额">¥{{ formatPrice(orderDetail.total_amount) }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <div class="status-badge" :class="orderDetail.status">
-                <span class="status-dot"></span>
-                {{ getStatusText(orderDetail.status) }}
+        <template v-if="orderType === 'sale'">
+          <div class="info-section">
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">客户</span>
+                <span class="info-value">{{ orderDetail.customer_name }}</span>
               </div>
-            </el-descriptions-item>
-            <el-descriptions-item label="备注" :span="2">{{ orderDetail.remark || '-' }}</el-descriptions-item>
-          </el-descriptions>
-          <div class="view-items-title">销售明细</div>
-          <el-table :data="orderDetail.items || []" border style="width: 100%;">
-            <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="goods_name" label="商品名称" min-width="150" />
-            <el-table-column prop="quantity" label="数量" width="80" align="right">
-              <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
-            </el-table-column>
-            <el-table-column label="单价" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
-            </el-table-column>
-            <el-table-column label="金额" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.amount) }}</template>
-            </el-table-column>
-          </el-table>
+              <div class="info-item-group">
+                <span class="info-label">销售单号</span>
+                <span class="info-value primary">{{ orderDetail.order_no }}</span>
+              </div>
+            </div>
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">仓库</span>
+                <span class="info-value">{{ orderDetail.warehouse_name }}</span>
+              </div>
+              <div class="info-item-group">
+                <span class="info-label">总金额</span>
+                <span class="info-value price">¥{{ formatPrice(orderDetail.total_amount) }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">销售日期</span>
+                <span class="info-value">{{ orderDetail.order_date }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">出库时间</span>
+                <span class="info-value">{{ orderDetail.stock_out_time ? formatDateTime(orderDetail.stock_out_time) : '-' }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">创建人</span>
+                <span class="info-value">{{ orderDetail.created_by_name || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ formatDateTime(orderDetail.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="remark-box" v-if="orderDetail.remark">
+            <div class="remark-header">
+              <el-icon class="remark-icon"><Document /></el-icon>
+              <span>销售备注</span>
+            </div>
+            <div class="remark-text">{{ orderDetail.remark }}</div>
+          </div>
+          
+          <div class="items-section">
+            <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+              <div class="header-left">
+                <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+                <span class="header-title">销售明细</span>
+                <span class="header-count">{{ orderDetail.items?.length || 0 }}项</span>
+              </div>
+              <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+            </div>
+            <el-collapse-transition>
+              <div class="items-body" v-show="itemsExpanded">
+                <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
+                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                    <template #default="{ row }">
+                      <div class="goods-cell">
+                        <span class="goods-name">{{ row.goods_name }}</span>
+                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="unit" label="单位" width="55" align="center" />
+                  <el-table-column prop="quantity" label="数量" width="75" align="center">
+                    <template #default="{ row }">
+                      <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="price" label="单价" width="85" align="right">
+                    <template #default="{ row }">¥{{ formatPrice(row.price) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="amount" label="金额" width="95" align="right">
+                    <template #default="{ row }">
+                      <span class="amount-cell">¥{{ formatPrice(row.amount) }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </el-collapse-transition>
+          </div>
         </template>
 
         <!-- 库存调整详情 -->
-        <template v-if="orderType === 'adjust' && orderDetail">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="调整单号">{{ orderDetail.order_no }}</el-descriptions-item>
-            <el-descriptions-item label="仓库">{{ orderDetail.warehouse_name }}</el-descriptions-item>
-            <el-descriptions-item label="调整类型">{{ orderDetail.adjust_type_display }}</el-descriptions-item>
-            <el-descriptions-item label="调整原因">{{ orderDetail.reason_display }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <div class="status-badge" :class="orderDetail.status">
-                <span class="status-dot"></span>
-                {{ getStatusText(orderDetail.status) }}
+        <template v-if="orderType === 'adjust'">
+          <div class="info-section">
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">调整单号</span>
+                <span class="info-value primary">{{ orderDetail.order_no }}</span>
               </div>
-            </el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ formatDateTime(orderDetail.created_at) }}</el-descriptions-item>
-            <el-descriptions-item label="备注" :span="2">{{ orderDetail.remark || '-' }}</el-descriptions-item>
-          </el-descriptions>
-          <div class="view-items-title">调整明细</div>
-          <el-table :data="orderDetail.items || []" border style="width: 100%;">
-            <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="goods_name" label="商品名称" min-width="150" />
-            <el-table-column prop="unit" label="单位" width="70" align="center" />
-            <el-table-column label="调整前" width="80" align="right">
-              <template #default="{ row }">{{ formatQuantity(row.before_quantity) }}</template>
-            </el-table-column>
-            <el-table-column label="调整数量" width="80" align="right">
-              <template #default="{ row }">
-                <span :class="row.adjust_quantity >= 0 ? 'text-success' : 'text-danger'">
-                  {{ row.adjust_quantity >= 0 ? '+' : '' }}{{ formatQuantity(row.adjust_quantity) }}
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="调整后" width="80" align="right">
-              <template #default="{ row }">{{ formatQuantity(row.after_quantity) }}</template>
-            </el-table-column>
-          </el-table>
+              <div class="info-item-group">
+                <span class="info-label">仓库</span>
+                <span class="info-value">{{ orderDetail.warehouse_name }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">调整类型</span>
+                <span class="info-value">{{ orderDetail.adjust_type_display }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">调整原因</span>
+                <span class="info-value">{{ orderDetail.reason_display }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">创建人</span>
+                <span class="info-value">{{ orderDetail.created_by_name || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ formatDateTime(orderDetail.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="remark-box" v-if="orderDetail.remark">
+            <div class="remark-header">
+              <el-icon class="remark-icon"><Document /></el-icon>
+              <span>调整备注</span>
+            </div>
+            <div class="remark-text">{{ orderDetail.remark }}</div>
+          </div>
+          
+          <div class="items-section">
+            <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+              <div class="header-left">
+                <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+                <span class="header-title">调整明细</span>
+                <span class="header-count">{{ orderDetail.items?.length || 0 }}项</span>
+              </div>
+              <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+            </div>
+            <el-collapse-transition>
+              <div class="items-body" v-show="itemsExpanded">
+                <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
+                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                    <template #default="{ row }">
+                      <div class="goods-cell">
+                        <span class="goods-name">{{ row.goods_name }}</span>
+                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="unit" label="单位" width="55" align="center" />
+                  <el-table-column label="调整前" width="75" align="center">
+                    <template #default="{ row }">
+                      <span class="quantity-cell">{{ formatQuantity(row.before_quantity) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="调整数量" width="85" align="center">
+                    <template #default="{ row }">
+                      <span :class="row.adjust_quantity >= 0 ? 'text-success' : 'text-danger'">
+                        {{ row.adjust_quantity >= 0 ? '+' : '' }}{{ formatQuantity(row.adjust_quantity) }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="调整后" width="75" align="center">
+                    <template #default="{ row }">
+                      <span class="quantity-cell">{{ formatQuantity(row.after_quantity) }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </el-collapse-transition>
+          </div>
         </template>
 
         <!-- 库存调拨详情 -->
-        <template v-if="orderType === 'transfer' && orderDetail">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="调拨单号">{{ orderDetail.order_no }}</el-descriptions-item>
-            <el-descriptions-item label="调出仓库">{{ orderDetail.from_warehouse_name }}</el-descriptions-item>
-            <el-descriptions-item label="调入仓库">{{ orderDetail.to_warehouse_name }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <div class="status-badge" :class="orderDetail.status">
-                <span class="status-dot"></span>
-                {{ getStatusText(orderDetail.status) }}
+        <template v-if="orderType === 'transfer'">
+          <div class="info-section">
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">调拨单号</span>
+                <span class="info-value primary">{{ orderDetail.order_no }}</span>
               </div>
-            </el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ formatDateTime(orderDetail.created_at) }}</el-descriptions-item>
-            <el-descriptions-item label="备注">{{ orderDetail.remark || '-' }}</el-descriptions-item>
-          </el-descriptions>
-          <div class="view-items-title">调拨明细</div>
-          <el-table :data="orderDetail.items || []" border style="width: 100%;">
-            <el-table-column type="index" label="#" width="50" align="center" />
-            <el-table-column prop="goods_name" label="商品名称" min-width="150" />
-            <el-table-column prop="unit" label="单位" width="70" align="center" />
-            <el-table-column prop="quantity" label="调拨数量" width="100" align="right">
-              <template #default="{ row }">{{ formatQuantity(row.quantity) }}</template>
-            </el-table-column>
-          </el-table>
+              <div class="info-item-group">
+                <span class="info-label">状态</span>
+                <div class="status-badge small" :class="orderDetail.status">
+                  <span class="status-dot"></span>
+                  {{ getStatusText(orderDetail.status) }}
+                </div>
+              </div>
+            </div>
+            <div class="info-row highlight-row">
+              <div class="info-item-group">
+                <span class="info-label">调出仓库</span>
+                <span class="info-value">{{ orderDetail.from_warehouse_name }}</span>
+              </div>
+              <div class="info-item-group">
+                <span class="info-label">调入仓库</span>
+                <span class="info-value">{{ orderDetail.to_warehouse_name }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-item">
+                <span class="info-label">创建人</span>
+                <span class="info-value">{{ orderDetail.created_by_name || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">创建时间</span>
+                <span class="info-value">{{ formatDateTime(orderDetail.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="remark-box" v-if="orderDetail.remark">
+            <div class="remark-header">
+              <el-icon class="remark-icon"><Document /></el-icon>
+              <span>调拨备注</span>
+            </div>
+            <div class="remark-text">{{ orderDetail.remark }}</div>
+          </div>
+          
+          <div class="items-section">
+            <div class="items-header" @click="itemsExpanded = !itemsExpanded">
+              <div class="header-left">
+                <el-icon class="expand-icon" :class="{ expanded: itemsExpanded }"><ArrowRight /></el-icon>
+                <span class="header-title">调拨明细</span>
+                <span class="header-count">{{ orderDetail.items?.length || 0 }}项</span>
+              </div>
+              <span class="expand-hint">{{ itemsExpanded ? '收起' : '展开' }}</span>
+            </div>
+            <el-collapse-transition>
+              <div class="items-body" v-show="itemsExpanded">
+                <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
+                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                    <template #default="{ row }">
+                      <div class="goods-cell">
+                        <span class="goods-name">{{ row.goods_name }}</span>
+                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="unit" label="单位" width="55" align="center" />
+                  <el-table-column prop="quantity" label="调拨数量" width="85" align="center">
+                    <template #default="{ row }">
+                      <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </el-collapse-transition>
+          </div>
         </template>
       </div>
-      <template #footer>
-        <el-button @click="orderDetailVisible = false">关闭</el-button>
-      </template>
     </el-dialog>
   </div>
 </template>
@@ -232,7 +459,7 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
+import { Search, Refresh, Document, ArrowRight } from '@element-plus/icons-vue'
 import { getInventoryLogs, getStockAdjustByNo, getStockTransferByNo } from '../../api/inventory'
 import { getPurchaseOrderByNo } from '../../api/purchase'
 import { getSaleOrderByNo } from '../../api/sale'
@@ -246,12 +473,12 @@ const pageSize = ref(20)
 const total = ref(0)
 const tableHeight = ref(0)
 
-// 订单详情相关
 const orderDetailVisible = ref(false)
 const orderDetailLoading = ref(false)
 const orderDetailTitle = ref('')
 const orderDetail = ref(null)
-const orderType = ref('')  // purchase, sale, adjust, transfer
+const orderType = ref('')
+const itemsExpanded = ref(true)
 
 /**
  * 格式化日期时间，移除时区信息
@@ -784,4 +1011,285 @@ onUnmounted(() => {
   padding-left: var(--spacing-sm);
   border-left: 3px solid var(--color-primary);
 }
+
+/* 详情弹窗样式 */
+.view-dialog {
+  --el-dialog-border-radius: 8px;
+}
+
+.view-dialog :deep(.el-dialog__header) {
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.view-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  border-bottom: 1px solid #bae0ff;
+  border-radius: var(--el-dialog-border-radius) var(--el-dialog-border-radius) 0 0;
+  padding-right: 50px;
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 300;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s;
+  border-radius: 0 var(--el-dialog-border-radius) 0 6px;
+  background: transparent;
+}
+
+.close-btn:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.detail-container {
+  padding: 0;
+}
+
+.info-section {
+  background: #fafafa;
+  border-radius: 6px;
+  margin: 12px 16px;
+  padding: 0;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+}
+
+.info-row {
+  display: flex;
+  gap: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row.highlight-row {
+  background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
+  border-bottom: 1px solid #e6f0ff;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.info-item-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 4px 8px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #999;
+  min-width: 56px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.info-value.primary {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.info-value.price {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.remark-box {
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+}
+
+.remark-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #d48806;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.remark-icon {
+  font-size: 14px;
+}
+
+.remark-text {
+  font-size: 13px;
+  color: #614700;
+  line-height: 1.6;
+  padding-left: 20px;
+}
+
+.items-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  margin: 0 16px 16px;
+  overflow: hidden;
+}
+
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.items-header:hover {
+  background: #efefef;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expand-icon {
+  font-size: 12px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.expand-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.items-body {
+  border-top: 1px solid #e8e8e8;
+  padding: 0;
+}
+
+.detail-table {
+  --el-table-header-bg-color: #f5f7fa;
+  --el-table-border-color: #ebeef5;
+  --el-table-row-hover-bg-color: #f0f5ff;
+  font-size: 13px;
+}
+
+.detail-table :deep(.el-table__header th) {
+  font-weight: 600;
+  font-size: 12px;
+  color: #606266;
+  padding: 10px 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 100%);
+  border-bottom: 2px solid #e0e6ed;
+}
+
+.detail-table :deep(.el-table__body td) {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.detail-table :deep(.el-table__body tr:hover > td) {
+  background-color: #f5f9ff !important;
+}
+
+.goods-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.goods-name {
+  font-size: 13px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.goods-spec {
+  font-size: 11px;
+  color: #909399;
+  background: #f4f4f5;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.quantity-cell {
+  font-weight: 500;
+}
+
+.amount-cell {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.status-badge.small {
+  padding: 2px 8px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.status-badge.small .status-dot {
+  width: 5px;
+  height: 5px;
+}
+
 </style>

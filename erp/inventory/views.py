@@ -20,11 +20,12 @@ from .serializers import (
 from .services import InventoryService
 from utils.views import BaseModelViewSet
 from utils.order_no import generate_order_no
+from system.permissions import ModulePermission
 
 
 class InventoryViewSet(BaseModelViewSet):
     """库存视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = Inventory.objects.select_related(
         'goods', 'goods__category', 'warehouse'
     ).all()
@@ -34,7 +35,7 @@ class InventoryViewSet(BaseModelViewSet):
     search_fields = ['goods__name', 'goods__code']
     ordering_fields = ['quantity', 'updated_at', 'goods__name', 'goods__code']
     ordering = ['-updated_at']
-    module_name = '库存'
+    module_name = '库存查询'
 
     def get_serializer_class(self):
         """根据动作选择序列化器"""
@@ -266,7 +267,7 @@ class InventoryViewSet(BaseModelViewSet):
 
 class InventoryLogViewSet(BaseModelViewSet):
     """库存流水视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = InventoryLog.objects.select_related(
         'goods', 'warehouse', 'created_by'
     ).order_by('-created_at')
@@ -314,7 +315,7 @@ class InventoryLogViewSet(BaseModelViewSet):
 
 
 class StockInViewSet(BaseModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockIn.objects.select_related(
         'warehouse', 'purchase_order', 'created_by'
     ).all()
@@ -324,7 +325,7 @@ class StockInViewSet(BaseModelViewSet):
     search_fields = ['order_no']
     ordering_fields = ['created_at', 'total_amount']
     ordering = ['-created_at']
-    module_name = '入库单'
+    module_name = '库存入库'
 
     def get_serializer_class(self):
         """根据动作选择序列化器"""
@@ -414,7 +415,7 @@ class StockInViewSet(BaseModelViewSet):
 
 
 class StockOutViewSet(BaseModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockOut.objects.select_related(
         'warehouse', 'sale_order', 'created_by'
     ).all()
@@ -424,7 +425,7 @@ class StockOutViewSet(BaseModelViewSet):
     search_fields = ['order_no']
     ordering_fields = ['created_at', 'total_amount']
     ordering = ['-created_at']
-    module_name = '出库单'
+    module_name = '库存出库'
 
     def perform_create(self, serializer):
         """创建出库单时自动生成订单号"""
@@ -437,7 +438,7 @@ class StockOutViewSet(BaseModelViewSet):
 
 class StockAdjustViewSet(BaseModelViewSet):
     """库存调整视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockAdjust.objects.select_related('warehouse', 'created_by').prefetch_related('items').all()
     serializer_class = StockAdjustSerializer
     read_serializer_class = StockAdjustSerializer
@@ -541,7 +542,7 @@ class StockAdjustViewSet(BaseModelViewSet):
 
 class StockTransferViewSet(BaseModelViewSet):
     """库存调拨视图集"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockTransfer.objects.select_related('from_warehouse', 'to_warehouse', 'created_by').prefetch_related('items').all()
     serializer_class = StockTransferSerializer
     read_serializer_class = StockTransferSerializer

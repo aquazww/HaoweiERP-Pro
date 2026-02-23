@@ -6,6 +6,10 @@ from .models import Category, Warehouse, Supplier, Customer, Goods, Unit
 
 class UnitSerializer(serializers.ModelSerializer):
     """计量单位序列化器"""
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    goods_count = serializers.SerializerMethodField()
+    base_unit_name = serializers.CharField(source='base_unit.name', read_only=True)
+    conversion_display = serializers.SerializerMethodField()
     
     class Meta:
         model = Unit
@@ -15,6 +19,17 @@ class UnitSerializer(serializers.ModelSerializer):
                 'validators': []
             }
         }
+    
+    def get_goods_count(self, obj):
+        """获取关联商品数量"""
+        from .models import Goods
+        return Goods.objects.filter(unit=obj).count()
+    
+    def get_conversion_display(self, obj):
+        """获取换算关系显示"""
+        if obj.base_unit and obj.conversion_factor:
+            return f"1{obj.name} = {obj.conversion_factor}{obj.base_unit.name}"
+        return '-'
     
     def validate_name(self, value):
         if not value or not value.strip():
@@ -37,10 +52,28 @@ class UnitSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     """商品分类序列化器"""
     parent_name = serializers.CharField(source='parent.name', read_only=True)
+    full_path = serializers.CharField(read_only=True)
+    children_count = serializers.IntegerField(read_only=True)
+    level_display = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    goods_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['id', 'name', 'code', 'parent', 'parent_name', 'level', 'level_display',
+                  'path', 'full_path', 'sort_order', 'is_active', 'remark', 
+                  'children_count', 'goods_count', 'created_by', 'created_by_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'level', 'path', 'created_at', 'updated_at']
+    
+    def get_level_display(self, obj):
+        """获取层级显示名称"""
+        level_names = {1: '一级分类', 2: '二级分类', 3: '三级分类', 4: '四级分类', 5: '五级分类'}
+        return level_names.get(obj.level, f'{obj.level}级分类')
+    
+    def get_goods_count(self, obj):
+        """获取该分类下的商品数量"""
+        from .models import Goods
+        return Goods.objects.filter(category=obj).count()
     
     def validate_name(self, value):
         """验证分类名称"""
@@ -48,34 +81,62 @@ class CategorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('分类名称不能为空')
         if len(value) > 100:
             raise serializers.ValidationError('分类名称不能超过100个字符')
-        
-        value = value.strip()
-        
-        queryset = Category.objects.filter(name=value)
-        if self.instance:
-            queryset = queryset.exclude(id=self.instance.id)
-        
-        if queryset.exists():
-            raise serializers.ValidationError(f'分类名称「{value}」已存在，请使用其他名称')
-        
+        return value.strip()
+    
+    def validate_code(self, value):
+        """验证分类编码"""
+        if value:
+            value = value.strip().upper()
+            if len(value) > 50:
+                raise serializers.ValidationError('分类编码不能超过50个字符')
+            queryset = Category.objects.filter(code=value)
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+            if queryset.exists():
+                raise serializers.ValidationError(f'分类编码「{value}」已存在')
         return value
     
     def validate(self, data):
         """验证父分类"""
-        if data.get('parent'):
-            if self.instance and data['parent'].id == self.instance.id:
+        parent = data.get('parent')
+        if parent:
+            if self.instance and parent.id == self.instance.id:
                 raise serializers.ValidationError({
-                    'parent': '父分类不能选择当前分类本身，请选择其他分类或设置为顶级分类'
+                    'parent': '父分类不能选择当前分类本身'
                 })
             if self.instance:
-                parent = data['parent']
-                while parent:
-                    if parent.id == self.instance.id:
-                        raise serializers.ValidationError({
-                            'parent': '不能选择当前分类的子分类作为父分类，这会造成循环引用'
-                        })
-                    parent = parent.parent
+                all_children_ids = self.instance.get_all_children_ids()
+                if parent.id in all_children_ids:
+                    raise serializers.ValidationError({
+                        'parent': '不能选择当前分类的子分类作为父分类'
+                    })
+            if parent.level >= 5:
+                raise serializers.ValidationError({
+                    'parent': '最多支持5级分类，当前父分类已达最大层级'
+                })
         return data
+    
+    def to_representation(self, instance):
+        """添加额外字段"""
+        data = super().to_representation(instance)
+        data['full_path'] = instance.get_full_path()
+        data['children_count'] = instance.get_children_count()
+        return data
+
+
+class CategoryTreeSerializer(serializers.ModelSerializer):
+    """商品分类树形结构序列化器"""
+    children = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'code', 'parent', 'level', 'sort_order', 
+                  'is_active', 'remark', 'children']
+    
+    def get_children(self, obj):
+        """递归获取子分类"""
+        children = obj.children.filter(is_active=True).order_by('sort_order', 'id')
+        return CategoryTreeSerializer(children, many=True).data
 
 
 class WarehouseSerializer(serializers.ModelSerializer):

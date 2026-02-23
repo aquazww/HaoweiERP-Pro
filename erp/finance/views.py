@@ -3,10 +3,11 @@ from .models import Payment
 from .serializers import PaymentSerializer
 from utils.views import BaseModelViewSet
 from utils.models import generate_order_no
+from system.permissions import ModulePermission
 
 
 class PaymentViewSet(BaseModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = Payment.objects.select_related(
         'created_by'
     ).prefetch_related('related_order').all()
