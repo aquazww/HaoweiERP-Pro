@@ -40,12 +40,12 @@ export const updateCategory = (id, data) => {
   return request.put(`/basic/categories/${id}/`, data)
 }
 
-export const deleteCategory = (id) => {
-  return request.delete(`/basic/categories/${id}/`)
-}
-
 export const batchUpdateCategorySort = (data) => {
   return request.post('/basic/categories/batch_update_sort/', data)
+}
+
+export const deleteCategory = (id) => {
+  return request.delete(`/basic/categories/${id}/`)
 }
 
 export const getWarehouses = (params) => {

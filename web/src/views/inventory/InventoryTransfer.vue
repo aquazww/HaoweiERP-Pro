@@ -1,5 +1,5 @@
 <template>
-  <div class="transfer-page">
+  <div class="common-page transfer-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -40,7 +40,7 @@
           </el-table-column>
           <el-table-column prop="status" label="状态" min-width="80" align="center">
             <template #default="{ row }">
-              <div class="status-badge" :class="row.status">
+              <div class="status-badge small" :class="row.status">
                 <span class="status-dot"></span>
                 {{ getStatusText(row.status) }}
               </div>
@@ -169,8 +169,18 @@
               <span class="info-value">{{ viewData.to_warehouse_name }}</span>
             </div>
             <div class="info-item-group">
+              <span class="info-label">创建人</span>
+              <span class="info-value">{{ viewData.created_by_name || '-' }}</span>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-item-group">
               <span class="info-label">创建时间</span>
               <span class="info-value">{{ formatDateTime(viewData.created_at) }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">确认时间</span>
+              <span class="info-value">{{ viewData.confirmed_at ? formatDateTime(viewData.confirmed_at) : '-' }}</span>
             </div>
           </div>
         </div>
@@ -195,18 +205,20 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData.items" border size="small" class="detail-table">
-                <el-table-column prop="goods_name" label="商品" min-width="140">
+                <el-table-column prop="goods_name" label="商品名称" min-width="140">
                   <template #default="{ row }">
-                    <div class="goods-cell">
-                      <span class="goods-name">{{ row.goods_name }}</span>
-                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                    </div>
+                    <span class="goods-name">{{ row.goods_name }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="unit" label="单位" width="55" align="center" />
-                <el-table-column prop="quantity" label="调拨数量" width="90" align="center">
+                <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
                   <template #default="{ row }">
-                    <span class="quantity-cell">{{ row.quantity }}</span>
+                    <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quantity" label="调拨数量" min-width="90" align="center">
+                  <template #default="{ row }">
+                    <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
                   </template>
                 </el-table-column>
               </el-table>
@@ -224,7 +236,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Delete, View, Right, Document, ArrowRight } from '@element-plus/icons-vue'
 import { getWarehouses, getGoods } from '../../api/basic'
 import { getInventory } from '../../api/inventory'
-import { formatInputNumber, parseInputNumber } from '../../utils/format'
+import { formatInputNumber, parseInputNumber, formatQuantity } from '../../utils/format'
 import { canAdd, canEdit, canDelete } from '../../utils/permission'
 import request from '../../api/index'
 
@@ -465,23 +477,22 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import './inventory-common.css';
-.transfer-icon {
+.transfer-page .transfer-icon {
   color: var(--color-primary);
   font-size: 16px;
 }
 
-.view-dialog :deep(.el-dialog__header) {
+.transfer-page .view-dialog :deep(.el-dialog__header) {
   padding: 0;
   margin: 0;
   position: relative;
 }
 
-.view-dialog :deep(.el-dialog__body) {
+.transfer-page .view-dialog :deep(.el-dialog__body) {
   padding: 12px 16px;
 }
 
-.dialog-header {
+.transfer-page .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -492,13 +503,13 @@ onUnmounted(() => {
   padding-right: 50px;
 }
 
-.dialog-title {
+.transfer-page .dialog-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
-.close-btn {
+.transfer-page .close-btn {
   position: absolute;
   top: 0;
   right: 0;
@@ -517,18 +528,18 @@ onUnmounted(() => {
   background: transparent;
 }
 
-.close-btn:hover {
+.transfer-page .close-btn:hover {
   color: #333;
   background: rgba(0, 0, 0, 0.04);
 }
 
-.detail-container {
+.transfer-page .detail-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.info-section {
+.transfer-page .info-section {
   background: #fafafa;
   border-radius: 6px;
   padding: 0;
@@ -536,23 +547,23 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.info-row {
+.transfer-page .info-row {
   display: flex;
   gap: 0;
   padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.info-row:last-child {
+.transfer-page .info-row:last-child {
   border-bottom: none;
 }
 
-.info-row.highlight-row {
+.transfer-page .info-row.highlight-row {
   background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
   border-bottom: 1px solid #e6f0ff;
 }
 
-.info-item-group {
+.transfer-page .info-item-group {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -560,32 +571,32 @@ onUnmounted(() => {
   padding: 4px 8px;
 }
 
-.info-label {
+.transfer-page .info-label {
   font-size: 12px;
   color: #999;
   min-width: 56px;
 }
 
-.info-value {
+.transfer-page .info-value {
   font-size: 13px;
   color: #333;
   font-weight: 500;
 }
 
-.info-value.primary {
+.transfer-page .info-value.primary {
   font-weight: 700;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.remark-box {
+.transfer-page .remark-box {
   background: #fffbe6;
   border: 1px solid #ffe58f;
   border-radius: 6px;
   padding: 10px 12px;
 }
 
-.remark-header {
+.transfer-page .remark-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -595,24 +606,24 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.remark-icon {
+.transfer-page .remark-icon {
   font-size: 14px;
 }
 
-.remark-text {
+.transfer-page .remark-text {
   font-size: 13px;
   color: #614700;
   line-height: 1.6;
   padding-left: 20px;
 }
 
-.items-section {
+.transfer-page .items-section {
   border: 1px solid #e8e8e8;
   border-radius: 6px;
   overflow: hidden;
 }
 
-.items-header {
+.transfer-page .items-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -622,53 +633,53 @@ onUnmounted(() => {
   transition: background 0.2s;
 }
 
-.items-header:hover {
+.transfer-page .items-header:hover {
   background: #efefef;
 }
 
-.header-left {
+.transfer-page .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.expand-icon {
+.transfer-page .expand-icon {
   font-size: 12px;
   color: #999;
   transition: transform 0.2s;
 }
 
-.expand-icon.expanded {
+.transfer-page .expand-icon.expanded {
   transform: rotate(90deg);
 }
 
-.header-title {
+.transfer-page .header-title {
   font-size: 13px;
   font-weight: 600;
   color: #333;
 }
 
-.header-count {
+.transfer-page .header-count {
   font-size: 12px;
   color: #999;
 }
 
-.expand-hint {
+.transfer-page .expand-hint {
   font-size: 12px;
   color: #999;
 }
 
-.items-body {
+.transfer-page .items-body {
   border-top: 1px solid #e8e8e8;
 }
 
-.detail-table {
+.transfer-page .detail-table {
   --el-table-header-bg-color: #f5f7fa;
   --el-table-border-color: #ebeef5;
   --el-table-row-hover-bg-color: #f0f5ff;
 }
 
-.detail-table :deep(.el-table__header th) {
+.transfer-page .detail-table :deep(.el-table__header th) {
   font-weight: 600;
   font-size: 12px;
   color: #606266;
@@ -677,38 +688,139 @@ onUnmounted(() => {
   border-bottom: 2px solid #e0e6ed;
 }
 
-.detail-table :deep(.el-table__body td) {
+.transfer-page .detail-table :deep(.el-table__body td) {
   padding: 10px 0;
   border-bottom: 1px solid #f0f2f5;
 }
 
-.goods-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.goods-cell .goods-name {
+.transfer-page .goods-name {
   font-size: 13px;
   color: #303133;
   font-weight: 500;
 }
 
-.goods-cell .goods-spec {
-  font-size: 10px;
-  color: #909399;
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: #f4f4f5;
-  padding: 0 4px;
-  border-radius: 2px;
-  white-space: nowrap;
-  line-height: 1.4;
+.transfer-page .spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
-.quantity-cell {
+.transfer-page .quantity-cell {
   font-weight: 600;
   color: #409eff;
   font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.transfer-page .unit-text {
+  font-size: 12px;
+  color: #303133;
+  margin-left: 4px;
+}
+
+.transfer-page .form-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.transfer-page .form-section:last-child {
+  margin-bottom: 0;
+}
+
+.transfer-page .section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.transfer-page .detail-table-wrapper {
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.transfer-page .input-cell {
+  position: relative;
+}
+
+.transfer-page .input-cell.has-error .number-input :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger) inset;
+}
+
+.transfer-page .number-input :deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+.transfer-page .number-input :deep(.el-input__inner) {
+  text-align: right;
+}
+
+.transfer-page .error-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 11px;
+  color: var(--color-danger);
+  white-space: nowrap;
+  padding-top: 2px;
+  z-index: 10;
+}
+
+.transfer-page .detail-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--spacing-md);
+}
+
+.transfer-page .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 60px;
+  line-height: 1.4;
+}
+
+.transfer-page .status-badge.small {
+  padding: 3px 10px;
+  font-size: 12px;
+  gap: 5px;
+  min-width: 50px;
+}
+
+.transfer-page .status-badge.small .status-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.transfer-page .status-badge.draft {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.transfer-page .status-badge.confirmed {
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.transfer-page .status-badge.cancelled {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.transfer-page .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
 }
 </style>

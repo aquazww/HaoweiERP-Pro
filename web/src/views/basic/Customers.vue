@@ -1,5 +1,5 @@
 <template>
-  <div class="customers-page">
+  <div class="common-page customers-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -34,12 +34,12 @@
           stripe
           :height="tableHeight"
         >
-          <el-table-column prop="code" label="编码" width="120">
+          <el-table-column prop="code" label="编码" width="120" align="center">
             <template #default="{ row }">
               <span class="code-badge">{{ row.code }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="公司名称" min-width="180">
+          <el-table-column prop="name" label="公司名称" min-width="200">
             <template #default="{ row }">
               <div class="name-cell">
                 <div class="company-initials">{{ getCompanyInitials(row.name) }}</div>
@@ -88,11 +88,11 @@
       </div>
     </div>
 
-    <!-- 新增/编辑客户对话框 -->
     <el-dialog 
       v-model="dialogVisible" 
       :title="dialogTitle" 
       width="720px"
+      class="form-dialog"
       :close-on-click-modal="false"
       @close="handleDialogClose"
     >
@@ -593,95 +593,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.customers-page {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  overflow: hidden;
-}
-
-.page-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.toolbar-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-white);
-  padding: 6px var(--spacing-md);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-}
-
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: var(--spacing-md);
-  color: var(--color-text-tertiary);
-  z-index: 1;
-}
-
-.search-input {
-  width: 320px;
-  padding-left: 40px;
-}
-
-.table-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-white);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  min-height: 0;
-}
-
-.data-table {
-  --el-table-header-bg-color: var(--color-bg-light);
-}
-
-.code-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  background-color: var(--color-bg-light);
-  color: var(--color-primary);
-  font-weight: 500;
-  font-size: var(--font-size-sm);
-  border-radius: var(--border-radius-sm);
-  font-family: 'Monaco', 'Consolas', monospace;
-}
-
-.name-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.company-initials {
+.customers-page .company-initials {
   width: 36px;
   height: 36px;
   background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
@@ -695,14 +607,14 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.company-info {
+.customers-page .company-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
 }
 
-.company-name {
+.customers-page .company-name {
   font-weight: 500;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -710,68 +622,21 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-.company-contact {
+.customers-page .company-contact {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
 }
 
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  background-color: var(--color-white);
-  border-top: 1px solid var(--color-border-light);
-  padding: 4px var(--spacing-md);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-  flex-shrink: 0;
-}
-
-.pagination-wrapper :deep(.el-pagination) {
-  --el-pagination-button-height: 32px;
-  --el-pagination-font-size: 13px;
-}
-
-.pagination-wrapper :deep(.el-pagination .btn-prev),
-.pagination-wrapper :deep(.el-pagination .btn-next) {
-  min-width: 32px;
-  padding: 0 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pager li) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
-  margin-left: 8px;
-}
-
-.customer-form {
+.customers-page .customer-form {
   padding: 10px 20px;
 }
 
-.customer-form :deep(.el-divider__text) {
+.customers-page .customer-form :deep(.el-divider__text) {
   font-weight: 500;
   color: var(--color-text-secondary);
 }
 
-.customer-form :deep(.el-form-item__label) {
+.customers-page .customer-form :deep(.el-form-item__label) {
   font-weight: 500;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
 }
 </style>

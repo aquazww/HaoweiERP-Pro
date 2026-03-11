@@ -1,62 +1,65 @@
 <template>
-  <div class="inventory-report">
-    <el-card>
-      <template #header>
+  <div class="common-page inventory-report">
+    <div class="page-content">
+      <div class="table-card">
         <div class="card-header">
-          <span>库存报表</span>
+          <span class="card-title">库存报表</span>
           <el-button type="primary" :icon="Download" @click="handleExport">导出</el-button>
         </div>
-      </template>
-      
-      <el-form :inline="true" :model="queryForm" class="search-form">
-        <el-form-item label="商品">
-          <el-input v-model="queryForm.goods_name" placeholder="请输入商品名称" clearable />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+        
+        <div class="filter-section">
+          <el-form :inline="true" :model="queryForm">
+            <el-form-item label="商品">
+              <el-input v-model="queryForm.goods_name" placeholder="请输入商品名称" clearable style="width: 200px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">查询</el-button>
+              <el-button @click="handleReset">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
 
-      <el-table :data="tableData" border style="width: 100%">
-        <el-table-column prop="goods_name" label="商品名称" />
-        <el-table-column prop="goods_code" label="商品编码" width="120" />
-        <el-table-column prop="specification" label="规格型号" width="120" />
-        <el-table-column prop="unit_name" label="单位" width="80" />
-        <el-table-column prop="category_name" label="分类" width="120" />
-        <el-table-column prop="quantity" label="库存数量" width="120">
-          <template #default="{ row }">
-            <span :class="{ 'low-stock': row.quantity <= (row.min_stock || 0) }">
-              {{ formatQuantity(row.quantity) }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="avg_price" label="平均成本" width="120">
-          <template #default="{ row }">
-            ¥{{ (row.avg_price !== undefined && row.avg_price !== null) ? row.avg_price.toFixed(2) : '0.00' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="total_value" label="库存总值" width="120">
-          <template #default="{ row }">
-            ¥{{ (row.total_value !== undefined && row.total_value !== null) ? row.total_value.toFixed(2) : '0.00' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="min_stock" label="预警库存" width="100">
-          <template #default="{ row }">{{ formatQuantity(row.min_stock) }}</template>
-        </el-table-column>
-      </el-table>
+        <el-table :data="tableData" style="width: 100%" class="data-table" v-loading="loading">
+          <el-table-column prop="goods_name" label="商品名称" min-width="150" />
+          <el-table-column prop="goods_code" label="商品编码" min-width="120" />
+          <el-table-column prop="specification" label="规格型号" min-width="100" />
+          <el-table-column prop="unit_name" label="单位" width="80" align="center" />
+          <el-table-column prop="category_name" label="分类" min-width="100" />
+          <el-table-column prop="quantity" label="库存数量" min-width="100" align="right">
+            <template #default="{ row }">
+              <span :class="{ 'low-stock': row.quantity <= (row.min_stock || 0) }">
+                {{ formatQuantity(row.quantity) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="avg_price" label="平均成本" min-width="100" align="right">
+            <template #default="{ row }">
+              ¥{{ (row.avg_price !== undefined && row.avg_price !== null) ? row.avg_price.toFixed(2) : '0.00' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_value" label="库存总值" min-width="100" align="right">
+            <template #default="{ row }">
+              ¥{{ (row.total_value !== undefined && row.total_value !== null) ? row.total_value.toFixed(2) : '0.00' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="min_stock" label="预警库存" width="90" align="right">
+            <template #default="{ row }">{{ formatQuantity(row.min_stock) }}</template>
+          </el-table-column>
+        </el-table>
 
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadData"
-        @current-change="loadData"
-        style="margin-top: 20px; justify-content: flex-end"
-      />
-    </el-card>
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="loadData"
+            @current-change="loadData"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -170,22 +173,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.inventory-report {
-  padding: 20px;
-}
-
-.card-header {
+.inventory-report .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
-.search-form {
-  margin-bottom: 20px;
+.inventory-report .card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.low-stock {
-  color: #f56c6c;
-  font-weight: bold;
+.inventory-report .filter-section {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.inventory-report .low-stock {
+  color: var(--color-danger);
+  font-weight: 600;
 }
 </style>

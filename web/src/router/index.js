@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import tokenManager from '../utils/tokenManager'
 
 const routes = [
   {
@@ -149,13 +150,20 @@ const checkPermission = (module) => {
 
 router.beforeEach((to, from, next) => {
   const username = localStorage.getItem('username')
+  const tokenExpiry = tokenManager.getTokenExpiry()
+  const isTokenExpired = tokenExpiry ? tokenExpiry <= Date.now() : true
   
-  if (to.path !== '/login' && to.path !== '/forbidden' && !username) {
-    next('/login')
-    return
+  if (to.path !== '/login' && to.path !== '/forbidden') {
+    if (!username || isTokenExpired) {
+      localStorage.removeItem('username')
+      localStorage.removeItem('permissions')
+      localStorage.removeItem('token_expiry')
+      next('/login')
+      return
+    }
   }
   
-  if (to.path === '/login' && username) {
+  if (to.path === '/login' && username && !isTokenExpired) {
     next('/')
     return
   }

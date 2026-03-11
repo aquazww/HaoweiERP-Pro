@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter, SearchFilter
 
 from .models import Inventory, InventoryLog, StockIn, StockOut, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
+from basic.models import Goods
 from .serializers import (
     InventorySerializer, InventoryListSerializer, InventoryLogSerializer,
     StockInSerializer, StockInCreateSerializer, StockOutSerializer,
@@ -475,15 +476,20 @@ class StockAdjustViewSet(BaseModelViewSet):
     def _create_adjust_items(self, adjust):
         items_data = self.request.data.get('items', [])
         for item_data in items_data:
-            goods = item_data['goods']
+            goods_id = item_data['goods']
             adjust_qty = item_data['adjust_quantity']
             
             try:
-                inv = Inventory.objects.get(goods=goods, warehouse=adjust.warehouse)
+                goods = Goods.objects.get(id=goods_id)
+            except Goods.DoesNotExist:
+                raise ValueError(f'商品ID {goods_id} 不存在')
+            
+            try:
+                inv = Inventory.objects.get(goods_id=goods_id, warehouse=adjust.warehouse)
                 before_qty = inv.quantity
             except Inventory.DoesNotExist:
                 before_qty = 0
-                inv = Inventory.objects.create(goods=goods, warehouse=adjust.warehouse, quantity=0)
+                inv = Inventory.objects.create(goods_id=goods_id, warehouse=adjust.warehouse, quantity=0)
             
             if adjust.adjust_type == 'increase':
                 after_qty = before_qty + adjust_qty
@@ -494,7 +500,7 @@ class StockAdjustViewSet(BaseModelViewSet):
             
             StockAdjustItem.objects.create(
                 adjust=adjust,
-                goods=goods,
+                goods_id=goods_id,
                 before_quantity=before_qty,
                 adjust_quantity=adjust_qty if adjust.adjust_type == 'increase' else -adjust_qty,
                 after_quantity=after_qty,

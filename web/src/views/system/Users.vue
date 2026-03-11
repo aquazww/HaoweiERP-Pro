@@ -532,21 +532,23 @@ const handleToggleStatus = async (row) => {
     return
   }
   
-  const originalStatus = !row.is_active
+  const newStatus = row.is_active
+  const originalStatus = !newStatus
+  
   try {
     await ElMessageBox.confirm(
-      `确定要${row.is_active ? '启用' : '禁用'}用户「${row.username}」吗？`,
-      '提示',
+      `确定要${newStatus ? '启用' : '禁用'}用户「${row.username}」吗？${newStatus ? '' : '禁用后该用户将无法登录系统'}`,
+      newStatus ? '启用用户' : '禁用用户',
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: newStatus ? 'success' : 'warning'
       }
     )
     
     toggleLoading.value = row.id
-    await updateUser(row.id, { is_active: row.is_active })
-    ElMessage.success('操作成功')
+    await updateUser(row.id, { is_active: newStatus })
+    ElMessage.success(`${newStatus ? '启用' : '禁用'}成功，用户「${row.username}」${newStatus ? '已可以' : '已被'}登录系统`)
     loadData()
   } catch (error) {
     if (error !== 'cancel') {

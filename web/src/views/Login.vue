@@ -140,9 +140,13 @@ const handleLogin = async () => {
 onMounted(() => {
   localStorage.removeItem('permissions')
   localStorage.removeItem('username')
+  localStorage.removeItem('token_expiry')
+  sessionStorage.removeItem('token_warning_shown')
   
   if (route.query.reason === 'permission_changed') {
     ElMessage.warning('您的账户权限已变更，请重新登录')
+  } else if (route.query.reason === 'token_expired') {
+    ElMessage.warning('登录已过期，请重新登录')
   }
 })
 </script>

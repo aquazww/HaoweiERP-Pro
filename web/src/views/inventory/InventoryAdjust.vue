@@ -1,5 +1,5 @@
 <template>
-  <div class="adjust-page">
+  <div class="common-page adjust-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -27,12 +27,11 @@
 
       <div class="table-card">
         <el-table :data="adjustList" style="width: 100%" v-loading="loading" :height="tableHeight" class="data-table" stripe :header-cell-style="{ background: 'var(--color-bg-light)' }">
-          <el-table-column prop="order_no" label="调整单号" min-width="150" align="center">
+          <el-table-column prop="warehouse_name" label="仓库名称" min-width="100" show-overflow-tooltip>
             <template #default="{ row }">
-              <span class="order-no-badge">{{ row.order_no }}</span>
+              <span class="warehouse-name">{{ row.warehouse_name }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="warehouse_name" label="仓库" min-width="100" show-overflow-tooltip />
           <el-table-column prop="adjust_type_display" label="调整类型" min-width="90" align="center">
             <template #default="{ row }">
               <el-tag :type="row.adjust_type === 'increase' ? 'success' : 'danger'" size="small">
@@ -40,30 +39,23 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="reason_display" label="调整原因" min-width="90" show-overflow-tooltip />
-          <el-table-column label="调整明细" min-width="180" show-overflow-tooltip>
+          <el-table-column prop="item_count" label="明细项数" min-width="90" align="center">
             <template #default="{ row }">
-              <span class="items-preview">{{ getItemsPreview(row.items) }}</span>
+              <span class="item-count-badge">{{ row.items?.length || 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" min-width="80" align="center">
+          <el-table-column prop="reason_display" label="调整原因" min-width="90" show-overflow-tooltip />
+          <el-table-column prop="status" label="单据状态" min-width="80" align="center">
             <template #default="{ row }">
-              <div class="status-badge" :class="row.status">
+              <div class="status-badge small" :class="row.status">
                 <span class="status-dot"></span>
                 {{ getStatusText(row.status) }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="创建时间" min-width="140">
-            <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
-          </el-table-column>
-          <el-table-column label="操作" min-width="160" align="center">
+          <el-table-column prop="order_no" label="调整单号" min-width="150" align="center">
             <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="success" link size="small" @click="handleConfirm(row)" v-if="canEditInventory && row.status === 'draft'">确认</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteInventory && row.status === 'draft'">删除</el-button>
-              </div>
+              <span class="order-no-link" @click="handleView(row)">{{ row.order_no }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -182,9 +174,9 @@
       <template #header>
         <div class="dialog-header">
           <span class="dialog-title">调整单详情</span>
-          <div class="status-badge small" :class="viewData?.status" v-if="viewData">
-            <span class="status-dot"></span>
-            {{ getStatusText(viewData?.status) }}
+          <div class="header-actions">
+            <el-button class="action-btn confirm-btn" size="small" @click="handleConfirmFromView" v-if="canEditInventory && viewData?.status === 'draft'">确认</el-button>
+            <el-button class="action-btn delete-btn" :icon="Delete" size="small" @click="handleDeleteFromView" v-if="canDeleteInventory && viewData?.status === 'draft'">删除</el-button>
           </div>
         </div>
         <span class="close-btn" @click="viewDialogVisible = false">×</span>
@@ -197,9 +189,15 @@
               <span class="info-label">仓库</span>
               <span class="info-value">{{ viewData.warehouse_name }}</span>
             </div>
-            <div class="info-item-group">
+            <div class="info-item-group order-no-with-status">
               <span class="info-label">调整单号</span>
-              <span class="info-value primary">{{ viewData.order_no }}</span>
+              <div class="order-no-status-wrapper">
+                <span class="info-value primary">{{ viewData.order_no }}</span>
+                <div class="status-badge small" :class="viewData.status">
+                  <span class="status-dot"></span>
+                  {{ getStatusText(viewData.status) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="info-row highlight-row">
@@ -213,9 +211,13 @@
             </div>
           </div>
           <div class="info-row">
-            <div class="info-item">
-              <span class="info-label">创建时间</span>
-              <span class="info-value">{{ formatDateTime(viewData.created_at) }}</span>
+            <div class="info-item-group">
+              <span class="info-label">创建人</span>
+              <span class="info-value">{{ viewData.created_by_name || '-' }}</span>
+            </div>
+            <div class="info-item-group">
+              <span class="info-label">确认时间</span>
+              <span class="info-value">{{ viewData.confirmed_at ? formatDateTime(viewData.confirmed_at) : '-' }}</span>
             </div>
           </div>
         </div>
@@ -240,23 +242,36 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData.items" border size="small" class="detail-table">
-                <el-table-column prop="goods_name" label="商品" min-width="140">
+                <el-table-column prop="goods_name" label="商品名称" min-width="140">
                   <template #default="{ row }">
-                    <div class="goods-cell">
-                      <span class="goods-name">{{ row.goods_name }}</span>
-                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                    </div>
+                    <span class="goods-name">{{ row.goods_name }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="before_quantity" label="调整前" width="75" align="center" />
-                <el-table-column prop="adjust_quantity" label="调整量" width="75" align="center">
+                <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                  <template #default="{ row }">
+                    <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="调整前" min-width="90" align="center">
+                  <template #default="{ row }">
+                    <span class="quantity-cell">{{ formatQuantity(row.before_quantity) }}</span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="调整量" min-width="90" align="center">
                   <template #default="{ row }">
                     <span :class="row.adjust_quantity >= 0 ? 'quantity-cell increase' : 'quantity-cell decrease'">
-                      {{ row.adjust_quantity >= 0 ? '+' : '' }}{{ row.adjust_quantity }}
+                      {{ row.adjust_quantity >= 0 ? '+' : '' }}{{ formatQuantity(row.adjust_quantity) }}
                     </span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="after_quantity" label="调整后" width="75" align="center" />
+                <el-table-column label="调整后" min-width="90" align="center">
+                  <template #default="{ row }">
+                    <span class="quantity-cell">{{ formatQuantity(row.after_quantity) }}</span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
+                  </template>
+                </el-table-column>
               </el-table>
             </div>
           </el-collapse-transition>
@@ -272,7 +287,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Delete, View, Document, ArrowRight } from '@element-plus/icons-vue'
 import { getWarehouses, getGoods } from '../../api/basic'
 import { getInventory } from '../../api/inventory'
-import { formatInputNumber, parseInputNumber } from '../../utils/format'
+import { formatInputNumber, parseInputNumber, formatQuantity } from '../../utils/format'
 import { canAdd, canEdit, canDelete } from '../../utils/permission'
 import request from '../../api/index'
 
@@ -436,6 +451,18 @@ const handleView = async (row) => {
   }
 }
 
+const handleConfirmFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleConfirm(viewData.value)
+}
+
+const handleDeleteFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleDelete(viewData.value)
+}
+
 const handleConfirm = async (row) => {
   try {
     await ElMessageBox.confirm('确认此调整单？确认后将更新库存。', '确认调整', { type: 'warning' })
@@ -522,19 +549,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import './inventory-common.css';
-
-.view-dialog :deep(.el-dialog__header) {
+.adjust-page .view-dialog :deep(.el-dialog__header) {
   padding: 0;
   margin: 0;
   position: relative;
 }
 
-.view-dialog :deep(.el-dialog__body) {
+.adjust-page .view-dialog :deep(.el-dialog__body) {
   padding: 12px 16px;
 }
 
-.dialog-header {
+.adjust-page .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -545,13 +570,68 @@ onUnmounted(() => {
   padding-right: 50px;
 }
 
-.dialog-title {
+.adjust-page .dialog-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
-.close-btn {
+.adjust-page .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adjust-page .action-btn {
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  transition: all 0.3s ease-in-out !important;
+  transform-origin: center center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.adjust-page .action-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.adjust-page .confirm-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+}
+
+.adjust-page .confirm-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.adjust-page .delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #fff !important;
+}
+
+.adjust-page .delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+}
+
+.adjust-page .order-no-with-status {
+  flex: 1;
+}
+
+.adjust-page .order-no-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.adjust-page .order-no-status-wrapper .status-badge {
+  flex-shrink: 0;
+}
+
+.adjust-page .close-btn {
   position: absolute;
   top: 0;
   right: 0;
@@ -570,18 +650,18 @@ onUnmounted(() => {
   background: transparent;
 }
 
-.close-btn:hover {
+.adjust-page .close-btn:hover {
   color: #333;
   background: rgba(0, 0, 0, 0.04);
 }
 
-.detail-container {
+.adjust-page .detail-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.info-section {
+.adjust-page .info-section {
   background: #fafafa;
   border-radius: 6px;
   padding: 0;
@@ -589,30 +669,30 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.info-row {
+.adjust-page .info-row {
   display: flex;
   gap: 0;
   padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.info-row:last-child {
+.adjust-page .info-row:last-child {
   border-bottom: none;
 }
 
-.info-row.highlight-row {
+.adjust-page .info-row.highlight-row {
   background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
   border-bottom: 1px solid #e6f0ff;
 }
 
-.info-item {
+.adjust-page .info-item {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
 }
 
-.info-item-group {
+.adjust-page .info-item-group {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -620,32 +700,32 @@ onUnmounted(() => {
   padding: 4px 8px;
 }
 
-.info-label {
+.adjust-page .info-label {
   font-size: 12px;
   color: #999;
   min-width: 56px;
 }
 
-.info-value {
+.adjust-page .info-value {
   font-size: 13px;
   color: #333;
   font-weight: 500;
 }
 
-.info-value.primary {
+.adjust-page .info-value.primary {
   font-weight: 700;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.remark-box {
+.adjust-page .remark-box {
   background: #fffbe6;
   border: 1px solid #ffe58f;
   border-radius: 6px;
   padding: 10px 12px;
 }
 
-.remark-header {
+.adjust-page .remark-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -655,24 +735,24 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.remark-icon {
+.adjust-page .remark-icon {
   font-size: 14px;
 }
 
-.remark-text {
+.adjust-page .remark-text {
   font-size: 13px;
   color: #614700;
   line-height: 1.6;
   padding-left: 20px;
 }
 
-.items-section {
+.adjust-page .items-section {
   border: 1px solid #e8e8e8;
   border-radius: 6px;
   overflow: hidden;
 }
 
-.items-header {
+.adjust-page .items-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -682,53 +762,53 @@ onUnmounted(() => {
   transition: background 0.2s;
 }
 
-.items-header:hover {
+.adjust-page .items-header:hover {
   background: #efefef;
 }
 
-.header-left {
+.adjust-page .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.expand-icon {
+.adjust-page .expand-icon {
   font-size: 12px;
   color: #999;
   transition: transform 0.2s;
 }
 
-.expand-icon.expanded {
+.adjust-page .expand-icon.expanded {
   transform: rotate(90deg);
 }
 
-.header-title {
+.adjust-page .header-title {
   font-size: 13px;
   font-weight: 600;
   color: #333;
 }
 
-.header-count {
+.adjust-page .header-count {
   font-size: 12px;
   color: #999;
 }
 
-.expand-hint {
+.adjust-page .expand-hint {
   font-size: 12px;
   color: #999;
 }
 
-.items-body {
+.adjust-page .items-body {
   border-top: 1px solid #e8e8e8;
 }
 
-.detail-table {
+.adjust-page .detail-table {
   --el-table-header-bg-color: #f5f7fa;
   --el-table-border-color: #ebeef5;
   --el-table-row-hover-bg-color: #f0f5ff;
 }
 
-.detail-table :deep(.el-table__header th) {
+.adjust-page .detail-table :deep(.el-table__header th) {
   font-weight: 600;
   font-size: 12px;
   color: #606266;
@@ -737,45 +817,220 @@ onUnmounted(() => {
   border-bottom: 2px solid #e0e6ed;
 }
 
-.detail-table :deep(.el-table__body td) {
+.adjust-page .detail-table :deep(.el-table__body td) {
   padding: 10px 0;
   border-bottom: 1px solid #f0f2f5;
 }
 
-.goods-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.goods-cell .goods-name {
+.adjust-page .goods-name {
   font-size: 13px;
   color: #303133;
   font-weight: 500;
 }
 
-.goods-cell .goods-spec {
-  font-size: 10px;
-  color: #909399;
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: #f4f4f5;
-  padding: 0 4px;
-  border-radius: 2px;
-  white-space: nowrap;
-  line-height: 1.4;
+.adjust-page .spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
-.quantity-cell {
+.adjust-page .warehouse-name {
+  font-weight: 600;
+  color: #303133;
+}
+
+.adjust-page .item-count-badge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 10px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 12px;
+  border: 1px solid #bae0ff;
+  text-align: center;
+}
+
+.adjust-page .order-no-link {
+  display: inline-block;
+  padding: 2px 10px;
+  background-color: rgba(22, 93, 255, 0.08);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  border-radius: var(--border-radius-sm);
+  font-family: 'Monaco', 'Consolas', monospace;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  text-decoration: none;
+  transform-origin: center center;
+}
+
+.adjust-page .order-no-link:hover {
+  background-color: rgba(22, 93, 255, 0.2);
+  color: #023e7d;
+  text-decoration: none;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(22, 93, 255, 0.25);
+}
+
+.adjust-page .data-table :deep(.el-table__row) {
+  transition: all 0.2s ease-in-out;
+}
+
+.adjust-page .data-table :deep(.el-table__row:hover) {
+  outline: 1px solid #1890ff;
+  outline-offset: -1px;
+  background-color: #e6f7ff !important;
+}
+
+.adjust-page .data-table :deep(.el-table__row:hover) .el-table__cell {
+  border-top: 1px solid #1890ff;
+  border-bottom: 1px solid #1890ff;
+}
+
+.adjust-page .data-table :deep(.el-table__row:hover) .el-table__cell:first-child {
+  border-left: 1px solid #1890ff;
+}
+
+.adjust-page .data-table :deep(.el-table__row:hover) .el-table__cell:last-child {
+  border-right: 1px solid #1890ff;
+}
+
+.adjust-page .quantity-cell {
   font-weight: 600;
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.quantity-cell.increase {
+.adjust-page .quantity-cell.increase {
   color: #52c41a;
 }
 
-.quantity-cell.decrease {
+.adjust-page .quantity-cell.decrease {
   color: #f5222d;
+}
+
+.adjust-page .unit-text {
+  font-size: 12px;
+  color: #303133;
+  margin-left: 4px;
+}
+
+.adjust-page .form-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.adjust-page .form-section:last-child {
+  margin-bottom: 0;
+}
+
+.adjust-page .section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.adjust-page .detail-table-wrapper {
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.adjust-page .input-cell {
+  position: relative;
+}
+
+.adjust-page .input-cell.has-error .number-input :deep(.el-input__wrapper) {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1px var(--color-danger) inset;
+}
+
+.adjust-page .number-input :deep(.el-input__wrapper) {
+  padding: 0 8px;
+}
+
+.adjust-page .number-input :deep(.el-input__inner) {
+  text-align: right;
+}
+
+.adjust-page .error-tip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 11px;
+  color: var(--color-danger);
+  white-space: nowrap;
+  padding-top: 2px;
+  z-index: 10;
+}
+
+.adjust-page .text-success {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.adjust-page .text-danger {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.adjust-page .detail-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--spacing-md);
+}
+
+.adjust-page .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 60px;
+  line-height: 1.4;
+}
+
+.adjust-page .status-badge.small {
+  padding: 3px 10px;
+  font-size: 12px;
+  gap: 5px;
+  min-width: 50px;
+}
+
+.adjust-page .status-badge.small .status-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.adjust-page .status-badge.draft {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.adjust-page .status-badge.confirmed {
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.adjust-page .status-badge.cancelled {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.adjust-page .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
 }
 </style>

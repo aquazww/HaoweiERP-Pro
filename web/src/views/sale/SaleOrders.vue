@@ -37,34 +37,33 @@
           stripe
           :header-cell-style="{ background: 'var(--color-bg-light)' }"
         >
-          <el-table-column prop="order_no" label="销售单号" min-width="150" align="center">
+          <el-table-column prop="customer_name" label="客户名称" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
-              <span class="order-no-badge">{{ row.order_no }}</span>
+              <span class="customer-name">{{ row.customer_name }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="customer_name" label="客户" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="warehouse_name" label="仓库" min-width="120" align="center" show-overflow-tooltip />
-          <el-table-column prop="total_amount" label="总金额" min-width="120" align="right">
+          <el-table-column prop="warehouse_name" label="仓库名称" min-width="120" align="center" show-overflow-tooltip />
+          <el-table-column prop="item_count" label="明细项数" min-width="90" align="center">
+            <template #default="{ row }">
+              <span class="item-count-badge">{{ row.items?.length || 0 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_amount" label="订单总金额" min-width="120" align="right">
             <template #default="{ row }">
               <span class="price-text">¥{{ formatPrice(row.total_amount) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" min-width="100" align="center">
+          <el-table-column prop="status" label="订单状态" min-width="100" align="center">
             <template #default="{ row }">
-              <div class="status-badge" :class="row.status">
+              <div class="status-badge small" :class="row.status">
                 <span class="status-dot"></span>
                 {{ getStatusText(row.status) }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="240" align="center">
+          <el-table-column prop="order_no" label="销售单号" min-width="150" align="center">
             <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditSale && row.status === 'pending'">编辑</el-button>
-                <el-button type="success" link :icon="Upload" size="small" @click="handleStockOut(row)" v-if="canStockOut && row.status !== 'completed' && row.status !== 'cancelled'">出库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeleteSale && row.status === 'pending'">删除</el-button>
-              </div>
+              <span class="order-no-link" @click="handleView(row)">{{ row.order_no }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -92,9 +91,10 @@
       <template #header>
         <div class="dialog-header">
           <span class="dialog-title">销售单详情</span>
-          <div class="status-badge small" :class="viewData?.status" v-if="viewData">
-            <span class="status-dot"></span>
-            {{ getStatusText(viewData?.status) }}
+          <div class="header-actions">
+            <el-button class="action-btn edit-btn" :icon="Edit" size="small" @click="handleEditFromView" v-if="canEditSale && viewData?.status === 'pending'">编辑</el-button>
+            <el-button class="action-btn stockout-btn" :icon="Upload" size="small" @click="handleStockOutFromView" v-if="canStockOut && viewData?.status !== 'completed' && viewData?.status !== 'cancelled'">出库</el-button>
+            <el-button class="action-btn delete-btn" :icon="Delete" size="small" @click="handleDeleteFromView" v-if="canDeleteSale && viewData?.status === 'pending'">删除</el-button>
           </div>
         </div>
         <span class="close-btn" @click="viewDialogVisible = false">×</span>
@@ -107,9 +107,15 @@
               <span class="info-label">客户</span>
               <span class="info-value">{{ viewData.customer_name }}</span>
             </div>
-            <div class="info-item-group">
+            <div class="info-item-group order-no-with-status">
               <span class="info-label">销售单号</span>
-              <span class="info-value primary">{{ viewData.order_no }}</span>
+              <div class="order-no-status-wrapper">
+                <span class="info-value primary">{{ viewData.order_no }}</span>
+                <div class="status-badge small" :class="viewData.status">
+                  <span class="status-dot"></span>
+                  {{ getStatusText(viewData.status) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="info-row highlight-row">
@@ -128,11 +134,15 @@
               <span class="info-value">{{ viewData.order_date }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">创建人</span>
-              <span class="info-value">{{ viewData.created_by_name || '-' }}</span>
+              <span class="info-label">出库时间</span>
+              <span class="info-value">{{ viewData.stock_out_time ? formatDateTime(viewData.stock_out_time) : '-' }}</span>
             </div>
           </div>
           <div class="info-row">
+            <div class="info-item">
+              <span class="info-label">创建人</span>
+              <span class="info-value">{{ viewData.created_by_name || '-' }}</span>
+            </div>
             <div class="info-item">
               <span class="info-label">创建时间</span>
               <span class="info-value">{{ formatDateTime(viewData.created_at) }}</span>
@@ -160,18 +170,20 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData.items" border size="small" class="detail-table">
-                <el-table-column prop="goods_name" label="商品" min-width="140">
+                <el-table-column prop="goods_name" label="商品名称" min-width="140">
                   <template #default="{ row }">
-                    <div class="goods-cell">
-                      <span class="goods-name">{{ row.goods_name }}</span>
-                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                    </div>
+                    <span class="goods-name">{{ row.goods_name }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="unit" label="单位" width="55" align="center" />
-                <el-table-column prop="quantity" label="数量" width="75" align="center">
+                <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                  <template #default="{ row }">
+                    <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quantity" label="数量" min-width="90" align="center">
                   <template #default="{ row }">
                     <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="price" label="单价" width="85" align="right">
@@ -192,18 +204,28 @@
     <!-- 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑销售单' : '新增销售单'"
-      width="1000px"
+      width="700px"
       class="form-dialog"
       destroy-on-close
+      :show-close="false"
       @close="resetForm"
     >
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <div class="form-section">
-          <div class="section-title">基本信息</div>
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="客户" prop="customer">
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">{{ isEdit ? '编辑销售单' : '新增销售单' }}</span>
+        </div>
+        <span class="close-btn" @click="dialogVisible = false">×</span>
+      </template>
+      
+      <div class="form-container">
+        <div class="form-section-card">
+          <div class="form-section-header">
+            <span class="section-title">基本信息</span>
+          </div>
+          <div class="form-section-body">
+            <div class="form-row">
+              <div class="form-item">
+                <span class="form-label required">客户</span>
                 <el-select v-model="form.customer" placeholder="请选择客户" style="width: 100%" filterable>
                   <el-option 
                     v-for="item in customerList" 
@@ -212,10 +234,9 @@
                     :value="item.id" 
                   />
                 </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="仓库" prop="warehouse">
+              </div>
+              <div class="form-item">
+                <span class="form-label required">仓库</span>
                 <el-select v-model="form.warehouse" placeholder="请选择仓库" style="width: 100%">
                   <el-option 
                     v-for="item in warehouseList" 
@@ -224,119 +245,119 @@
                     :value="item.id" 
                   />
                 </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          
-          <el-form-item label="销售日期" prop="order_date">
-            <el-date-picker
-              v-model="form.order_date"
-              type="date"
-              placeholder="选择日期"
-              style="width: 100%"
-              value-format="YYYY-MM-DD"
-            />
-          </el-form-item>
-
-          <el-form-item label="备注">
-            <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" />
-          </el-form-item>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item">
+                <span class="form-label required">销售日期</span>
+                <el-date-picker
+                  v-model="form.order_date"
+                  type="date"
+                  placeholder="选择日期"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DD"
+                />
+              </div>
+              <div class="form-item">
+                <span class="form-label">备注</span>
+                <el-input v-model="form.remark" placeholder="请输入备注（可选）" maxlength="500" />
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="form-section">
-          <div class="section-title">销售明细</div>
-          
-          <div class="detail-table-wrapper">
-            <el-table :data="form.items" border style="width: 100%;" class="detail-table">
-              <el-table-column prop="goods" label="商品" min-width="200">
+        
+        <div class="form-section-card">
+          <div class="form-section-header">
+            <span class="section-title">销售明细</span>
+            <span class="item-count-badge" v-if="form.items.length > 0">{{ form.items.length }}项</span>
+          </div>
+          <div class="form-section-body no-padding">
+            <el-table :data="form.items" border size="small" class="form-table">
+              <el-table-column prop="goods" label="商品" min-width="160">
                 <template #default="{ row, $index }">
-                  <el-select v-model="row.goods" placeholder="选择商品" style="width: 100%" filterable @change="handleGoodsChange(row)">
+                  <el-select 
+                    v-model="row.goods" 
+                    placeholder="请选择商品" 
+                    style="width: 100%" 
+                    filterable 
+                    @change="handleGoodsChange(row, $index)"
+                  >
                     <el-option 
-                      v-for="item in goodsList" 
+                      v-for="item in availableGoods($index)" 
                       :key="item.id" 
                       :label="item.name" 
                       :value="item.id" 
-                    />
+                    >
+                      <div class="goods-option">
+                        <span class="goods-name">{{ item.name }}</span>
+                        <span class="goods-spec">{{ item.spec || '-' }}</span>
+                      </div>
+                    </el-option>
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column prop="quantity" label="数量" width="150">
+              <el-table-column prop="quantity" label="数量" width="120" align="center">
                 <template #default="{ row }">
-                  <div class="input-cell" :class="{ 'has-error': row._quantityError }">
-                    <el-input
-                      :model-value="formatInputNumber(row.quantity, true)"
-                      @input="(val) => handleQuantityInput(row, val)"
-                      @blur="handleQuantityBlur(row)"
-                      placeholder="请输入"
-                      class="number-input"
-                      :class="{ 'is-error': row._quantityError }"
-                    >
-                      <template #suffix>
-                        <span class="input-suffix" v-if="row.quantity">{{ getGoodsUnit(row.goods) }}</span>
-                      </template>
-                    </el-input>
-                    <div class="error-tip" v-if="row._quantityError">{{ row._quantityError }}</div>
-                  </div>
+                  <el-input
+                    :model-value="formatInputNumber(row.quantity, true)"
+                    @input="(val) => handleQuantityInput(row, val)"
+                    @blur="handleQuantityBlur(row)"
+                    placeholder="数量"
+                    size="small"
+                    :class="{ 'is-error': row._quantityError }"
+                  >
+                    <template #suffix>
+                      <span class="input-suffix" v-if="row.quantity">{{ getGoodsUnit(row.goods) }}</span>
+                    </template>
+                  </el-input>
                 </template>
               </el-table-column>
-              <el-table-column prop="price" label="单价(元)" width="150">
+              <el-table-column prop="price" label="单价" width="100" align="right">
                 <template #default="{ row }">
-                  <div class="input-cell" :class="{ 'has-error': row._priceError }">
-                    <el-input
-                      :model-value="formatInputNumber(row.price)"
-                      @input="(val) => handlePriceInput(row, val)"
-                      @blur="handlePriceBlur(row)"
-                      placeholder="请输入"
-                      class="number-input price-input"
-                      :class="{ 'is-error': row._priceError }"
-                    >
-                      <template #prefix>
-                        <span class="input-prefix">¥</span>
-                      </template>
-                    </el-input>
-                    <div class="error-tip" v-if="row._priceError">{{ row._priceError }}</div>
-                  </div>
+                  <el-input
+                    :model-value="formatInputNumber(row.price)"
+                    @input="(val) => handlePriceInput(row, val)"
+                    @blur="handlePriceBlur(row)"
+                    placeholder="单价"
+                    size="small"
+                    :class="{ 'is-error': row._priceError }"
+                  >
+                    <template #prefix>¥</template>
+                  </el-input>
                 </template>
               </el-table-column>
-              <el-table-column prop="amount" label="金额(元)" width="130" align="right">
+              <el-table-column prop="amount" label="金额" width="100" align="right">
                 <template #default="{ row }">
-                  <div class="amount-display">
-                    <span class="amount-symbol">¥</span>
-                    <span class="amount-value">{{ calculateItemAmount(row) }}</span>
-                  </div>
+                  <span class="amount-cell">¥{{ calculateItemAmount(row) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="70" align="center">
+              <el-table-column label="" width="45" align="center">
                 <template #default="{ $index }">
                   <el-button type="danger" link :icon="Delete" size="small" @click="removeItem($index)"></el-button>
                 </template>
               </el-table-column>
             </el-table>
-          </div>
-          
-          <div class="detail-footer">
-            <el-button type="primary" plain :icon="Plus" @click="addItem">添加明细</el-button>
-            <div class="total-section">
-              <div class="total-info">
-                <span class="total-items">共 <strong>{{ form.items.length }}</strong> 项</span>
+            
+            <div class="table-footer">
+              <el-button type="primary" plain :icon="Plus" size="small" @click="addItem">添加商品</el-button>
+              <div class="total-display">
+                <span class="total-item">共 <strong>{{ form.items.length }}</strong> 项</span>
                 <span class="total-divider">|</span>
-                <span class="total-quantity">合计数量: <strong>{{ totalQuantity }}</strong></span>
-              </div>
-              <div class="total-amount-wrapper">
-                <span class="total-label">合计金额：</span>
-                <span class="total-amount">¥{{ totalAmount }}</span>
+                <span class="total-item">合计数量: <strong>{{ totalQuantity }}</strong></span>
+                <span class="total-amount-display">
+                  <span class="label">合计金额</span>
+                  <span class="value">¥{{ totalAmount }}</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
-      </el-form>
+      </div>
       
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitLoading">
-            {{ isEdit ? '保存修改' : '创建销售单' }}
-          </el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitLoading">{{ isEdit ? '保存' : '创建' }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -573,6 +594,24 @@ const handleView = async (row) => {
   }
 }
 
+const handleEditFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleEdit(viewData.value)
+}
+
+const handleStockOutFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleStockOut(viewData.value)
+}
+
+const handleDeleteFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleDelete(viewData.value)
+}
+
 const handleEdit = async (row) => {
   try {
     const res = await getSaleOrder(row.id)
@@ -655,7 +694,14 @@ const removeItem = (index) => {
   form.value.items.splice(index, 1)
 }
 
-const handleGoodsChange = (row) => {
+const availableGoods = (currentIndex) => {
+  const selectedGoodsIds = form.value.items
+    .filter((item, index) => index !== currentIndex && item.goods)
+    .map(item => item.goods)
+  return goodsList.value.filter(g => !selectedGoodsIds.includes(g.id))
+}
+
+const handleGoodsChange = (row, index) => {
   const goods = goodsList.value.find(g => g.id === row.goods)
   if (goods) {
     row.price = goods.sale_price || 0
@@ -663,10 +709,16 @@ const handleGoodsChange = (row) => {
 }
 
 const handleSubmit = async () => {
-  try {
-    await formRef.value.validate()
-  } catch (error) {
-    ElMessage.warning('请检查表单填写是否正确')
+  if (!form.value.customer) {
+    ElMessage.warning('请选择客户')
+    return
+  }
+  if (!form.value.warehouse) {
+    ElMessage.warning('请选择仓库')
+    return
+  }
+  if (!form.value.order_date) {
+    ElMessage.warning('请选择销售日期')
     return
   }
   
@@ -869,21 +921,71 @@ onUnmounted(() => {
 
 .data-table :deep(.el-table__row) {
   height: 48px;
+  transition: all 0.2s ease-in-out;
+}
+
+.data-table :deep(.el-table__row:hover) {
+  outline: 1px solid #1890ff;
+  outline-offset: -1px;
+  background-color: #e6f7ff !important;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell {
+  border-top: 1px solid #1890ff;
+  border-bottom: 1px solid #1890ff;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell:first-child {
+  border-left: 1px solid #1890ff;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell:last-child {
+  border-right: 1px solid #1890ff;
 }
 
 .data-table :deep(.el-table__cell) {
   padding: 8px 0;
 }
 
-.order-no-badge {
+.order-no-link {
   display: inline-block;
   padding: 2px 10px;
-  background-color: var(--color-bg-light);
+  background-color: rgba(22, 93, 255, 0.08);
   color: var(--color-primary);
   font-weight: 600;
   font-size: var(--font-size-sm);
   border-radius: var(--border-radius-sm);
   font-family: 'Monaco', 'Consolas', monospace;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  text-decoration: none;
+  transform-origin: center center;
+}
+
+.order-no-link:hover {
+  background-color: rgba(22, 93, 255, 0.2);
+  color: #023e7d;
+  text-decoration: none;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(22, 93, 255, 0.25);
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #303133;
+}
+
+.item-count-badge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 10px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 12px;
+  border: 1px solid #bae0ff;
+  text-align: center;
 }
 
 .price-text {
@@ -895,33 +997,49 @@ onUnmounted(() => {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 4px 14px;
   background-color: var(--color-bg-light);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   border-radius: 20px;
   font-weight: 500;
+  white-space: nowrap;
+  min-width: 60px;
+  line-height: 1.4;
+}
+
+.status-badge.small {
+  padding: 3px 10px;
+  font-size: 12px;
+  gap: 5px;
+  min-width: 50px;
+}
+
+.status-badge.small .status-dot {
+  width: 5px;
+  height: 5px;
 }
 
 .status-badge.pending {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: var(--color-warning);
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
 }
 
 .status-badge.partial {
-  background-color: rgba(14, 165, 233, 0.1);
+  background-color: rgba(22, 93, 255, 0.1);
   color: var(--color-primary);
 }
 
 .status-badge.completed {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--color-success);
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
 }
 
 .status-badge.cancelled {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
 }
 
 .status-dot {
@@ -929,6 +1047,7 @@ onUnmounted(() => {
   height: 6px;
   border-radius: 50%;
   background-color: currentColor;
+  flex-shrink: 0;
 }
 
 .action-buttons {
@@ -977,6 +1096,74 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  transition: all 0.3s ease-in-out !important;
+  transform-origin: center center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #fff !important;
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+}
+
+.stockout-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+}
+
+.stockout-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #fff !important;
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+}
+
+.order-no-with-status {
+  flex: 1;
+}
+
+.order-no-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.order-no-status-wrapper .status-badge {
+  flex-shrink: 0;
 }
 
 .close-btn {
@@ -1180,34 +1367,27 @@ onUnmounted(() => {
   background-color: #f5f9ff !important;
 }
 
-.goods-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.goods-cell .goods-name {
+.goods-name {
   font-size: 13px;
   color: #303133;
   font-weight: 500;
 }
 
-.goods-cell .goods-spec {
-  font-size: 10px;
-  color: #909399;
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: #f4f4f5;
-  padding: 0 4px;
-  border-radius: 2px;
-  white-space: nowrap;
-  line-height: 1.4;
+.spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
 .quantity-cell {
   font-weight: 600;
   color: #409eff;
   font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.unit-text {
+  font-size: 12px;
+  color: #303133;
+  margin-left: 4px;
 }
 
 .amount-cell {
@@ -1221,17 +1401,89 @@ onUnmounted(() => {
 }
 
 .form-dialog :deep(.el-dialog__header) {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--color-border-light);
+  padding: 0;
+  margin: 0;
+  position: relative;
 }
 
 .form-dialog :deep(.el-dialog__body) {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 12px 16px;
 }
 
 .form-dialog :deep(.el-dialog__footer) {
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-top: 1px solid var(--color-border-light);
+  padding: 12px 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-section-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.form-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 100%);
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.form-section-header .section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.form-section-body {
+  padding: 14px;
+}
+
+.form-section-body.no-padding {
+  padding: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-item {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: #666;
+  min-width: 60px;
+  flex-shrink: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.form-label.required::before {
+  content: '*';
+  color: #f5222d;
+  margin-right: 2px;
 }
 
 .form-section {
@@ -1257,111 +1509,91 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
 }
 
-.detail-table {
-  --el-table-header-bg-color: var(--color-bg-light);
+.form-table {
+  --el-table-header-bg-color: #f5f7fa;
+  --el-table-border-color: #ebeef5;
 }
 
-.input-cell {
-  position: relative;
-}
-
-.input-cell.has-error .number-input :deep(.el-input__wrapper) {
-  border-color: var(--color-danger);
-  box-shadow: 0 0 0 1px var(--color-danger) inset;
-}
-
-.number-input :deep(.el-input__wrapper) {
-  padding: 0 8px;
-}
-
-.number-input :deep(.el-input__inner) {
-  text-align: right;
-}
-
-.number-input.is-error :deep(.el-input__wrapper) {
-  border-color: var(--color-danger);
-}
-
-.input-prefix {
-  color: var(--color-primary);
+.form-table :deep(.el-table__header th) {
   font-weight: 600;
+  font-size: 12px;
+  color: #606266;
+  padding: 8px 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 100%);
+}
+
+.form-table :deep(.el-table__body td) {
+  padding: 6px 0;
+}
+
+.goods-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goods-option .goods-name {
+  font-size: 13px;
+  color: #333;
+}
+
+.goods-option .goods-spec {
+  font-size: 11px;
+  color: #999;
+  background: #f4f4f5;
+  padding: 1px 4px;
+  border-radius: 2px;
 }
 
 .input-suffix {
-  color: var(--color-text-tertiary);
+  color: #909399;
   font-size: 12px;
 }
 
-.error-tip {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  font-size: 11px;
-  color: var(--color-danger);
-  white-space: nowrap;
-  padding-top: 2px;
-  z-index: 10;
-}
-
-.amount-display {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-}
-
-.amount-symbol {
-  color: var(--color-text-tertiary);
-}
-
-.amount-value {
-  font-weight: 600;
-  font-family: 'Monaco', 'Consolas', monospace;
-}
-
-.detail-footer {
+.table-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: var(--spacing-md);
+  padding: 10px 12px;
+  background: #fafafa;
+  border-top: 1px solid #e8e8e8;
 }
 
-.total-section {
+.total-display {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 
-.total-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.total-item {
+  font-size: 12px;
+  color: #666;
 }
 
-.total-info strong {
-  color: var(--color-text-primary);
-  font-weight: 600;
+.total-item strong {
+  color: #333;
 }
 
 .total-divider {
-  color: var(--color-border);
+  color: #ddd;
 }
 
-.total-amount-wrapper {
+.total-amount-display {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 6px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid #e8e8e8;
 }
 
-.total-label {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
+.total-amount-display .label {
+  font-size: 12px;
+  color: #666;
 }
 
-.total-amount {
-  font-size: var(--font-size-xl);
+.total-amount-display .value {
+  font-size: 16px;
   font-weight: 700;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;

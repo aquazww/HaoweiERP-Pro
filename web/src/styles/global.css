@@ -224,7 +224,16 @@ body {
 .el-button {
   border-radius: var(--border-radius-lg);
   font-weight: var(--font-weight-medium);
-  transition: all var(--transition-normal);
+  transition: all 0.3s ease-in-out;
+  transform-origin: center center;
+}
+
+.el-button:hover {
+  transform: scale(1.1);
+}
+
+.el-button:active {
+  transform: scale(1);
 }
 
 .el-button--primary {
@@ -234,13 +243,60 @@ body {
 }
 
 .el-button--primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #0353a8 0%, #023e7d 100%);
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
 }
 
-.el-button--primary:active {
-  transform: translateY(0);
+.el-button--success {
+  background: linear-gradient(135deg, var(--color-success) 0%, #16a34a 100%);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.el-button--success:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.el-button--warning {
+  background: linear-gradient(135deg, var(--color-warning) 0%, #d97706 100%);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.el-button--warning:hover {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.el-button--danger {
+  background: linear-gradient(135deg, var(--color-danger) 0%, #dc2626 100%);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.el-button--danger:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.el-button--info {
+  background: linear-gradient(135deg, var(--color-info) 0%, #4b5563 100%);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.el-button--info:hover {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.el-button.is-link {
+  transition: all 0.3s ease-in-out;
+}
+
+.el-button.is-link:hover {
+  transform: scale(1.1);
 }
 
 /* 输入框 */

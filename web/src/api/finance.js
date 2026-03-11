@@ -19,3 +19,11 @@ export const updatePayment = (id, data) => {
 export const deletePayment = (id) => {
   return request.delete(`/finance/payments/${id}/`)
 }
+
+export const payPayment = (id, data) => {
+  return request.post(`/finance/payments/${id}/pay/`, data)
+}
+
+export const getPaymentOrderInfo = (orderType, orderId) => {
+  return request.get('/finance/payments/order_info/', { params: { order_type: orderType, order_id: orderId } })
+}

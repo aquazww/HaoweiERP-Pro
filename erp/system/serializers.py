@@ -161,13 +161,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'phone', 'permissions']
+        fields = ['id', 'username', 'name', 'phone', 'permissions', 'is_active']
         read_only_fields = ['id']
         extra_kwargs = {
             'username': {'required': False},
             'name': {'required': False},
             'phone': {'required': False},
-            'permissions': {'required': False}
+            'permissions': {'required': False},
+            'is_active': {'required': False}
         }
     
     def validate_name(self, value):

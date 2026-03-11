@@ -66,7 +66,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 'msg': '登录成功',
                 'data': {
                     'permissions': user.get_all_permissions(),
-                    'username': user.username
+                    'username': user.username,
+                    'expires_in': 7200
                 }
             })
             
@@ -227,12 +228,18 @@ class UserViewSet(BaseModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.instance
         old_permissions = instance.permissions if instance.permissions else {}
+        old_is_active = instance.is_active
         user = serializer.save()
         new_permissions = user.permissions if user.permissions else {}
+        new_is_active = user.is_active
         
         if old_permissions != new_permissions:
             user.invalidate_tokens()
             logger.info(f'用户 {user.username} 权限已变更，已使token失效')
+        
+        if old_is_active != new_is_active:
+            user.invalidate_tokens()
+            logger.info(f'用户 {user.username} 状态已变更，已使token失效')
         
         self.log_action(self.request, 'update', f'更新用户: {user.username}')
         logger.info(f'用户 {self.request.user.username} 更新了用户 {user.username}')

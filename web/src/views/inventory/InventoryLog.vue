@@ -1,5 +1,5 @@
 <template>
-  <div class="inventory-log-page">
+  <div class="common-page inventory-log-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -166,18 +166,20 @@
             <el-collapse-transition>
               <div class="items-body" v-show="itemsExpanded">
                 <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
-                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <el-table-column prop="goods_name" label="商品名称" min-width="140">
                     <template #default="{ row }">
-                      <div class="goods-cell">
-                        <span class="goods-name">{{ row.goods_name }}</span>
-                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                      </div>
+                      <span class="goods-name">{{ row.goods_name }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="unit" label="单位" width="55" align="center" />
-                  <el-table-column prop="quantity" label="数量" width="75" align="center">
+                  <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                    <template #default="{ row }">
+                      <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="quantity" label="数量" min-width="90" align="center">
                     <template #default="{ row }">
                       <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
                   <el-table-column prop="price" label="单价" width="85" align="right">
@@ -259,18 +261,20 @@
             <el-collapse-transition>
               <div class="items-body" v-show="itemsExpanded">
                 <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
-                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <el-table-column prop="goods_name" label="商品名称" min-width="140">
                     <template #default="{ row }">
-                      <div class="goods-cell">
-                        <span class="goods-name">{{ row.goods_name }}</span>
-                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                      </div>
+                      <span class="goods-name">{{ row.goods_name }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="unit" label="单位" width="55" align="center" />
-                  <el-table-column prop="quantity" label="数量" width="75" align="center">
+                  <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                    <template #default="{ row }">
+                      <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="quantity" label="数量" min-width="90" align="center">
                     <template #default="{ row }">
                       <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
                   <el-table-column prop="price" label="单价" width="85" align="right">
@@ -342,30 +346,34 @@
             <el-collapse-transition>
               <div class="items-body" v-show="itemsExpanded">
                 <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
-                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <el-table-column prop="goods_name" label="商品名称" min-width="140">
                     <template #default="{ row }">
-                      <div class="goods-cell">
-                        <span class="goods-name">{{ row.goods_name }}</span>
-                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                      </div>
+                      <span class="goods-name">{{ row.goods_name }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="unit" label="单位" width="55" align="center" />
-                  <el-table-column label="调整前" width="75" align="center">
+                  <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                    <template #default="{ row }">
+                      <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="调整前" min-width="90" align="center">
                     <template #default="{ row }">
                       <span class="quantity-cell">{{ formatQuantity(row.before_quantity) }}</span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="调整数量" width="85" align="center">
+                  <el-table-column label="调整数量" min-width="90" align="center">
                     <template #default="{ row }">
                       <span :class="row.adjust_quantity >= 0 ? 'text-success' : 'text-danger'">
                         {{ row.adjust_quantity >= 0 ? '+' : '' }}{{ formatQuantity(row.adjust_quantity) }}
                       </span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column label="调整后" width="75" align="center">
+                  <el-table-column label="调整后" min-width="90" align="center">
                     <template #default="{ row }">
                       <span class="quantity-cell">{{ formatQuantity(row.after_quantity) }}</span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -432,18 +440,20 @@
             <el-collapse-transition>
               <div class="items-body" v-show="itemsExpanded">
                 <el-table :data="orderDetail.items || []" border size="small" class="detail-table">
-                  <el-table-column prop="goods_name" label="商品" min-width="140">
+                  <el-table-column prop="goods_name" label="商品名称" min-width="140">
                     <template #default="{ row }">
-                      <div class="goods-cell">
-                        <span class="goods-name">{{ row.goods_name }}</span>
-                        <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                      </div>
+                      <span class="goods-name">{{ row.goods_name }}</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="unit" label="单位" width="55" align="center" />
-                  <el-table-column prop="quantity" label="调拨数量" width="85" align="center">
+                  <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                    <template #default="{ row }">
+                      <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="quantity" label="调拨数量" min-width="90" align="center">
                     <template #default="{ row }">
                       <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                      <span class="unit-text">{{ row.unit || '-' }}</span>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -601,12 +611,12 @@ const handleOrderClick = async (event) => {
       orderDetailTitle.value = '销售订单详情'
       orderType.value = 'sale'
       res = await getSaleOrderByNo(orderNo)
-    } else if (prefix === 'AD') {
+    } else if (prefix === 'SA') {
       // 库存调整
       orderDetailTitle.value = '库存调整详情'
       orderType.value = 'adjust'
       res = await getStockAdjustByNo(orderNo)
-    } else if (prefix === 'TR') {
+    } else if (prefix === 'ST') {
       // 库存调拨
       orderDetailTitle.value = '库存调拨详情'
       orderType.value = 'transfer'
@@ -706,231 +716,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.inventory-log-page {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  overflow: hidden;
-}
-
-.page-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.toolbar-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-white);
-  padding: 6px var(--spacing-md);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-}
-
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: var(--spacing-md);
-  color: var(--color-text-tertiary);
-  z-index: 1;
-}
-
-.search-input {
-  width: 320px;
-  padding-left: 40px;
-}
-
-.table-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-white);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  min-height: 0;
-}
-
-.data-table {
-  --el-table-header-bg-color: var(--color-bg-light);
-}
-
-.data-table :deep(.el-table__header-wrapper) {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.data-table :deep(.el-table__body-wrapper) {
-  overflow-y: auto;
-}
-
-.data-table :deep(.el-table__row) {
-  height: 48px;
-}
-
-.data-table :deep(.el-table__cell) {
-  padding: 8px 0;
-}
-
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  background-color: var(--color-white);
-  border-top: 1px solid var(--color-border-light);
-  padding: 4px var(--spacing-md);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-  flex-shrink: 0;
-}
-
-.pagination-wrapper :deep(.el-pagination) {
-  --el-pagination-button-height: 32px;
-  --el-pagination-font-size: 13px;
-}
-
-.pagination-wrapper :deep(.el-pagination .btn-prev),
-.pagination-wrapper :deep(.el-pagination .btn-next) {
-  min-width: 32px;
-  padding: 0 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pager li) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
-  margin-left: 8px;
-}
-
-/* 响应式设计 */
-@media screen and (max-width: 1400px) {
-  .search-input {
-    width: 280px;
-  }
-  
-  .data-table :deep(.el-table__row) {
-    height: 44px;
-  }
-}
-
-@media screen and (max-width: 1200px) {
-  .search-input {
-    width: 240px;
-  }
-  
-  .toolbar-left,
-  .toolbar-right {
-    gap: var(--spacing-sm);
-  }
-  
-  /* 小屏幕下备注列自适应 */
-  .data-table :deep(.el-table__body-wrapper) {
-    overflow-x: auto;
-  }
-}
-
-@media screen and (max-width: 992px) {
-  .toolbar-card {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-  }
-  
-  .toolbar-left,
-  .toolbar-right {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
-  .search-input {
-    width: 100%;
-  }
-  
-  .data-table :deep(.el-table__row) {
-    height: 40px;
-  }
-  
-  .data-table :deep(.el-table__cell) {
-    padding: 6px 0;
-    font-size: var(--font-size-sm);
-  }
-}
-
-@media screen and (max-width: 768px) {
-  .inventory-log-page {
-    padding: 4px;
-  }
-  
-  .page-content {
-    gap: 4px;
-  }
-  
-  .toolbar-card,
-  .table-card {
-    border-radius: var(--border-radius-md);
-  }
-  
-  .pagination-wrapper {
-    padding: 4px var(--spacing-sm);
-  }
-  
-  .pagination-wrapper :deep(.el-pagination) {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  /* 移动端表格允许水平滚动 */
-  .table-card {
-    overflow-x: auto;
-  }
-  
-  .data-table {
-    min-width: 700px;
-  }
-}
-
-/* 数量颜色样式 */
-.text-success {
+.inventory-log-page .text-success {
   color: var(--color-success);
   font-weight: 600;
 }
 
-.text-danger {
+.inventory-log-page .text-danger {
   color: var(--color-danger);
   font-weight: 600;
 }
 
-/* 订单号链接样式 - 使用 :deep 以作用于 v-html 生成的内容 */
-:deep(.order-link) {
+.inventory-log-page :deep(.order-link) {
   color: var(--color-primary);
   text-decoration: underline;
   cursor: pointer;
@@ -938,22 +734,20 @@ onUnmounted(() => {
   transition: color 0.2s;
 }
 
-:deep(.order-link:hover) {
+.inventory-log-page :deep(.order-link:hover) {
   color: var(--color-primary-dark, #4080ff);
 }
 
-/* 订单详情弹窗样式 */
-.view-dialog :deep(.el-dialog__header) {
+.inventory-log-page .view-dialog :deep(.el-dialog__header) {
   border-bottom: 1px solid var(--color-border-light);
   padding-bottom: var(--spacing-md);
 }
 
-.view-dialog :deep(.el-dialog__body) {
+.inventory-log-page .view-dialog :deep(.el-dialog__body) {
   padding: var(--spacing-lg);
 }
 
-/* 状态徽章样式 */
-.status-badge {
+.inventory-log-page .status-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -965,45 +759,44 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.status-badge.draft {
+.inventory-log-page .status-badge.draft {
   background-color: rgba(245, 158, 11, 0.1);
   color: var(--color-warning);
 }
 
-.status-badge.pending {
+.inventory-log-page .status-badge.pending {
   background-color: rgba(59, 130, 246, 0.1);
   color: var(--color-primary);
 }
 
-.status-badge.confirmed {
+.inventory-log-page .status-badge.confirmed {
   background-color: rgba(34, 197, 94, 0.1);
   color: var(--color-success);
 }
 
-.status-badge.completed {
+.inventory-log-page .status-badge.completed {
   background-color: rgba(34, 197, 94, 0.1);
   color: var(--color-success);
 }
 
-.status-badge.cancelled {
+.inventory-log-page .status-badge.cancelled {
   background-color: rgba(239, 68, 68, 0.1);
   color: var(--color-danger);
 }
 
-.status-badge.partial {
+.inventory-log-page .status-badge.partial {
   background-color: rgba(245, 158, 11, 0.1);
   color: var(--color-warning);
 }
 
-.status-dot {
+.inventory-log-page .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background-color: currentColor;
 }
 
-/* 明细标题样式 */
-.view-items-title {
+.inventory-log-page .view-items-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -1012,22 +805,21 @@ onUnmounted(() => {
   border-left: 3px solid var(--color-primary);
 }
 
-/* 详情弹窗样式 */
-.view-dialog {
+.inventory-log-page .view-dialog {
   --el-dialog-border-radius: 8px;
 }
 
-.view-dialog :deep(.el-dialog__header) {
+.inventory-log-page .view-dialog :deep(.el-dialog__header) {
   padding: 0;
   margin: 0;
   position: relative;
 }
 
-.view-dialog :deep(.el-dialog__body) {
+.inventory-log-page .view-dialog :deep(.el-dialog__body) {
   padding: 0;
 }
 
-.dialog-header {
+.inventory-log-page .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1038,13 +830,13 @@ onUnmounted(() => {
   padding-right: 50px;
 }
 
-.dialog-title {
+.inventory-log-page .dialog-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
-.close-btn {
+.inventory-log-page .close-btn {
   position: absolute;
   top: 0;
   right: 0;
@@ -1063,16 +855,16 @@ onUnmounted(() => {
   background: transparent;
 }
 
-.close-btn:hover {
+.inventory-log-page .close-btn:hover {
   color: #333;
   background: rgba(0, 0, 0, 0.04);
 }
 
-.detail-container {
+.inventory-log-page .detail-container {
   padding: 0;
 }
 
-.info-section {
+.inventory-log-page .info-section {
   background: #fafafa;
   border-radius: 6px;
   margin: 12px 16px;
@@ -1081,30 +873,30 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.info-row {
+.inventory-log-page .info-row {
   display: flex;
   gap: 0;
   padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.info-row:last-child {
+.inventory-log-page .info-row:last-child {
   border-bottom: none;
 }
 
-.info-row.highlight-row {
+.inventory-log-page .info-row.highlight-row {
   background: linear-gradient(135deg, #f0f5ff 0%, #f5f9ff 100%);
   border-bottom: 1px solid #e6f0ff;
 }
 
-.info-item {
+.inventory-log-page .info-item {
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1;
 }
 
-.info-item-group {
+.inventory-log-page .info-item-group {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1112,7 +904,7 @@ onUnmounted(() => {
   padding: 4px 8px;
 }
 
-.info-label {
+.inventory-log-page .info-label {
   font-size: 12px;
   color: #999;
   min-width: 56px;
@@ -1120,25 +912,25 @@ onUnmounted(() => {
   text-align: right;
 }
 
-.info-value {
+.inventory-log-page .info-value {
   font-size: 13px;
   color: #333;
   font-weight: 500;
 }
 
-.info-value.primary {
+.inventory-log-page .info-value.primary {
   font-weight: 700;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.info-value.price {
+.inventory-log-page .info-value.price {
   font-weight: 700;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.remark-box {
+.inventory-log-page .remark-box {
   background: #fffbe6;
   border: 1px solid #ffe58f;
   border-radius: 6px;
@@ -1146,7 +938,7 @@ onUnmounted(() => {
   padding: 10px 12px;
 }
 
-.remark-header {
+.inventory-log-page .remark-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1156,25 +948,25 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.remark-icon {
+.inventory-log-page .remark-icon {
   font-size: 14px;
 }
 
-.remark-text {
+.inventory-log-page .remark-text {
   font-size: 13px;
   color: #614700;
   line-height: 1.6;
   padding-left: 20px;
 }
 
-.items-section {
+.inventory-log-page .items-section {
   border: 1px solid #e8e8e8;
   border-radius: 6px;
   margin: 0 16px 16px;
   overflow: hidden;
 }
 
-.items-header {
+.inventory-log-page .items-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1184,55 +976,55 @@ onUnmounted(() => {
   transition: background 0.2s;
 }
 
-.items-header:hover {
+.inventory-log-page .items-header:hover {
   background: #efefef;
 }
 
-.header-left {
+.inventory-log-page .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.expand-icon {
+.inventory-log-page .expand-icon {
   font-size: 12px;
   color: #999;
   transition: transform 0.2s;
 }
 
-.expand-icon.expanded {
+.inventory-log-page .expand-icon.expanded {
   transform: rotate(90deg);
 }
 
-.header-title {
+.inventory-log-page .header-title {
   font-size: 13px;
   font-weight: 600;
   color: #333;
 }
 
-.header-count {
+.inventory-log-page .header-count {
   font-size: 12px;
   color: #999;
 }
 
-.expand-hint {
+.inventory-log-page .expand-hint {
   font-size: 12px;
   color: #999;
 }
 
-.items-body {
+.inventory-log-page .items-body {
   border-top: 1px solid #e8e8e8;
   padding: 0;
 }
 
-.detail-table {
+.inventory-log-page .detail-table {
   --el-table-header-bg-color: #f5f7fa;
   --el-table-border-color: #ebeef5;
   --el-table-row-hover-bg-color: #f0f5ff;
   font-size: 13px;
 }
 
-.detail-table :deep(.el-table__header th) {
+.inventory-log-page .detail-table :deep(.el-table__header th) {
   font-weight: 600;
   font-size: 12px;
   color: #606266;
@@ -1241,55 +1033,50 @@ onUnmounted(() => {
   border-bottom: 2px solid #e0e6ed;
 }
 
-.detail-table :deep(.el-table__body td) {
+.inventory-log-page .detail-table :deep(.el-table__body td) {
   padding: 10px 0;
   border-bottom: 1px solid #f0f2f5;
 }
 
-.detail-table :deep(.el-table__body tr:hover > td) {
+.inventory-log-page .detail-table :deep(.el-table__body tr:hover > td) {
   background-color: #f5f9ff !important;
 }
 
-.goods-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.goods-name {
+.inventory-log-page .goods-name {
   font-size: 13px;
   color: #303133;
   font-weight: 500;
 }
 
-.goods-spec {
-  font-size: 11px;
-  color: #909399;
-  background: #f4f4f5;
-  padding: 1px 6px;
-  border-radius: 3px;
+.inventory-log-page .spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
-.quantity-cell {
+.inventory-log-page .quantity-cell {
   font-weight: 500;
 }
 
-.amount-cell {
+.inventory-log-page .unit-text {
+  font-size: 12px;
+  color: #303133;
+  margin-left: 4px;
+}
+
+.inventory-log-page .amount-cell {
   font-weight: 600;
   color: var(--color-primary);
   font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.status-badge.small {
+.inventory-log-page .status-badge.small {
   padding: 2px 8px;
   font-size: 12px;
   gap: 4px;
 }
 
-.status-badge.small .status-dot {
+.inventory-log-page .status-badge.small .status-dot {
   width: 5px;
   height: 5px;
 }
-
 </style>

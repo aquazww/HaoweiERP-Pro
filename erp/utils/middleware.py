@@ -58,6 +58,17 @@ class TokenVersionMiddleware:
                     response.delete_cookie('access_token')
                     response.delete_cookie('refresh_token')
                     return response
+                
+                if not user.is_active:
+                    logger.info(f'用户 {user.username} 已被禁用，拒绝访问')
+                    response = JsonResponse({
+                        'code': 401,
+                        'msg': '您的账户已被禁用，请联系管理员',
+                        'data': None
+                    }, status=401)
+                    response.delete_cookie('access_token')
+                    response.delete_cookie('refresh_token')
+                    return response
             except User.DoesNotExist:
                 pass
             

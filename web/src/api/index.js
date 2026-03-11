@@ -1,4 +1,5 @@
 import axios from 'axios'
+import tokenManager from '../utils/tokenManager'
 
 const request = axios.create({
   baseURL: '/api/v1',
@@ -16,13 +17,12 @@ const subscribeTokenRefresh = (cb) => {
 const onRefreshed = () => {
   refreshSubscribers.forEach(cb => cb())
   refreshSubscribers = []
+  tokenManager.refreshToken()
 }
 
 const onRefreshFailed = () => {
   refreshSubscribers = []
-  localStorage.removeItem('permissions')
-  localStorage.removeItem('username')
-  window.location.href = '/login'
+  tokenManager.handleTokenExpired()
 }
 
 const refreshToken = async () => {
@@ -34,6 +34,10 @@ const refreshToken = async () => {
 
 request.interceptors.request.use(
   config => {
+    if (tokenManager.isTokenExpired()) {
+      tokenManager.handleTokenExpired()
+      return Promise.reject(new Error('Token expired'))
+    }
     return config
   },
   error => {
@@ -44,6 +48,23 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     const res = response.data
+    
+    if (response.config.url?.includes('/auth/login/') && res.data) {
+      const expiresIn = res.data.expires_in || res.data.access_expires_in
+      if (expiresIn) {
+        const expiryTime = Date.now() + (expiresIn * 1000)
+        tokenManager.setTokenExpiry(expiryTime)
+      }
+    }
+    
+    if (response.config.url?.includes('/auth/refresh/') && res.data) {
+      const expiresIn = res.data.expires_in || res.data.access_expires_in
+      if (expiresIn) {
+        const expiryTime = Date.now() + (expiresIn * 1000)
+        tokenManager.setTokenExpiry(expiryTime)
+      }
+    }
+    
     if (res.code === 200) {
       return res
     } else {
@@ -83,15 +104,7 @@ request.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      const msg = error.response?.data?.msg || '登录已过期'
-      localStorage.removeItem('permissions')
-      localStorage.removeItem('username')
-      
-      if (msg.includes('权限已变更') || msg.includes('重新登录')) {
-        window.location.href = '/login?reason=permission_changed'
-      } else {
-        window.location.href = '/login'
-      }
+      tokenManager.handleTokenExpired()
     }
     
     if (error.response?.status === 403) {
@@ -118,5 +131,12 @@ request.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+export const initTokenCheck = () => {
+  const username = localStorage.getItem('username')
+  if (username) {
+    tokenManager.startExpiryCheck()
+  }
+}
 
 export default request

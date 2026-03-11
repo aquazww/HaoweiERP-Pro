@@ -37,19 +37,23 @@
           stripe
           :header-cell-style="{ background: 'var(--color-bg-light)' }"
         >
-          <el-table-column prop="order_no" label="采购单号" min-width="150" align="center">
+          <el-table-column prop="supplier_name" label="供应商名称" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
-              <span class="order-no-badge">{{ row.order_no }}</span>
+              <span class="supplier-name">{{ row.supplier_name }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="supplier_name" label="供应商" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="warehouse_name" label="仓库" min-width="120" align="center" show-overflow-tooltip />
-          <el-table-column prop="total_amount" label="总金额" min-width="120" align="right">
+          <el-table-column prop="warehouse_name" label="仓库名称" min-width="120" align="center" show-overflow-tooltip />
+          <el-table-column prop="item_count" label="明细项数" min-width="90" align="center">
+            <template #default="{ row }">
+              <span class="item-count-badge">{{ row.items?.length || 0 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_amount" label="订单总金额" min-width="120" align="right">
             <template #default="{ row }">
               <span class="price-text">¥{{ formatPrice(row.total_amount) }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" min-width="100" align="center">
+          <el-table-column prop="status" label="订单状态" min-width="100" align="center">
             <template #default="{ row }">
               <div class="status-badge small" :class="row.status">
                 <span class="status-dot"></span>
@@ -57,14 +61,9 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="240" align="center">
+          <el-table-column prop="order_no" label="采购单号" min-width="150" align="center">
             <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button type="primary" link :icon="View" size="small" @click="handleView(row)">查看</el-button>
-                <el-button type="warning" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditPurchase && row.status === 'pending'">编辑</el-button>
-                <el-button type="success" link :icon="Download" size="small" @click="handleStockIn(row)" v-if="canStockIn && row.status !== 'completed' && row.status !== 'cancelled'">入库</el-button>
-                <el-button type="danger" link :icon="Delete" size="small" @click="handleDelete(row)" v-if="canDeletePurchase && row.status === 'pending'">删除</el-button>
-              </div>
+              <span class="order-no-link" @click="handleView(row)">{{ row.order_no }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -255,9 +254,10 @@
       <template #header>
         <div class="dialog-header">
           <span class="dialog-title">采购单详情</span>
-          <div class="status-badge small" :class="viewData?.status" v-if="viewData">
-            <span class="status-dot"></span>
-            {{ getStatusText(viewData?.status) }}
+          <div class="header-actions">
+            <el-button class="action-btn edit-btn" :icon="Edit" size="small" @click="handleEditFromView" v-if="canEditPurchase && viewData?.status === 'pending'">编辑</el-button>
+            <el-button class="action-btn stockin-btn" :icon="Download" size="small" @click="handleStockInFromView" v-if="canStockIn && viewData?.status !== 'completed' && viewData?.status !== 'cancelled'">入库</el-button>
+            <el-button class="action-btn delete-btn" :icon="Delete" size="small" @click="handleDeleteFromView" v-if="canDeletePurchase && viewData?.status === 'pending'">删除</el-button>
           </div>
         </div>
         <span class="close-btn" @click="viewDialogVisible = false">×</span>
@@ -270,9 +270,15 @@
               <span class="info-label">供应商</span>
               <span class="info-value">{{ viewData.supplier_name }}</span>
             </div>
-            <div class="info-item-group">
+            <div class="info-item-group order-no-with-status">
               <span class="info-label">采购单号</span>
-              <span class="info-value primary">{{ viewData.order_no }}</span>
+              <div class="order-no-status-wrapper">
+                <span class="info-value primary">{{ viewData.order_no }}</span>
+                <div class="status-badge small" :class="viewData.status">
+                  <span class="status-dot"></span>
+                  {{ getStatusText(viewData.status) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="info-row highlight-row">
@@ -335,18 +341,20 @@
           <el-collapse-transition>
             <div class="items-body" v-show="itemsExpanded">
               <el-table :data="viewData?.items || []" border size="small" class="detail-table">
-                <el-table-column prop="goods_name" label="商品" min-width="140">
+                <el-table-column prop="goods_name" label="商品名称" min-width="140">
                   <template #default="{ row }">
-                    <div class="goods-cell">
-                      <span class="goods-name">{{ row.goods_name }}</span>
-                      <span class="goods-spec">{{ row.goods_spec || '-' }}</span>
-                    </div>
+                    <span class="goods-name">{{ row.goods_name }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="unit" label="单位" width="55" align="center" />
-                <el-table-column prop="quantity" label="数量" width="75" align="center">
+                <el-table-column prop="goods_spec" label="规格" min-width="80" align="center">
+                  <template #default="{ row }">
+                    <span class="spec-text">{{ row.goods_spec || '-' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quantity" label="数量" min-width="90" align="center">
                   <template #default="{ row }">
                     <span class="quantity-cell">{{ formatQuantity(row.quantity) }}</span>
+                    <span class="unit-text">{{ row.unit || '-' }}</span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="price" label="单价" width="85" align="right">
@@ -369,7 +377,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, View, Download, Document, ArrowRight, Finished } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, Download, Document, ArrowRight, Finished } from '@element-plus/icons-vue'
 import { 
   getPurchaseOrders, createPurchaseOrder, 
   updatePurchaseOrder, deletePurchaseOrder,
@@ -631,6 +639,24 @@ const handleView = async (row) => {
   } catch (error) {
     ElMessage.error('获取订单详情失败')
   }
+}
+
+const handleEditFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleEdit(viewData.value)
+}
+
+const handleStockInFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleStockIn(viewData.value)
+}
+
+const handleDeleteFromView = () => {
+  if (!viewData.value) return
+  viewDialogVisible.value = false
+  handleDelete(viewData.value)
 }
 
 const handleStockIn = async (row) => {
@@ -936,21 +962,71 @@ onUnmounted(() => {
 
 .data-table :deep(.el-table__row) {
   height: 48px;
+  transition: all 0.2s ease-in-out;
+}
+
+.data-table :deep(.el-table__row:hover) {
+  outline: 1px solid #1890ff;
+  outline-offset: -1px;
+  background-color: #e6f7ff !important;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell {
+  border-top: 1px solid #1890ff;
+  border-bottom: 1px solid #1890ff;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell:first-child {
+  border-left: 1px solid #1890ff;
+}
+
+.data-table :deep(.el-table__row:hover) .el-table__cell:last-child {
+  border-right: 1px solid #1890ff;
 }
 
 .data-table :deep(.el-table__cell) {
   padding: 8px 0;
 }
 
-.order-no-badge {
+.order-no-link {
   display: inline-block;
   padding: 2px 10px;
-  background-color: var(--color-bg-light);
+  background-color: rgba(22, 93, 255, 0.08);
   color: var(--color-primary);
   font-weight: 600;
   font-size: var(--font-size-sm);
   border-radius: var(--border-radius-sm);
   font-family: 'Monaco', 'Consolas', monospace;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  text-decoration: none;
+  transform-origin: center center;
+}
+
+.order-no-link:hover {
+  background-color: rgba(22, 93, 255, 0.2);
+  color: #023e7d;
+  text-decoration: none;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(22, 93, 255, 0.25);
+}
+
+.supplier-name {
+  font-weight: 600;
+  color: #303133;
+}
+
+.item-count-badge {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 10px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 12px;
+  border: 1px solid #bae0ff;
+  text-align: center;
 }
 
 .price-text {
@@ -962,19 +1038,24 @@ onUnmounted(() => {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 4px 14px;
   background-color: var(--color-bg-light);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   border-radius: 20px;
   font-weight: 500;
+  white-space: nowrap;
+  min-width: 60px;
+  line-height: 1.4;
 }
 
 .status-badge.small {
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-size: 12px;
-  gap: 4px;
+  gap: 5px;
+  min-width: 50px;
 }
 
 .status-badge.small .status-dot {
@@ -983,23 +1064,23 @@ onUnmounted(() => {
 }
 
 .status-badge.pending {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: var(--color-warning);
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
 }
 
 .status-badge.partial {
-  background-color: rgba(14, 165, 233, 0.1);
+  background-color: rgba(22, 93, 255, 0.1);
   color: var(--color-primary);
 }
 
 .status-badge.completed {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--color-success);
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
 }
 
 .status-badge.cancelled {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
 }
 
 .status-dot {
@@ -1007,6 +1088,7 @@ onUnmounted(() => {
   height: 6px;
   border-radius: 50%;
   background-color: currentColor;
+  flex-shrink: 0;
 }
 
 .action-buttons {
@@ -1358,6 +1440,74 @@ onUnmounted(() => {
   color: #333;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  transition: all 0.3s ease-in-out !important;
+  transform-origin: center center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #fff !important;
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+}
+
+.stockin-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #fff !important;
+}
+
+.stockin-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #fff !important;
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+}
+
+.order-no-with-status {
+  flex: 1;
+}
+
+.order-no-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.order-no-status-wrapper .status-badge {
+  flex-shrink: 0;
+}
+
 .close-btn {
   position: absolute;
   top: 0;
@@ -1572,34 +1722,27 @@ onUnmounted(() => {
   background-color: #f5f9ff !important;
 }
 
-.goods-cell {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.goods-cell .goods-name {
+.goods-name {
   font-size: 13px;
   color: #303133;
   font-weight: 500;
 }
 
-.goods-cell .goods-spec {
-  font-size: 10px;
-  color: #909399;
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: #f4f4f5;
-  padding: 0 4px;
-  border-radius: 2px;
-  white-space: nowrap;
-  line-height: 1.4;
+.spec-text {
+  font-size: 12px;
+  color: #606266;
 }
 
 .quantity-cell {
   font-weight: 600;
   color: #409eff;
   font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.unit-text {
+  font-size: 12px;
+  color: #303133;
+  margin-left: 4px;
 }
 
 .amount-cell {

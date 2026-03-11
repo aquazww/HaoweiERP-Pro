@@ -21,10 +21,9 @@
         :collapse-transition="true"
         :unique-opened="false"
         :popper-append-to-body="true"
-        router
         class="sidebar-menu"
       >
-        <el-menu-item index="/dashboard">
+        <el-menu-item index="/dashboard" @click="handleMenuClick('/dashboard')">
           <el-icon><DataLine /></el-icon>
           <template #title>概览</template>
         </el-menu-item>
@@ -33,59 +32,59 @@
             <el-icon><ShoppingCart /></el-icon>
             <span>采购管理</span>
           </template>
-          <el-menu-item index="/purchase/orders">采购订单</el-menu-item>
+          <el-menu-item index="/purchase/orders" @click="handleMenuClick('/purchase/orders')">采购订单</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="sale" v-if="showSaleMenu">
           <template #title>
             <el-icon><Sell /></el-icon>
             <span>销售管理</span>
           </template>
-          <el-menu-item index="/sale/orders">销售订单</el-menu-item>
+          <el-menu-item index="/sale/orders" @click="handleMenuClick('/sale/orders')">销售订单</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="inventory" v-if="showInventoryMenu">
           <template #title>
             <el-icon><Goods /></el-icon>
             <span>库存管理</span>
           </template>
-          <el-menu-item index="/inventory/stock">库存查询</el-menu-item>
-          <el-menu-item index="/inventory/adjust">库存调整</el-menu-item>
-          <el-menu-item index="/inventory/transfer">库存调拨</el-menu-item>
-          <el-menu-item index="/inventory/log">库存流水</el-menu-item>
+          <el-menu-item index="/inventory/stock" @click="handleMenuClick('/inventory/stock')">库存查询</el-menu-item>
+          <el-menu-item index="/inventory/adjust" @click="handleMenuClick('/inventory/adjust')">库存调整</el-menu-item>
+          <el-menu-item index="/inventory/transfer" @click="handleMenuClick('/inventory/transfer')">库存调拨</el-menu-item>
+          <el-menu-item index="/inventory/log" @click="handleMenuClick('/inventory/log')">库存流水</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="finance" v-if="showFinanceMenu">
           <template #title>
             <el-icon><Wallet /></el-icon>
             <span>财务管理</span>
           </template>
-          <el-menu-item index="/finance/payments">收付款管理</el-menu-item>
+          <el-menu-item index="/finance/payments" @click="handleMenuClick('/finance/payments')">收付款管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="reports" v-if="showReportsMenu">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>报表中心</span>
           </template>
-          <el-menu-item index="/reports/purchase">采购报表</el-menu-item>
-          <el-menu-item index="/reports/sale">销售报表</el-menu-item>
-          <el-menu-item index="/reports/inventory">库存报表</el-menu-item>
-          <el-menu-item index="/reports/finance">财务报表</el-menu-item>
+          <el-menu-item index="/reports/purchase" @click="handleMenuClick('/reports/purchase')">采购报表</el-menu-item>
+          <el-menu-item index="/reports/sale" @click="handleMenuClick('/reports/sale')">销售报表</el-menu-item>
+          <el-menu-item index="/reports/inventory" @click="handleMenuClick('/reports/inventory')">库存报表</el-menu-item>
+          <el-menu-item index="/reports/finance" @click="handleMenuClick('/reports/finance')">财务报表</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="basic" v-if="showBasicMenu">
           <template #title>
             <el-icon><Box /></el-icon>
             <span>基础资料</span>
           </template>
-          <el-menu-item index="/basic/params">参数设置</el-menu-item>
-          <el-menu-item index="/basic/goods">商品管理</el-menu-item>
-          <el-menu-item index="/basic/suppliers">供应商管理</el-menu-item>
-          <el-menu-item index="/basic/customers">客户管理</el-menu-item>
+          <el-menu-item index="/basic/params" @click="handleMenuClick('/basic/params')">参数设置</el-menu-item>
+          <el-menu-item index="/basic/goods" @click="handleMenuClick('/basic/goods')">商品管理</el-menu-item>
+          <el-menu-item index="/basic/suppliers" @click="handleMenuClick('/basic/suppliers')">供应商管理</el-menu-item>
+          <el-menu-item index="/basic/customers" @click="handleMenuClick('/basic/customers')">客户管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="system" v-if="showSystemMenu">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/system/users">用户管理</el-menu-item>
-          <el-menu-item index="/system/logs">操作日志</el-menu-item>
+          <el-menu-item index="/system/users" @click="handleMenuClick('/system/users')">用户管理</el-menu-item>
+          <el-menu-item index="/system/logs" @click="handleMenuClick('/system/logs')">操作日志</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -204,6 +203,16 @@ const showSystemMenu = computed(() => hasPermission('system'))
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
+}
+
+const handleMenuClick = (path) => {
+  if (route.path !== path) {
+    router.push(path).catch(err => {
+      console.error('路由跳转失败:', err)
+    })
+  } else {
+    console.log('已在目标页面:', path)
+  }
 }
 
 const loadUserInfo = async () => {
@@ -338,9 +347,10 @@ onMounted(() => {
   margin: 4px 0;
   height: 36px;
   line-height: 36px;
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease-in-out;
   position: relative;
   overflow: visible;
+  transform-origin: center center;
 }
 
 /* 父菜单项字体加粗 */
@@ -363,6 +373,7 @@ onMounted(() => {
 .sidebar-menu .el-sub-menu__title:hover {
   background-color: var(--color-primary-light);
   color: var(--sidebar-text-primary);
+  transform: scale(1.05);
 }
 
 .sidebar-menu .el-menu-item.is-active {
@@ -410,7 +421,12 @@ onMounted(() => {
   height: 36px;
   line-height: 36px;
   overflow: visible;
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease-in-out;
+  transform-origin: center center;
+}
+
+.sidebar-menu .el-sub-menu .el-menu-item:hover {
+  transform: scale(1.05);
 }
 
 .sidebar-menu .el-sub-menu .el-menu-item::before {
@@ -545,12 +561,14 @@ onMounted(() => {
   background-color: var(--color-bg-light);
   border: none;
   color: var(--color-text-secondary);
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease-in-out;
+  transform-origin: center center;
 }
 
 .collapse-btn:hover {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
+  transform: scale(1.08);
 }
 
 .breadcrumb-wrapper {
@@ -581,13 +599,14 @@ onMounted(() => {
   background-color: var(--color-bg-light);
   border: none;
   color: var(--color-text-secondary);
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease-in-out;
+  transform-origin: center center;
 }
 
 .action-btn:hover {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
-  transform: translateY(-1px);
+  transform: scale(1.08);
 }
 
 .user-info {
@@ -602,11 +621,13 @@ onMounted(() => {
   cursor: pointer;
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--border-radius-md);
-  transition: all var(--transition-fast);
+  transition: all 0.25s ease-in-out;
+  transform-origin: center center;
 }
 
 .el-dropdown-link:hover {
   background-color: var(--color-bg-light);
+  transform: scale(1.05);
 }
 
 .user-avatar {

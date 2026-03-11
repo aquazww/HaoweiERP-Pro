@@ -93,9 +93,11 @@ class CategoryViewSet(BaseModelViewSet):
     @action(detail=False, methods=['get'])
     def tree(self, request):
         """获取分类树形结构"""
+        # 使用 prefetch_related 优化查询，避免 N+1 问题
         root_categories = Category.objects.filter(
             parent__isnull=True, is_active=True
-        ).order_by('sort_order', 'id')
+        ).prefetch_related('children').order_by('sort_order', 'id')
+        
         serializer = CategoryTreeSerializer(root_categories, many=True)
         return Response({
             'code': 200,
@@ -133,6 +135,35 @@ class CategoryViewSet(BaseModelViewSet):
             'msg': 'success',
             'data': serializer.data
         })
+    
+    @action(detail=False, methods=['post'])
+    def batch_update_sort(self, request):
+        """批量更新分类排序"""
+        categories_data = request.data.get('categories', [])
+        
+        try:
+            for item in categories_data:
+                category_id = item.get('id')
+                sort_order = item.get('sort_order')
+                parent_id = item.get('parent')
+                
+                if category_id is not None and sort_order is not None:
+                    Category.objects.filter(id=category_id).update(
+                        sort_order=sort_order,
+                        parent_id=parent_id if parent_id is not None else None
+                    )
+            
+            return Response({
+                'code': 200,
+                'msg': '排序更新成功',
+                'data': None
+            })
+        except Exception as e:
+            return Response({
+                'code': 400,
+                'msg': f'排序更新失败：{str(e)}',
+                'data': None
+            }, status=400)
 
     @action(detail=False, methods=['post'])
     def batch_update_sort(self, request):
@@ -350,6 +381,32 @@ class GoodsViewSet(BaseModelViewSet):
     ordering_fields = ['code', 'name', 'created_at']
     ordering = ['-created_at']
     module_name = '商品'
+
+    def get_queryset(self):
+        """支持按一级分类查询所有子分类的商品"""
+        queryset = super().get_queryset()
+        category_include_children = self.request.query_params.get('category_include_children')
+        
+        if category_include_children:
+            try:
+                category_id = int(category_include_children)
+                category = Category.objects.get(id=category_id)
+                # 获取该分类及其所有子分类的ID
+                category_ids = [category_id]
+                if category.children.exists():
+                    # 递归获取所有子分类ID
+                    def get_child_ids(parent):
+                        child_ids = []
+                        for child in parent.children.all():
+                            child_ids.append(child.id)
+                            child_ids.extend(get_child_ids(child))
+                        return child_ids
+                    category_ids.extend(get_child_ids(category))
+                queryset = queryset.filter(category_id__in=category_ids)
+            except (ValueError, Category.DoesNotExist):
+                pass
+        
+        return queryset
 
     def get_serializer_class(self):
         """根据动作选择序列化器"""

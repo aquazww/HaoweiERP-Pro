@@ -254,35 +254,19 @@ class FinanceReportView(APIView):
         if payment_type:
             queryset = queryset.filter(type=payment_type)
         
-        total_payment = queryset.aggregate(total=Sum('amount'))['total'] or 0
+        total_payment = queryset.aggregate(total=Sum('total_amount'))['total'] or 0
         
-        income = queryset.filter(type='receive').aggregate(total=Sum('amount'))['total'] or 0
-        expense = queryset.filter(type='pay').aggregate(total=Sum('amount'))['total'] or 0
+        income = queryset.filter(type='receive').aggregate(total=Sum('total_amount'))['total'] or 0
+        expense = queryset.filter(type='pay').aggregate(total=Sum('total_amount'))['total'] or 0
         
         payments = []
         for payment in queryset[:50]:
-            related_party_name = ''
-            if payment.related_party_type == 'supplier':
-                from basic.models import Supplier
-                try:
-                    supplier = Supplier.objects.get(id=payment.related_party_id)
-                    related_party_name = supplier.name
-                except:
-                    pass
-            elif payment.related_party_type == 'customer':
-                from basic.models import Customer
-                try:
-                    customer = Customer.objects.get(id=payment.related_party_id)
-                    related_party_name = customer.name
-                except:
-                    pass
-            
             payments.append({
                 'id': payment.id,
                 'payment_no': payment.order_no,
                 'payment_type': payment.get_type_display(),
-                'related_party_name': related_party_name,
-                'amount': float(payment.amount),
+                'related_party_name': payment.related_party_name,
+                'amount': float(payment.total_amount),
                 'payment_date': payment.created_at.strftime('%Y-%m-%d') if payment.created_at else '',
                 'payment_method': payment.payment_method or '',
                 'remark': payment.remark or ''

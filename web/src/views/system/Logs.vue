@@ -1,5 +1,5 @@
 <template>
-  <div class="logs-page">
+  <div class="common-page logs-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -203,109 +203,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.logs-page {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  overflow: hidden;
-}
-
-.page-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.toolbar-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-white);
-  padding: 6px var(--spacing-md);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-}
-
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: var(--spacing-md);
-  color: var(--color-text-tertiary);
-  z-index: 1;
-}
-
-.search-input {
-  width: 320px;
-  padding-left: 40px;
-}
-
-.table-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--color-white);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border-light);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  min-height: 0;
-}
-
-.data-table {
+.logs-page .data-table {
   --el-table-header-bg-color: var(--color-bg-light);
-}
-
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  background-color: var(--color-white);
-  border-top: 1px solid var(--color-border-light);
-  padding: 4px var(--spacing-md);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-  flex-shrink: 0;
-}
-
-.pagination-wrapper :deep(.el-pagination) {
-  --el-pagination-button-height: 32px;
-  --el-pagination-font-size: 13px;
-}
-
-.pagination-wrapper :deep(.el-pagination .btn-prev),
-.pagination-wrapper :deep(.el-pagination .btn-next) {
-  min-width: 32px;
-  padding: 0 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pager li) {
-  min-width: 32px;
-  height: 32px;
-  line-height: 32px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination-wrapper :deep(.el-pagination .el-pagination__jump) {
-  margin-left: 8px;
 }
 </style>

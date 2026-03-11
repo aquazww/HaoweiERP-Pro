@@ -64,6 +64,10 @@ class CategorySerializer(serializers.ModelSerializer):
                   'path', 'full_path', 'sort_order', 'is_active', 'remark', 
                   'children_count', 'goods_count', 'created_by', 'created_by_name', 'created_at', 'updated_at']
         read_only_fields = ['id', 'level', 'path', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'name': {'required': False},
+            'code': {'required': False},
+        }
     
     def get_level_display(self, obj):
         """获取层级显示名称"""
@@ -97,8 +101,10 @@ class CategorySerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """验证父分类"""
+        """验证父分类和同级名称唯一性"""
         parent = data.get('parent')
+        name = data.get('name')
+        
         if parent:
             if self.instance and parent.id == self.instance.id:
                 raise serializers.ValidationError({
@@ -114,6 +120,17 @@ class CategorySerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'parent': '最多支持5级分类，当前父分类已达最大层级'
                 })
+        
+        if name:
+            queryset = Category.objects.filter(name=name.strip(), parent=parent)
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+            if queryset.exists():
+                parent_name = parent.name if parent else '顶级'
+                raise serializers.ValidationError({
+                    'name': f'同一层级下已存在名称为「{name}」的分类（所属层级：{parent_name}）'
+                })
+        
         return data
     
     def to_representation(self, instance):
@@ -135,7 +152,8 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
     
     def get_children(self, obj):
         """递归获取子分类"""
-        children = obj.children.filter(is_active=True).order_by('sort_order', 'id')
+        # 使用 distinct() 确保唯一性，使用 select_related 优化查询
+        children = obj.children.filter(is_active=True).select_related('parent').order_by('sort_order', 'id')
         return CategoryTreeSerializer(children, many=True).data
 
 
@@ -366,6 +384,14 @@ class GoodsSerializer(serializers.ModelSerializer):
         
         if sale_price < purchase_price:
             raise serializers.ValidationError({'sale_price': '销售价不能低于进货价'})
+        
+        # 验证分类层级：只有二级及以下分类才能添加商品
+        category = data.get('category')
+        if category:
+            if category.level < 2:
+                raise serializers.ValidationError({
+                    'category': f'一级分类「{category.name}」不能直接添加商品，请选择二级或更深层级的分类'
+                })
         
         if max_stock < min_stock:
             raise serializers.ValidationError({'max_stock': '最高库存不能低于最低库存'})

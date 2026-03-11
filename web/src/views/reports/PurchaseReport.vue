@@ -1,61 +1,59 @@
 <template>
-  <div class="report-page">
-    <el-card>
-      <template #header>
+  <div class="common-page report-page">
+    <div class="page-content">
+      <div class="table-card">
         <div class="card-header">
-          <span>采购报表</span>
+          <span class="card-title">采购报表</span>
           <el-button type="primary" :icon="Download" @click="handleExport">导出</el-button>
         </div>
-      </template>
-      
-      <el-form :inline="true" :model="queryForm" style="margin-bottom: 20px;">
-        <el-form-item label="日期范围">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            @change="handleDateChange"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadReport">查询</el-button>
-        </el-form-item>
-      </el-form>
-      
-      <el-row :gutter="20" style="margin-bottom: 20px;">
-        <el-col :span="12">
-          <el-card class="summary-card">
+        
+        <div class="filter-section">
+          <el-form :inline="true" :model="queryForm">
+            <el-form-item label="日期范围">
+              <el-date-picker
+                v-model="dateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="YYYY-MM-DD"
+                @change="handleDateChange"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="loadReport">查询</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <div class="summary-section">
+          <div class="summary-card">
             <div class="summary-item">
-              <span class="label">总金额：</span>
+              <span class="label">总金额</span>
               <span class="value">¥{{ (reportData.summary?.total_amount !== undefined && reportData.summary?.total_amount !== null) ? reportData.summary.total_amount.toFixed(2) : '0.00' }}</span>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card class="summary-card">
+          </div>
+          <div class="summary-card">
             <div class="summary-item">
-              <span class="label">订单数：</span>
+              <span class="label">订单数</span>
               <span class="value">{{ reportData.summary?.order_count || 0 }}</span>
             </div>
-          </el-card>
-        </el-col>
-      </el-row>
-      
-      <el-table :data="reportData.orders || []" style="width: 100%" v-loading="loading">
-        <el-table-column prop="order_no" label="采购单号" width="150" />
-        <el-table-column prop="supplier_name" label="供应商" width="200" />
-        <el-table-column prop="order_date" label="日期" width="150" />
-        <el-table-column prop="total_amount" label="金额" width="150">
-          <template #default="{ row }">
-            ¥{{ (row.total_amount !== undefined && row.total_amount !== null) ? row.total_amount.toFixed(2) : '0.00' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" />
-      </el-table>
-    </el-card>
+          </div>
+        </div>
+        
+        <el-table :data="reportData.orders || []" style="width: 100%" v-loading="loading" class="data-table">
+          <el-table-column prop="order_no" label="采购单号" min-width="150" />
+          <el-table-column prop="supplier_name" label="供应商" min-width="180" />
+          <el-table-column prop="order_date" label="日期" min-width="120" />
+          <el-table-column prop="total_amount" label="金额" min-width="120" align="right">
+            <template #default="{ row }">
+              ¥{{ (row.total_amount !== undefined && row.total_amount !== null) ? row.total_amount.toFixed(2) : '0.00' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" min-width="100" align="center" />
+        </el-table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -140,33 +138,54 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.report-page {
-  padding: 20px;
-}
-
-.card-header {
+.report-page .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
-.summary-card {
-  margin-bottom: 20px;
+.report-page .card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.summary-item {
+.report-page .filter-section {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.report-page .summary-section {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+}
+
+.report-page .summary-card {
+  flex: 1;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%);
+  border: 1px solid #bae0ff;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.report-page .summary-item {
   text-align: center;
 }
 
-.summary-item .label {
+.report-page .summary-item .label {
   font-size: 14px;
-  color: #666;
-  margin-right: 10px;
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
 }
 
-.summary-item .value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #409EFF;
+.report-page .summary-item .value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: 'Monaco', 'Consolas', monospace;
 }
 </style>

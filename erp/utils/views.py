@@ -195,20 +195,24 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             from django.db.utils import IntegrityError
             if isinstance(e, ValidationError):
+                error_data = {}
                 error_messages = []
                 for field, messages in e.detail.items():
                     if isinstance(messages, list):
                         for msg in messages:
                             if hasattr(msg, 'string'):
                                 error_messages.append(msg.string)
+                                error_data[field] = msg.string
                             else:
                                 error_messages.append(str(msg))
+                                error_data[field] = str(msg)
                     else:
                         error_messages.append(str(messages))
+                        error_data[field] = str(messages)
                 return Response({
                     'code': 400,
                     'msg': error_messages[0] if error_messages else '数据验证失败',
-                    'data': None
+                    'data': error_data
                 }, status=400)
             if isinstance(e, IntegrityError):
                 error_msg = str(e)
@@ -265,20 +269,24 @@ class BaseModelViewSet(viewsets.ModelViewSet):
         except Exception as e:
             from rest_framework.exceptions import ValidationError
             if isinstance(e, ValidationError):
+                error_data = {}
                 error_messages = []
                 for field, messages in e.detail.items():
                     if isinstance(messages, list):
                         for msg in messages:
                             if hasattr(msg, 'string'):
                                 error_messages.append(msg.string)
+                                error_data[field] = msg.string
                             else:
                                 error_messages.append(str(msg))
+                                error_data[field] = str(msg)
                     else:
                         error_messages.append(str(messages))
+                        error_data[field] = str(messages)
                 return Response({
                     'code': 400,
                     'msg': error_messages[0] if error_messages else '数据验证失败',
-                    'data': None
+                    'data': error_data
                 }, status=400)
             logger.error(f'更新失败: {str(e)}')
             return Response({
