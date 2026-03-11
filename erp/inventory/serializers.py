@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Inventory, InventoryLog, StockIn, StockOut, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
+from .models import Inventory, InventoryLog, StockIn, StockOut, StockOutItem, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
 
 
 class InventorySerializer(serializers.ModelSerializer):
@@ -117,6 +117,20 @@ class StockInCreateSerializer(serializers.ModelSerializer):
         fields = ['warehouse', 'purchase_order', 'total_amount', 'remark']
 
 
+class StockOutItemSerializer(serializers.ModelSerializer):
+    """出库单明细序列化器"""
+    goods = serializers.IntegerField(source='goods.id', read_only=True)
+    goods_name = serializers.CharField(source='goods.name', read_only=True)
+    goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
+    unit_name = serializers.CharField(source='goods.unit.name', read_only=True)
+    
+    class Meta:
+        model = StockOutItem
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit_name', 
+                  'quantity', 'price', 'amount', 'remark']
+
+
 class StockOutSerializer(serializers.ModelSerializer):
     """出库单序列化器"""
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
@@ -125,11 +139,17 @@ class StockOutSerializer(serializers.ModelSerializer):
     sale_order_no = serializers.CharField(source='sale_order.order_no', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    items = StockOutItemSerializer(many=True, read_only=True)
+    customer_name = serializers.CharField(source='sale_order.customer_name', read_only=True)
+    customer_contact = serializers.CharField(source='sale_order.customer_contact', read_only=True)
+    customer_phone = serializers.CharField(source='sale_order.customer_phone', read_only=True)
+    customer_address = serializers.CharField(source='sale_order.customer_address', read_only=True)
     
     class Meta:
         model = StockOut
         fields = ['id', 'order_no', 'warehouse', 'warehouse_name', 'sale_order',
                   'sale_order_no', 'total_amount', 'status', 'status_display', 'remark',
+                  'items', 'customer_name', 'customer_contact', 'customer_phone', 'customer_address',
                   'created_by', 'created_by_name', 'created_at', 'confirmed_at']
         read_only_fields = ['id', 'order_no', 'created_by', 'created_at', 'confirmed_at']
 
