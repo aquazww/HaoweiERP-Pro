@@ -418,8 +418,8 @@ class StockInViewSet(BaseModelViewSet):
 class StockOutViewSet(BaseModelViewSet):
     permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockOut.objects.select_related(
-        'warehouse', 'sale_order', 'created_by'
-    ).all()
+        'warehouse', 'sale_order', 'sale_order__customer', 'created_by'
+    ).prefetch_related('items', 'items__goods').all()
     serializer_class = StockOutSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ['warehouse', 'sale_order', 'status']

@@ -74,6 +74,11 @@ const routes = [
         component: () => import('../views/inventory/InventoryTransfer.vue')
       },
       {
+        path: 'inventory/stock-out',
+        name: 'StockOut',
+        component: () => import('../views/inventory/StockOut.vue')
+      },
+      {
         path: 'finance/payments',
         name: 'FinancePayments',
         component: () => import('../views/finance/Payments.vue')

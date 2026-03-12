@@ -11,7 +11,9 @@ from .serializers import (
 from utils.views import BaseModelViewSet
 from utils.order_no import generate_sale_order_no
 from inventory.services import InventoryService
+from inventory.models import StockOut, StockOutItem
 from system.permissions import ModulePermission
+from django.utils import timezone
 
 
 class SaleOrderViewSet(BaseModelViewSet):
@@ -59,6 +61,17 @@ class SaleOrderViewSet(BaseModelViewSet):
         
         try:
             with transaction.atomic():
+                stock_out = StockOut.objects.create(
+                    order_no=f'SO{timezone.now().strftime("%Y%m%d%H%M%S")}',
+                    sale_order=sale_order,
+                    warehouse=sale_order.warehouse,
+                    total_amount=0,
+                    status='confirmed',
+                    created_by=request.user,
+                    confirmed_at=timezone.now()
+                )
+                
+                total_amount = 0
                 for item in sale_order.items.all():
                     shipped_qty = item.quantity - item.shipped_quantity
                     if shipped_qty > 0:
@@ -72,6 +85,18 @@ class SaleOrderViewSet(BaseModelViewSet):
                         )
                         item.shipped_quantity = item.quantity
                         item.save()
+                        
+                        StockOutItem.objects.create(
+                            stock_out=stock_out,
+                            goods=item.goods,
+                            quantity=shipped_qty,
+                            price=item.price,
+                            amount=shipped_qty * item.price
+                        )
+                        total_amount += shipped_qty * item.price
+                
+                stock_out.total_amount = total_amount
+                stock_out.save()
                 
                 all_shipped = all(
                     item.shipped_quantity >= item.quantity 
@@ -89,7 +114,7 @@ class SaleOrderViewSet(BaseModelViewSet):
                 return Response({
                     'code': 200,
                     'msg': '出库成功',
-                    'data': None
+                    'data': {'stock_out_id': stock_out.id, 'stock_out_no': stock_out.order_no}
                 })
         except ValueError as e:
             return Response({

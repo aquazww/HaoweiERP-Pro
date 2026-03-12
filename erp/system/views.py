@@ -263,6 +263,7 @@ class UserViewSet(BaseModelViewSet):
         new_password = serializer.validated_data['new_password']
         user.set_password(new_password)
         user.invalidate_tokens()
+        user.save()  # 保存密码更改到数据库
         
         self.log_action(request, 'update', f'重置用户密码: {user.username}')
         logger.info(f'用户 {request.user.username} 重置了用户 {user.username} 的密码')

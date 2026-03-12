@@ -47,6 +47,7 @@
             <span>库存管理</span>
           </template>
           <el-menu-item index="/inventory/stock" @click="handleMenuClick('/inventory/stock')">库存查询</el-menu-item>
+          <el-menu-item index="/inventory/stock-out" @click="handleMenuClick('/inventory/stock-out')">销售出库</el-menu-item>
           <el-menu-item index="/inventory/adjust" @click="handleMenuClick('/inventory/adjust')">库存调整</el-menu-item>
           <el-menu-item index="/inventory/transfer" @click="handleMenuClick('/inventory/transfer')">库存调拨</el-menu-item>
           <el-menu-item index="/inventory/log" @click="handleMenuClick('/inventory/log')">库存流水</el-menu-item>
@@ -171,6 +172,7 @@ const pageTitleMap = {
   '/purchase/orders': '采购订单',
   '/sale/orders': '销售订单',
   '/inventory/stock': '库存查询',
+  '/inventory/stock-out': '销售出库',
   '/inventory/adjust': '库存调整',
   '/inventory/transfer': '库存调拨',
   '/inventory/log': '库存流水',

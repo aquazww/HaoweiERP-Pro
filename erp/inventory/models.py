@@ -119,6 +119,24 @@ class StockOut(models.Model):
         return self.order_no
 
 
+class StockOutItem(models.Model):
+    """出库单明细"""
+    stock_out = models.ForeignKey(StockOut, on_delete=models.CASCADE, related_name='items', verbose_name='出库单')
+    goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='数量')
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='单价')
+    amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='金额')
+    remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
+
+    class Meta:
+        db_table = 'biz_stock_out_item'
+        verbose_name = '出库单明细'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.goods.name} - {self.quantity}'
+
+
 class StockAdjust(models.Model):
     """库存调整单"""
     ADJUST_TYPE_CHOICES = [
