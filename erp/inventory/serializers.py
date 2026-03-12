@@ -140,10 +140,10 @@ class StockOutSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
     items = StockOutItemSerializer(many=True, read_only=True)
-    customer_name = serializers.CharField(source='sale_order.customer_name', read_only=True)
-    customer_contact = serializers.CharField(source='sale_order.customer_contact', read_only=True)
-    customer_phone = serializers.CharField(source='sale_order.customer_phone', read_only=True)
-    customer_address = serializers.CharField(source='sale_order.customer_address', read_only=True)
+    customer_name = serializers.CharField(source='sale_order.customer.name', read_only=True)
+    customer_contact = serializers.CharField(source='sale_order.customer.contact', read_only=True)
+    customer_phone = serializers.CharField(source='sale_order.customer.phone', read_only=True)
+    customer_address = serializers.CharField(source='sale_order.customer.address', read_only=True)
     
     class Meta:
         model = StockOut

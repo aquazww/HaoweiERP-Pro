@@ -62,11 +62,12 @@
           <el-table-column prop="created_at" label="创建时间" min-width="160">
             <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" min-width="180" align="center" fixed="right">
+          <el-table-column label="操作" min-width="220" align="center" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link size="small" @click="handleView(row)">详情</el-button>
-                <el-button type="warning" link size="small" @click="handlePrintDelivery(row)">打印送货单</el-button>
+                <el-button type="warning" link size="small" @click="handlePrintDelivery(row)">打印</el-button>
+                <el-button type="success" link size="small" @click="handleAdvancedPrint(row)">设计打印</el-button>
               </div>
             </template>
           </el-table-column>
@@ -110,7 +111,21 @@
         <div class="info-row">
           <div class="info-item">
             <span class="label">客户名称：</span>
-            <span class="value">{{ currentOrder.sale_order?.customer_name || '-' }}</span>
+            <span class="value">{{ currentOrder.customer_name || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">联系人：</span>
+            <span class="value">{{ currentOrder.customer_contact || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">联系电话：</span>
+            <span class="value">{{ currentOrder.customer_phone || '-' }}</span>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-item">
+            <span class="label">客户地址：</span>
+            <span class="value">{{ currentOrder.customer_address || '-' }}</span>
           </div>
           <div class="info-item">
             <span class="label">仓库：</span>
@@ -163,6 +178,12 @@
       v-model="printDialogVisible"
       :stockOutData="currentPrintOrder"
     />
+
+    <!-- 高级打印设计器 -->
+    <advanced-delivery-print
+      v-model="advancedPrintVisible"
+      :stockOutData="currentPrintOrder"
+    />
   </div>
 </template>
 
@@ -172,7 +193,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Refresh, Printer } from '@element-plus/icons-vue'
 import { getStockOutList, getStockOut } from '../../api/inventory'
 import { getWarehouses } from '../../api/basic'
-import { DeliveryNotePrint } from '../../components/print'
+import { DeliveryNotePrint, AdvancedDeliveryPrint } from '../../components/print'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -190,6 +211,7 @@ const detailDialogVisible = ref(false)
 const currentOrder = ref(null)
 
 const printDialogVisible = ref(false)
+const advancedPrintVisible = ref(false)
 const currentPrintOrder = ref(null)
 
 const formatAmount = (amount) => {
@@ -280,6 +302,16 @@ const handlePrintDelivery = async (row) => {
     const res = await getStockOut(row.id)
     currentPrintOrder.value = res.data
     printDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取出库单详情失败')
+  }
+}
+
+const handleAdvancedPrint = async (row) => {
+  try {
+    const res = await getStockOut(row.id)
+    currentPrintOrder.value = res.data
+    advancedPrintVisible.value = true
   } catch (error) {
     ElMessage.error('获取出库单详情失败')
   }
