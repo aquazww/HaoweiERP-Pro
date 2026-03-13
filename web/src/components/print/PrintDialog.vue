@@ -110,7 +110,7 @@ export default {
       this.dialogVisible = val;
       if (val) {
         // 保存原始字段配置
-        this.originalFields = JSON.parse(JSON.stringify(this.fields));
+        this.originalFields = structuredClone(this.fields);
         this.currentStep = 'config';
       }
     },

@@ -338,8 +338,8 @@ watch(dialogVisible, (val) => {
 
 const loadConfig = () => {
   const fieldsConfig = getDeliveryNoteFields()
-  mainFields.value = JSON.parse(JSON.stringify(fieldsConfig.mainFields))
-  detailFields.value = JSON.parse(JSON.stringify(fieldsConfig.detailFields))
+  mainFields.value = structuredClone(fieldsConfig.mainFields)
+  detailFields.value = structuredClone(fieldsConfig.detailFields)
   
   const settings = getPrintSettings()
   Object.assign(printSettings, settings)
@@ -403,8 +403,8 @@ const handleSettingsChange = () => {
 
 const resetSettings = () => {
   const defaultFields = resetDeliveryNoteFields()
-  mainFields.value = JSON.parse(JSON.stringify(defaultFields.mainFields))
-  detailFields.value = JSON.parse(JSON.stringify(defaultFields.detailFields))
+  mainFields.value = structuredClone(defaultFields.mainFields)
+  detailFields.value = structuredClone(defaultFields.detailFields)
   
   const defaultSettings = resetPrintSettings()
   Object.assign(printSettings, defaultSettings)

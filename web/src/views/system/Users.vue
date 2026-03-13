@@ -211,7 +211,7 @@
 import { ref, reactive, computed, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
-import { getUsers, createUser, updateUser, deleteUser, resetPassword, getPermissionModules } from '../../api/system'
+import { getUsers, createUser, updateUser, partialUpdateUser, deleteUser, resetPassword, getPermissionModules } from '../../api/system'
 import { canAdd, canEdit, canDelete } from '../../utils/permission'
 
 const loading = ref(false)
@@ -547,7 +547,7 @@ const handleToggleStatus = async (row) => {
     )
     
     toggleLoading.value = row.id
-    await updateUser(row.id, { is_active: newStatus })
+    await partialUpdateUser(row.id, { is_active: newStatus })
     ElMessage.success(`${newStatus ? '启用' : '禁用'}成功，用户「${row.username}」${newStatus ? '已可以' : '已被'}登录系统`)
     loadData()
   } catch (error) {

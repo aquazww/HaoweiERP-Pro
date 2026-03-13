@@ -256,7 +256,7 @@
 import { ref, reactive, onMounted, nextTick, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Plus, Edit, Delete } from '@element-plus/icons-vue'
-import { getCustomers, createCustomer, deleteCustomer, updateCustomer } from '../../api/basic'
+import { getCustomers, createCustomer, deleteCustomer, updateCustomer, partialUpdateCustomer } from '../../api/basic'
 import { canAdd, canEdit, canDelete } from '../../utils/permission'
 
 const canAddBasic = computed(() => canAdd('basic'))
@@ -568,7 +568,7 @@ const handleToggleStatus = async (row) => {
     })
     
     toggleLoading.value = row.id
-    await updateCustomer(row.id, { ...row, status: row.status })
+    await partialUpdateCustomer(row.id, { status: row.status })
     ElMessage.success('操作成功')
     loadCustomers()
   } catch (error) {

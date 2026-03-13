@@ -200,20 +200,23 @@ export default {
         this.$message.success('模板加载成功');
       }
     },
-    deleteTemplate() {
+    async deleteTemplate() {
       if (!this.selectedTemplate) {
         return;
       }
-      this.$confirm('确定要删除这个模板吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
+      try {
+        await this.$confirm('确定要删除这个模板吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        });
         deletePrintTemplate(this.selectedTemplate);
         this.templates = getAllPrintTemplates();
         this.selectedTemplate = '';
         this.$message.success('模板删除成功');
-      });
+      } catch {
+        // 用户取消操作
+      }
     },
     confirm() {
       this.$emit('confirm', {
