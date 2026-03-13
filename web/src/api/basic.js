@@ -111,3 +111,45 @@ export const updateGoods = (id, data) => {
 export const deleteGoods = (id) => {
   return request.delete(`/basic/goods/${id}/`)
 }
+
+export const getCompanyInfo = () => {
+  return request.get('/basic/company/')
+}
+
+export const updateCompanyInfo = (data) => {
+  return request.put('/basic/company/1/', data)
+}
+
+export const uploadCompanyLogo = (formData) => {
+  return request.put('/basic/company/1/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export const getPrintTemplates = (params) => {
+  return request.get('/basic/print-templates/', { params })
+}
+
+export const getPrintTemplate = (id) => {
+  return request.get(`/basic/print-templates/${id}/`)
+}
+
+export const createPrintTemplate = (data) => {
+  return request.post('/basic/print-templates/', data)
+}
+
+export const updatePrintTemplate = (id, data) => {
+  return request.put(`/basic/print-templates/${id}/`, data)
+}
+
+export const deletePrintTemplate = (id) => {
+  return request.delete(`/basic/print-templates/${id}/`)
+}
+
+export const getDefaultPrintTemplate = (templateType = 'delivery') => {
+  return request.get('/basic/print-templates/default/', { params: { template_type: templateType } })
+}
+
+export const setDefaultPrintTemplate = (id) => {
+  return request.post(`/basic/print-templates/${id}/set_default/`)
+}

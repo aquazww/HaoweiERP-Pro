@@ -189,7 +189,7 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             return Response({
                 'code': 200,
                 'msg': '创建成功',
-                'data': {'id': instance.id}
+                'data': serializer.data
             })
         except Exception as e:
             from rest_framework.exceptions import ValidationError

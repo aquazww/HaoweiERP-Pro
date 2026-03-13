@@ -52,14 +52,19 @@
                   </div>
                 </div>
               </div>
+              <div class="config-actions">
+                <el-button type="default" size="small" @click="resetSettings">
+                  恢复默认
+                </el-button>
+              </div>
             </div>
           </el-tab-pane>
 
           <!-- 打印设置 -->
           <el-tab-pane label="打印设置" name="settings">
             <div class="print-settings">
-              <el-form :model="printSettings" label-width="100px" size="default">
-                <el-row :gutter="20">
+              <el-form :model="printSettings" label-width="80px" size="small">
+                <el-row :gutter="12">
                   <el-col :span="12">
                     <el-form-item label="纸张大小">
                       <el-select v-model="printSettings.paperSize" @change="handleSettingsChange">
@@ -78,7 +83,7 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-row :gutter="20">
+                <el-row :gutter="12">
                   <el-col :span="12">
                     <el-form-item label="显示单价">
                       <el-switch v-model="printSettings.showPrice" @change="handleSettingsChange" />
@@ -90,7 +95,7 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-row :gutter="20">
+                <el-row :gutter="12">
                   <el-col :span="12">
                     <el-form-item label="显示页码">
                       <el-switch v-model="printSettings.showPageNumbers" @change="handleSettingsChange" />
@@ -102,16 +107,13 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-form-item label="页眉内容">
-                  <el-input v-model="printSettings.header" placeholder="输入页眉内容" @change="handleSettingsChange" />
+                <el-form-item label="页眉">
+                  <el-input v-model="printSettings.header" placeholder="输入页眉内容" @change="handleSettingsChange" size="small" />
                 </el-form-item>
-                <el-form-item label="页脚内容">
-                  <el-input v-model="printSettings.footer" placeholder="输入页脚内容" @change="handleSettingsChange" />
+                <el-form-item label="页脚">
+                  <el-input v-model="printSettings.footer" placeholder="输入页脚内容" @change="handleSettingsChange" size="small" />
                 </el-form-item>
               </el-form>
-              <div class="settings-actions">
-                <el-button @click="resetSettings">恢复默认设置</el-button>
-              </div>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -122,9 +124,9 @@
         <div class="preview-header">
           <span class="preview-title">打印预览</span>
           <div class="preview-actions">
-            <el-button type="default" @click="handleClose">取消</el-button>
-            <el-button type="warning" @click="exportPDF" :loading="exporting">导出PDF</el-button>
-            <el-button type="primary" @click="handlePrint" :loading="printing">打印</el-button>
+            <el-button type="default" size="default" @click="handleClose">取消</el-button>
+            <el-button type="warning" size="default" @click="exportPDF" :loading="exporting">导出PDF</el-button>
+            <el-button type="primary" size="default" @click="handlePrint" :loading="printing">打印</el-button>
           </div>
         </div>
         <div class="preview-content" ref="previewContent">
@@ -572,45 +574,46 @@ onUnmounted(() => {
 <style scoped>
 .delivery-print-container {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   height: 80vh;
 }
 
 .config-panel {
-  width: 400px;
+  width: 360px;
   flex-shrink: 0;
   overflow: hidden;
 }
 
 .config-panel :deep(.el-tabs__content) {
-  padding: 16px;
-  max-height: calc(80vh - 100px);
+  padding: 12px;
+  max-height: calc(80vh - 90px);
   overflow-y: auto;
 }
 
 .field-config {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .field-section h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   font-size: 14px;
   color: #303133;
+  font-weight: 600;
 }
 
 .field-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: #f5f7fa;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
@@ -626,16 +629,18 @@ onUnmounted(() => {
 .drag-handle {
   color: #909399;
   cursor: move;
+  font-size: 14px;
+}
+
+.config-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 8px;
+  border-top: 1px solid #e4e7ed;
 }
 
 .print-settings {
-  padding: 8px 0;
-}
-
-.settings-actions {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e4e7ed;
+  padding: 0;
 }
 
 .preview-panel {
@@ -649,7 +654,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #f5f7fa;
   border-radius: 4px 4px 0 0;
   border: 1px solid #e4e7ed;
@@ -657,8 +662,8 @@ onUnmounted(() => {
 }
 
 .preview-title {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #303133;
 }
 
@@ -671,7 +676,7 @@ onUnmounted(() => {
   flex: 1;
   overflow: auto;
   background: #f0f2f5;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid #e4e7ed;
   border-radius: 0 0 4px 4px;
   display: flex;

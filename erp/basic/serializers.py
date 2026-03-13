@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Sum
 from decimal import Decimal
-from .models import Category, Warehouse, Supplier, Customer, Goods, Unit
+from .models import Category, Warehouse, Supplier, Customer, Goods, Unit, CompanyInfo, PrintTemplate
 
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -438,3 +438,64 @@ class GoodsWithStockSerializer(serializers.ModelSerializer):
             return {'code': 'over', 'text': '库存过剩'}
         else:
             return {'code': 'normal', 'text': '正常'}
+
+
+class CompanyInfoSerializer(serializers.ModelSerializer):
+    """公司信息序列化器"""
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    logo_base64 = serializers.SerializerMethodField()
+    stamp_base64 = serializers.SerializerMethodField()
+    logo_file = serializers.FileField(write_only=True, required=False, allow_null=True)
+    stamp_file = serializers.FileField(write_only=True, required=False, allow_null=True)
+    
+    class Meta:
+        model = CompanyInfo
+        fields = '__all__'
+        read_only_fields = ['created_by', 'created_at', 'updated_at']
+    
+    def get_logo_base64(self, obj):
+        """获取Logo Base64"""
+        if obj.logo_data:
+            import base64
+            return base64.b64encode(obj.logo_data).decode('utf-8')
+        return None
+    
+    def get_stamp_base64(self, obj):
+        """获取印章Base64"""
+        if obj.stamp_data:
+            import base64
+            return base64.b64encode(obj.stamp_data).decode('utf-8')
+        return None
+    
+    def update(self, instance, validated_data):
+        logo_file = validated_data.pop('logo_file', None)
+        stamp_file = validated_data.pop('stamp_file', None)
+        
+        if logo_file is not None:
+            if logo_file:
+                instance.logo_data = logo_file.read()
+                instance.logo_filename = logo_file.name
+            else:
+                instance.logo_data = None
+                instance.logo_filename = None
+        
+        if stamp_file is not None:
+            if stamp_file:
+                instance.stamp_data = stamp_file.read()
+                instance.stamp_filename = stamp_file.name
+            else:
+                instance.stamp_data = None
+                instance.stamp_filename = None
+        
+        return super().update(instance, validated_data)
+
+
+class PrintTemplateSerializer(serializers.ModelSerializer):
+    """打印模板序列化器"""
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    template_type_display = serializers.CharField(source='get_template_type_display', read_only=True)
+    
+    class Meta:
+        model = PrintTemplate
+        fields = '__all__'
+        read_only_fields = ['created_by', 'created_at', 'updated_at']

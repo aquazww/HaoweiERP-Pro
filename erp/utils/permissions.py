@@ -40,6 +40,7 @@ class HasModulePermission(permissions.BasePermission):
             '角色': 'system',
             '用户': 'system',
             '操作日志': 'system',
+            '打印模板': 'basic',
             '库存': 'inventory',
             '库存流水': 'inventory',
             '入库单': 'inventory',

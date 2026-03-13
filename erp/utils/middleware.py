@@ -8,6 +8,25 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+class CORSMediaMiddleware:
+    """
+    为媒体文件添加CORS头的中间件
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        response = self.get_response(request)
+        
+        if request.path.startswith('/media/'):
+            response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+            response['Access-Control-Allow-Headers'] = '*'
+        
+        return response
+
+
 class TokenVersionMiddleware:
     """
     验证Token版本的中间件

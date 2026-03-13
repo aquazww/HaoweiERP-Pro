@@ -1,17 +1,17 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from django.db.models import Sum, ProtectedError
 from django.db import transaction, IntegrityError
 from decimal import Decimal
 import logging
 
-from .models import Category, Warehouse, Supplier, Customer, Goods, Unit
+from .models import Category, Warehouse, Supplier, Customer, Goods, Unit, CompanyInfo, PrintTemplate
 from .serializers import (
     CategorySerializer, CategoryTreeSerializer, WarehouseSerializer, SupplierSerializer,
     CustomerSerializer, GoodsSerializer, GoodsWithStockSerializer,
-    UnitSerializer
+    UnitSerializer, CompanyInfoSerializer, PrintTemplateSerializer
 )
 from utils.views import BaseModelViewSet
 from inventory.goods_inventory_service import GoodsInventoryService
@@ -515,4 +515,92 @@ class GoodsViewSet(BaseModelViewSet):
             'code': 200,
             'msg': f'修复完成，成功{success_count}条',
             'data': results
+        })
+
+
+class CompanyInfoViewSet(viewsets.ViewSet):
+    """公司信息视图集"""
+    permission_classes = [IsAuthenticated, ModulePermission]
+    module_name = '公司信息'
+    
+    def list(self, request):
+        """获取公司信息列表"""
+        company = CompanyInfo.get_instance()
+        serializer = CompanyInfoSerializer(company, context={'request': request})
+        return Response({
+            'code': 200,
+            'msg': '查询成功',
+            'data': serializer.data
+        })
+    
+    def retrieve(self, request, pk=None):
+        """获取公司信息详情"""
+        company = CompanyInfo.get_instance()
+        serializer = CompanyInfoSerializer(company, context={'request': request})
+        return Response({
+            'code': 200,
+            'msg': '查询成功',
+            'data': serializer.data
+        })
+    
+    def update(self, request, pk=None):
+        """更新公司信息"""
+        company = CompanyInfo.get_instance()
+        serializer = CompanyInfoSerializer(company, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({
+            'code': 200,
+            'msg': '更新成功',
+            'data': serializer.data
+        })
+    
+    def partial_update(self, request, pk=None):
+        """部分更新公司信息"""
+        return self.update(request, pk)
+
+
+class PrintTemplateViewSet(BaseModelViewSet):
+    """打印模板视图集"""
+    queryset = PrintTemplate.objects.all()
+    serializer_class = PrintTemplateSerializer
+    filterset_fields = ['template_type', 'is_default']
+    search_fields = ['name']
+    module_name = '打印模板'
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def default(self, request):
+        """获取默认模板"""
+        template_type = request.query_params.get('template_type', 'delivery')
+        template = PrintTemplate.objects.filter(
+            template_type=template_type,
+            is_default=True
+        ).first()
+        
+        if template:
+            serializer = self.get_serializer(template)
+            return Response({
+                'code': 200,
+                'msg': '查询成功',
+                'data': serializer.data
+            })
+        return Response({
+            'code': 404,
+            'msg': '未找到默认模板',
+            'data': None
+        })
+    
+    @action(detail=True, methods=['post'])
+    def set_default(self, request, pk=None):
+        """设置默认模板"""
+        template = self.get_object()
+        template.is_default = True
+        template.save()
+        return Response({
+            'code': 200,
+            'msg': '设置成功',
+            'data': self.get_serializer(template).data
         })

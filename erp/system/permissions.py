@@ -117,6 +117,8 @@ class ModulePermission(permissions.BasePermission):
         '供应商': 'basic',
         '客户': 'basic',
         '商品': 'basic',
+        '公司信息': 'basic',
+        '打印模板': 'basic',
         '采购订单': 'purchase',
         '销售订单': 'sale',
         '库存查询': 'inventory',

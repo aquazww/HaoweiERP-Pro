@@ -236,3 +236,84 @@ class Goods(models.Model):
         if self.unit:
             self.unit_name = self.unit.name
         super().save(*args, **kwargs)
+
+
+class CompanyInfo(models.Model):
+    """公司信息"""
+    name = models.CharField(max_length=200, verbose_name='公司名称')
+    short_name = models.CharField(max_length=100, blank=True, verbose_name='公司简称')
+    credit_code = models.CharField(max_length=50, blank=True, verbose_name='统一社会信用代码')
+    legal_person = models.CharField(max_length=50, blank=True, verbose_name='法定代表人')
+    registered_address = models.CharField(max_length=300, blank=True, verbose_name='注册地址')
+    business_address = models.CharField(max_length=300, blank=True, verbose_name='经营地址')
+    phone = models.CharField(max_length=50, blank=True, verbose_name='联系电话')
+    fax = models.CharField(max_length=50, blank=True, verbose_name='传真号码')
+    email = models.EmailField(max_length=100, blank=True, verbose_name='电子邮箱')
+    website = models.URLField(max_length=200, blank=True, verbose_name='公司网站')
+    bank_name = models.CharField(max_length=100, blank=True, verbose_name='开户银行')
+    bank_account = models.CharField(max_length=50, blank=True, verbose_name='银行账号')
+    tax_number = models.CharField(max_length=50, blank=True, verbose_name='纳税人识别号')
+    logo_data = models.BinaryField(blank=True, null=True, verbose_name='公司Logo数据')
+    logo_filename = models.CharField(max_length=255, blank=True, null=True, verbose_name='公司Logo文件名')
+    stamp_data = models.BinaryField(blank=True, null=True, verbose_name='公司印章数据')
+    stamp_filename = models.CharField(max_length=255, blank=True, null=True, verbose_name='公司印章文件名')
+    invoice_title = models.CharField(max_length=200, blank=True, verbose_name='发票抬头')
+    remark = models.TextField(blank=True, verbose_name='备注')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='创建人')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'sys_company_info'
+        verbose_name = '公司信息'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+    
+    @classmethod
+    def get_instance(cls):
+        """获取公司信息实例（单例模式）"""
+        instance = cls.objects.first()
+        if not instance:
+            instance = cls.objects.create(name='豪威工贸有限公司')
+        return instance
+
+
+class PrintTemplate(models.Model):
+    """打印模板"""
+    TEMPLATE_TYPES = [
+        ('delivery', '送货单'),
+        ('purchase', '采购单'),
+        ('sale', '销售单'),
+        ('inventory', '库存单'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name='模板名称')
+    template_type = models.CharField(max_length=20, choices=TEMPLATE_TYPES, default='delivery', verbose_name='模板类型')
+    is_default = models.BooleanField(default=False, verbose_name='是否默认模板')
+    elements = models.JSONField(default=list, verbose_name='元素配置')
+    settings = models.JSONField(default=dict, verbose_name='打印设置')
+    paper_width = models.IntegerField(default=210, verbose_name='纸张宽度(mm)')
+    paper_height = models.IntegerField(default=140, verbose_name='纸张高度(mm)')
+    orientation = models.CharField(max_length=10, default='portrait', verbose_name='纸张方向')
+    created_by = models.ForeignKey('system.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='创建人')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    
+    class Meta:
+        db_table = 'sys_print_template'
+        verbose_name = '打印模板'
+        verbose_name_plural = verbose_name
+        ordering = ['-is_default', '-updated_at']
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            PrintTemplate.objects.filter(
+                template_type=self.template_type,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)

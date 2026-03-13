@@ -55,12 +55,60 @@
               <span>标题</span>
             </div>
             <div
-              class="palette-item preset"
+              class="palette-item preset qr-code-item"
               draggable="true"
-              @dragstart="onPresetDragStart($event, 'company')"
+              @dragstart="onPresetDragStart($event, 'qrCode')"
+            >
+              <el-icon><Grid /></el-icon>
+              <span>二维码单号</span>
+            </div>
+            <div
+              class="palette-item preset company-name-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyName')"
             >
               <el-icon><OfficeBuilding /></el-icon>
               <span>公司名称</span>
+            </div>
+            <div
+              class="palette-item preset company-logo-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyLogo')"
+            >
+              <el-icon><Picture /></el-icon>
+              <span>公司Logo</span>
+            </div>
+            <div
+              class="palette-item preset company-address-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyAddress')"
+            >
+              <el-icon><Location /></el-icon>
+              <span>公司地址</span>
+            </div>
+            <div
+              class="palette-item preset company-phone-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyPhone')"
+            >
+              <el-icon><Phone /></el-icon>
+              <span>公司电话</span>
+            </div>
+            <div
+              class="palette-item preset company-email-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyEmail')"
+            >
+              <el-icon><Message /></el-icon>
+              <span>公司邮箱</span>
+            </div>
+            <div
+              class="palette-item preset company-stamp-item"
+              draggable="true"
+              @dragstart="onPresetDragStart($event, 'companyStamp')"
+            >
+              <el-icon><Stamp /></el-icon>
+              <span>公司印章</span>
             </div>
             <div
               class="palette-item preset"
@@ -92,23 +140,6 @@
 
       <!-- 中间设计区域 -->
       <div class="design-panel">
-        <div class="design-toolbar">
-          <div class="toolbar-center">
-            <el-button-group>
-              <el-button :icon="ZoomOut" @click="zoomOut" title="缩小" />
-              <el-button style="width: 60px;">{{ zoom }}%</el-button>
-              <el-button :icon="ZoomIn" @click="zoomIn" title="放大" />
-            </el-button-group>
-            <el-button :icon="RefreshRight" @click="resetZoom">重置</el-button>
-            <el-button :type="showGrid ? 'primary' : 'default'" :icon="Grid" @click="toggleGrid">
-              {{ showGrid ? '隐藏网格' : '显示网格' }}
-            </el-button>
-            <el-button type="success" @click="autoArrangeLayout" :icon="Grid">
-              自动排版
-            </el-button>
-          </div>
-        </div>
-        
         <div class="design-canvas-wrapper" ref="canvasWrapper">
           <div
             class="design-canvas"
@@ -143,14 +174,42 @@
             >
               <template v-if="element.type === 'field'">
                 <span class="element-label">{{ element.label }}：</span>
-                <span class="element-value">{{ getFieldValue(element.key) }}</span>
+                <span class="element-value">{{ getFieldValue(element.key, element) }}</span>
               </template>
               <template v-else-if="element.type === 'preset'">
                 <div v-if="element.presetType === 'title'" class="preset-title">
                   送 货 单
                 </div>
-                <div v-else-if="element.presetType === 'company'" class="preset-company">
-                  豪威工贸有限公司
+                <div v-else-if="element.presetType === 'qrCode'" class="preset-qrcode">
+                  <div class="qrcode-wrapper">
+                    <QrcodeVue :value="deliveryData.order_no || 'QR'" :size="Math.min(element.width, element.height) * 0.7" level="M" />
+                  </div>
+                  <div class="qrcode-label" :style="{ fontSize: element.fontSize }">{{ deliveryData.order_no || '单号' }}</div>
+                </div>
+                <div v-else-if="element.presetType === 'companyName'" class="preset-company-name">
+                  {{ companyInfo.name || '公司名称' }}
+                </div>
+                <div v-else-if="element.presetType === 'companyLogo'" class="preset-logo">
+                  <img v-if="companyInfo.logo_base64" :src="'data:image/png;base64,' + companyInfo.logo_base64" alt="公司Logo" 
+                    :style="{ width: Math.min(element.width, element.height) * 0.9 + 'px', height: Math.min(element.width, element.height) * 0.9 + 'px', objectFit: 'contain' }" />
+                  <span v-else class="placeholder-text">公司Logo</span>
+                </div>
+                <div v-else-if="element.presetType === 'companyAddress'" class="preset-company-field">
+                  <span class="field-label">地址：</span>
+                  <span class="field-value">{{ companyInfo.address || '公司地址' }}</span>
+                </div>
+                <div v-else-if="element.presetType === 'companyPhone'" class="preset-company-field">
+                  <span class="field-label">电话：</span>
+                  <span class="field-value">{{ companyInfo.phone || '公司电话' }}</span>
+                </div>
+                <div v-else-if="element.presetType === 'companyEmail'" class="preset-company-field">
+                  <span class="field-label">邮箱：</span>
+                  <span class="field-value">{{ companyInfo.email || '公司邮箱' }}</span>
+                </div>
+                <div v-else-if="element.presetType === 'companyStamp'" class="preset-stamp">
+                  <img v-if="companyInfo.stamp_base64" :src="'data:image/png;base64,' + companyInfo.stamp_base64" alt="公司印章" 
+                    :style="{ width: Math.min(element.width, element.height) * 0.9 + 'px', height: Math.min(element.width, element.height) * 0.9 + 'px', objectFit: 'contain' }" />
+                  <span v-else class="placeholder-text">公司印章</span>
                 </div>
                 <div v-else-if="element.presetType === 'signature'" class="preset-signature">
                   <span>送货人：__________</span>
@@ -228,69 +287,114 @@
                   <el-tag>{{ selectedElement.type === 'field' ? '字段' : '预设元素' }}</el-tag>
                 </el-form-item>
                 <el-form-item label="名称">
-                  <el-input :value="selectedElement.label" disabled />
+                  <el-input v-model="selectedElement.label" @change="updateElement" placeholder="自定义名称" />
+                </el-form-item>
+                <el-form-item label="内容" v-if="selectedElement.type === 'field'">
+                  <div class="content-input-wrapper">
+                    <el-input
+                      v-model="selectedElement.content"
+                      @input="handleContentInput"
+                      @change="updateElement"
+                      placeholder="输入@插入字段"
+                      type="textarea"
+                      :rows="2"
+                    />
+                    <el-popover
+                      placement="bottom"
+                      :width="200"
+                      trigger="manual"
+                      v-model:visible="showFieldPicker"
+                    >
+                      <template #reference>
+                        <div></div>
+                      </template>
+                      <div class="field-picker-list">
+                        <div class="field-picker-title">主信息字段</div>
+                        <div
+                          v-for="field in mainFieldDefinitions"
+                          :key="field.key"
+                          class="field-picker-item"
+                          @click="insertField(field)"
+                        >
+                          {{ field.label }}
+                        </div>
+                        <div class="field-picker-title">公司信息字段</div>
+                        <div
+                          v-for="field in companyFieldDefinitions"
+                          :key="field.key"
+                          class="field-picker-item"
+                          @click="insertField(field)"
+                        >
+                          {{ field.label }}
+                        </div>
+                      </div>
+                    </el-popover>
+                  </div>
                 </el-form-item>
                 
-                <el-divider>对齐操作</el-divider>
-                <el-form-item label="快速对齐">
-                  <div class="align-buttons">
-                    <el-button-group>
-                      <el-button size="small" @click="alignElement('left')" title="左对齐">
-                        <el-icon><Back /></el-icon>
-                      </el-button>
-                      <el-button size="small" @click="alignElement('centerH')" title="水平居中">
-                        <el-icon><Switch /></el-icon>
-                      </el-button>
-                      <el-button size="small" @click="alignElement('right')" title="右对齐">
-                        <el-icon><Right /></el-icon>
-                      </el-button>
-                    </el-button-group>
-                  </div>
-                  <div class="align-buttons" style="margin-top: 8px;">
-                    <el-button-group>
-                      <el-button size="small" @click="alignElement('top')" title="顶部对齐">
-                        <el-icon><Top /></el-icon>
-                      </el-button>
-                      <el-button size="small" @click="alignElement('centerV')" title="垂直居中">
-                        <el-icon><Minus /></el-icon>
-                      </el-button>
-                      <el-button size="small" @click="alignElement('bottom')" title="底部对齐">
-                        <el-icon><Bottom /></el-icon>
-                      </el-button>
-                    </el-button-group>
-                  </div>
-                </el-form-item>
-                <el-form-item label="居中">
-                  <el-button type="primary" size="small" @click="centerElement('both')">
-                    画布居中
-                  </el-button>
-                  <el-button size="small" @click="centerElement('horizontal')" style="margin-left: 8px;">
-                    水平居中
-                  </el-button>
-                  <el-button size="small" @click="centerElement('vertical')" style="margin-left: 8px;">
-                    垂直居中
-                  </el-button>
-                </el-form-item>
-                
-                <el-divider>位置与大小</el-divider>
-                <el-form-item label="X位置">
-                  <el-input-number v-model="selectedElement.x" :min="-500" :max="canvasWidthPx + 500" @change="updateElement" />
-                  <span class="unit">px</span>
-                </el-form-item>
-                <el-form-item label="Y位置">
-                  <el-input-number v-model="selectedElement.y" :min="-500" :max="canvasHeightPx + 500" @change="updateElement" />
-                  <span class="unit">px</span>
-                </el-form-item>
-                <el-form-item label="宽度">
-                  <el-input-number v-model="selectedElement.width" :min="30" :max="canvasWidthPx" @change="updateElement" />
-                  <span class="unit">px</span>
-                </el-form-item>
-                <el-form-item label="高度">
-                  <el-input-number v-model="selectedElement.height" :min="15" :max="500" @change="updateElement" />
-                  <span class="unit">px</span>
-                </el-form-item>
+                <el-divider>位置与对齐</el-divider>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item label="X" label-width="20px">
+                      <el-input-number v-model="selectedElement.x" :min="-500" :max="canvasWidthPx + 500" @change="updateElement" size="small" style="width: 100%;" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="Y" label-width="20px">
+                      <el-input-number v-model="selectedElement.y" :min="-500" :max="canvasHeightPx + 500" @change="updateElement" size="small" style="width: 100%;" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item label="宽" label-width="20px">
+                      <el-input-number v-model="selectedElement.width" :min="30" :max="canvasWidthPx" @change="updateElement" size="small" style="width: 100%;" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="高" label-width="20px">
+                      <el-input-number v-model="selectedElement.height" :min="15" :max="500" @change="updateElement" size="small" style="width: 100%;" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <div class="align-buttons-row">
+                  <el-button-group>
+                    <el-button size="small" @click="alignElement('left')" title="左对齐">
+                      <el-icon><Back /></el-icon>
+                    </el-button>
+                    <el-button size="small" @click="alignElement('centerH')" title="水平居中">
+                      <el-icon><Switch /></el-icon>
+                    </el-button>
+                    <el-button size="small" @click="alignElement('right')" title="右对齐">
+                      <el-icon><Right /></el-icon>
+                    </el-button>
+                  </el-button-group>
+                  <el-button-group style="margin-left: 8px;">
+                    <el-button size="small" @click="alignElement('top')" title="顶部对齐">
+                      <el-icon><Top /></el-icon>
+                    </el-button>
+                    <el-button size="small" @click="alignElement('centerV')" title="垂直居中">
+                      <el-icon><Minus /></el-icon>
+                    </el-button>
+                    <el-button size="small" @click="alignElement('bottom')" title="底部对齐">
+                      <el-icon><Bottom /></el-icon>
+                    </el-button>
+                  </el-button-group>
+                </div>
                 
                 <el-divider>样式设置</el-divider>
+                <el-form-item label="字体">
+                  <el-select v-model="selectedElement.fontFamily" @change="updateElement" placeholder="选择字体">
+                    <el-option label="默认" value="" />
+                    <el-option label="宋体" value="SimSun, serif" />
+                    <el-option label="黑体" value="SimHei, sans-serif" />
+                    <el-option label="微软雅黑" value="Microsoft YaHei, sans-serif" />
+                    <el-option label="楷体" value="KaiTi, serif" />
+                    <el-option label="仿宋" value="FangSong, serif" />
+                    <el-option label="Arial" value="Arial, sans-serif" />
+                    <el-option label="Times New Roman" value="Times New Roman, serif" />
+                  </el-select>
+                </el-form-item>
                 <el-form-item label="字体大小">
                   <el-select v-model="selectedElement.fontSize" @change="updateElement">
                     <el-option label="10px" value="10px" />
@@ -487,7 +591,7 @@
                   </div>
                   <div class="template-info">
                     <span class="template-name">{{ tpl.name }}</span>
-                    <span class="template-date">{{ tpl.date }}</span>
+                    <span class="template-date">{{ tpl.created_at ? tpl.created_at.split('T')[0] : '' }}</span>
                   </div>
                   <el-button
                     type="danger"
@@ -524,9 +628,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Document, List, EditPen, OfficeBuilding, Edit, Grid,
   ZoomIn, ZoomOut, RefreshRight, Close, Printer, Delete,
-  Back, Right, Top, Bottom, Switch, Minus, Download, Tickets
+  Back, Right, Top, Bottom, Switch, Minus, Download, Tickets,
+  Picture, Location, Phone, Message, Stamp
 } from '@element-plus/icons-vue'
 import { exportToPDF } from './printUtils'
+import { getCompanyInfo, getPrintTemplates, createPrintTemplate, updatePrintTemplate, deletePrintTemplate, getDefaultPrintTemplate, setDefaultPrintTemplate } from '../../api/basic'
+import QrcodeVue from 'qrcode.vue'
+import QRCodeLib from 'qrcode'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -544,6 +652,15 @@ const exporting = ref(false)
 const showGrid = ref(true)
 const selectedElementId = ref(null)
 const zoom = ref(100)
+
+const companyInfo = ref({
+  name: '豪威工贸有限公司',
+  short_name: '',
+  address: '',
+  phone: '',
+  logo_base64: '',
+  stamp_base64: ''
+})
 
 const printSettings = reactive({
   paperSize: 'A4Half',
@@ -590,6 +707,15 @@ const detailFieldDefinitions = [
   { key: 'price', label: '单价' },
   { key: 'amount', label: '金额' }
 ]
+
+const companyFieldDefinitions = [
+  { key: 'company_name', label: '公司名称' },
+  { key: 'company_address', label: '公司地址' },
+  { key: 'company_phone', label: '公司电话' },
+  { key: 'company_email', label: '公司邮箱' }
+]
+
+const showFieldPicker = ref(false)
 
 const placedElements = ref([])
 const templates = ref([])
@@ -672,7 +798,28 @@ const tableColumns = computed(() => {
   })
 })
 
-const getFieldValue = (key) => {
+const getFieldValue = (key, element) => {
+  if (element && element.content) {
+    let content = element.content
+    content = content.replace(/\{(\w+)\}/g, (match, fieldKey) => {
+      if (fieldKey.startsWith('company_')) {
+        const companyFieldMap = {
+          'company_name': companyInfo.value.name,
+          'company_address': companyInfo.value.address,
+          'company_phone': companyInfo.value.phone,
+          'company_email': companyInfo.value.email
+        }
+        return companyFieldMap[fieldKey] || ''
+      }
+      const value = deliveryData.value[fieldKey]
+      if (fieldKey === 'total_amount') {
+        return value ? `¥${Number(value).toFixed(2)}` : '¥0.00'
+      }
+      return value || ''
+    })
+    return content
+  }
+  
   const value = deliveryData.value[key]
   if (key === 'total_amount') {
     return value ? `¥${Number(value).toFixed(2)}` : '¥0.00'
@@ -777,12 +924,14 @@ const onCanvasDrop = (event) => {
       fieldType,
       key: fieldKey,
       label: fieldLabel,
+      content: '',
       x: Math.round(x),
       y: Math.round(y),
       width: 180,
       height: 22,
       fontSize: '12px',
       fontWeight: 'normal',
+      fontFamily: '',
       textAlign: 'left',
       showBorder: false
     })
@@ -791,10 +940,30 @@ const onCanvasDrop = (event) => {
     
     const presetConfig = {
       title: { width: 300, height: 50, fontSize: '28px', fontWeight: 'bold', textAlign: 'center' },
-      company: { width: 250, height: 28, fontSize: '14px', fontWeight: 'normal', textAlign: 'center' },
+      qrCode: { width: 120, height: 140, fontSize: '12px', fontWeight: 'normal', textAlign: 'center' },
+      companyName: { width: 250, height: 28, fontSize: '16px', fontWeight: 'bold', textAlign: 'center' },
+      companyLogo: { width: 80, height: 80, fontSize: '12px', fontWeight: 'normal', textAlign: 'center' },
+      companyAddress: { width: 280, height: 24, fontSize: '11px', fontWeight: 'normal', textAlign: 'left' },
+      companyPhone: { width: 150, height: 24, fontSize: '11px', fontWeight: 'normal', textAlign: 'left' },
+      companyEmail: { width: 200, height: 24, fontSize: '11px', fontWeight: 'normal', textAlign: 'left' },
+      companyStamp: { width: 80, height: 80, fontSize: '12px', fontWeight: 'normal', textAlign: 'center' },
       signature: { width: canvasWidthPx.value - 80, height: 35, fontSize: '12px', fontWeight: 'normal', textAlign: 'left' },
       table: { width: canvasWidthPx.value - 80, height: 180, fontSize: '11px', fontWeight: 'normal', textAlign: 'left' },
       copyLabels: { width: 30, height: 200, fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }
+    }
+    
+    const presetLabels = {
+      title: '标题',
+      qrCode: '二维码单号',
+      companyName: '公司名称',
+      companyLogo: '公司Logo',
+      companyAddress: '公司地址',
+      companyPhone: '公司电话',
+      companyEmail: '公司邮箱',
+      companyStamp: '公司印章',
+      signature: '签收区',
+      table: '明细表格',
+      copyLabels: '联单名称'
     }
     
     const config = presetConfig[presetType] || {}
@@ -803,16 +972,14 @@ const onCanvasDrop = (event) => {
       id: generateId(),
       type: 'preset',
       presetType,
-      label: presetType === 'title' ? '标题' : 
-             presetType === 'company' ? '公司名称' :
-             presetType === 'signature' ? '签收区' :
-             presetType === 'copyLabels' ? '联单名称' : '明细表格',
+      label: presetLabels[presetType] || '预设元素',
       x: Math.round(x),
       y: Math.round(y),
       width: config.width || 150,
       height: config.height || 30,
       fontSize: config.fontSize || '12px',
       fontWeight: config.fontWeight || 'normal',
+      fontFamily: '',
       textAlign: config.textAlign || 'left',
       showBorder: false
     })
@@ -948,7 +1115,37 @@ const onResizeUp = () => {
 }
 
 const updateElement = () => {
+  const index = placedElements.value.findIndex(el => el.id === selectedElementId.value)
+  if (index > -1) {
+    const element = placedElements.value[index]
+    placedElements.value[index] = { ...element }
+  }
   saveLayout()
+}
+
+const handleContentInput = (value) => {
+  if (value && value.endsWith('@')) {
+    showFieldPicker.value = true
+  } else {
+    showFieldPicker.value = false
+  }
+}
+
+const insertField = (field) => {
+  if (!selectedElement.value) return
+  
+  let content = selectedElement.value.content || ''
+  const atIndex = content.lastIndexOf('@')
+  if (atIndex !== -1) {
+    content = content.substring(0, atIndex) + `{${field.key}}`
+  } else {
+    content += `{${field.key}}`
+  }
+  
+  selectedElement.value.content = content
+  selectedElement.value.key = field.key
+  showFieldPicker.value = false
+  updateElement()
 }
 
 const centerElement = (direction) => {
@@ -1015,6 +1212,7 @@ const getElementStyle = (element) => {
     width: `${element.width}px`,
     fontSize: element.fontSize,
     fontWeight: element.fontWeight,
+    fontFamily: element.fontFamily || '',
     textAlign: element.textAlign,
     border: element.showBorder ? '1px solid #333' : 'none',
     boxSizing: 'border-box'
@@ -1078,7 +1276,11 @@ const loadLayout = () => {
   const saved = localStorage.getItem('deliveryPrintLayout')
   if (saved) {
     try {
-      placedElements.value = JSON.parse(saved)
+      const elements = JSON.parse(saved)
+      placedElements.value = elements.map(el => ({
+        ...el,
+        fontFamily: el.fontFamily || ''
+      }))
     } catch (e) {
       console.error('加载布局失败:', e)
       initDefaultLayout()
@@ -1141,6 +1343,7 @@ const initDefaultLayout = () => {
         fieldType: 'main',
         key: field.key,
         label: field.label,
+        content: '',
         x: marginPx + col * colWidth,
         y: currentY + row * 26,
         width: colWidth - 10,
@@ -1198,62 +1401,88 @@ const resetLayout = () => {
   }).catch(() => {})
 }
 
-const saveAsTemplate = () => {
-  ElMessageBox.prompt('请输入模板名称', '保存模板', {
-    confirmButtonText: '保存',
-    cancelButtonText: '取消',
-    inputPattern: /\S+/,
-    inputErrorMessage: '模板名称不能为空'
-  }).then(({ value }) => {
-    const template = {
-      id: generateId(),
+const saveAsTemplate = async () => {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入模板名称', '保存模板', {
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+      inputPattern: /\S+/,
+      inputErrorMessage: '模板名称不能为空'
+    })
+    
+    const templateData = {
       name: value,
-      date: new Date().toLocaleDateString('zh-CN'),
-      paperSize: printSettings.paperSize,
-      orientation: printSettings.orientation,
+      template_type: 'delivery',
       elements: JSON.parse(JSON.stringify(placedElements.value)),
-      settings: JSON.parse(JSON.stringify(printSettings))
+      settings: JSON.parse(JSON.stringify(printSettings)),
+      paper_width: Math.round(canvasWidth.value),
+      paper_height: Math.round(canvasHeight.value),
+      orientation: printSettings.orientation
     }
-    templates.value.push(template)
-    localStorage.setItem('printTemplates', JSON.stringify(templates.value))
+    
+    console.log('保存模板数据:', templateData)
+    const res = await createPrintTemplate(templateData)
+    console.log('保存模板响应:', res)
+    
+    const newTemplate = res.data || res
+    templates.value.unshift(newTemplate)
     ElMessage.success('模板保存成功')
-  }).catch(() => {})
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('保存模板失败:', e)
+      const errorMsg = e.message || e.msg || '保存模板失败，请稍后重试'
+      ElMessage.error(errorMsg)
+    }
+  }
 }
 
-const loadTemplate = (template) => {
-  ElMessageBox.confirm('确定要加载此模板吗？当前布局将被替换。', '提示', {
-    type: 'warning'
-  }).then(() => {
+const loadTemplate = async (template) => {
+  try {
+    await ElMessageBox.confirm('确定要加载此模板吗？当前布局将被替换。', '提示', {
+      type: 'warning'
+    })
+    
     placedElements.value = JSON.parse(JSON.stringify(template.elements))
-    if (template.paperSize) printSettings.paperSize = template.paperSize
+    if (template.settings?.paperSize) printSettings.paperSize = template.settings.paperSize
     if (template.orientation) printSettings.orientation = template.orientation
     Object.assign(printSettings, template.settings || {})
     selectedElementId.value = null
     ElMessage.success('模板加载成功')
-  }).catch(() => {})
+  } catch (e) {
+    // 用户取消
+  }
 }
 
-const deleteTemplate = (template) => {
-  ElMessageBox.confirm('确定要删除此模板吗？', '提示', {
-    type: 'warning'
-  }).then(() => {
+const deleteTemplate = async (template) => {
+  try {
+    await ElMessageBox.confirm('确定要删除此模板吗？', '提示', {
+      type: 'warning'
+    })
+    
+    await deletePrintTemplate(template.id)
     const index = templates.value.findIndex(t => t.id === template.id)
     if (index > -1) {
       templates.value.splice(index, 1)
-      localStorage.setItem('printTemplates', JSON.stringify(templates.value))
-      ElMessage.success('模板已删除')
     }
-  }).catch(() => {})
+    ElMessage.success('模板已删除')
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('删除模板失败:', e)
+      ElMessage.error('删除模板失败')
+    }
+  }
 }
 
-const loadTemplates = () => {
-  const saved = localStorage.getItem('printTemplates')
-  if (saved) {
-    try {
-      templates.value = JSON.parse(saved)
-    } catch (e) {
-      console.error('加载模板失败:', e)
-    }
+const loadTemplates = async () => {
+  try {
+    const res = await getPrintTemplates({ template_type: 'delivery' })
+    console.log('模板API返回:', res)
+    const data = res.data
+    templates.value = data?.items || data?.results || data || []
+    console.log('模板列表:', templates.value)
+  } catch (e) {
+    console.error('加载模板失败:', e)
+    templates.value = []
   }
 }
 
@@ -1284,14 +1513,78 @@ const initDeliveryData = () => {
   }
 }
 
-const generatePrintHTML = () => {
-  const elements = placedElements.value.map(el => {
+const loadCompanyInfo = async () => {
+  try {
+    const res = await getCompanyInfo()
+    if (res.data) {
+      companyInfo.value = {
+        name: res.data.name || '豪威工贸有限公司',
+        short_name: res.data.short_name || '',
+        address: res.data.business_address || res.data.registered_address || '',
+        phone: res.data.phone || '',
+        email: res.data.email || '',
+        website: res.data.website || '',
+        logo_base64: res.data.logo_base64 || '',
+        stamp_base64: res.data.stamp_base64 || ''
+      }
+    }
+  } catch (error) {
+    console.error('加载公司信息失败:', error)
+  }
+}
+
+const generateQRCodeDataUrl = async (text, size) => {
+  try {
+    const dataUrl = await QRCodeLib.toDataURL(text, {
+      width: size,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    })
+    return dataUrl
+  } catch (e) {
+    console.error('二维码生成错误:', e)
+    return ''
+  }
+}
+
+const generatePrintHTML = async () => {
+  const elements = await Promise.all(placedElements.value.map(async (el) => {
     const xMm = (el.x / MM_TO_PX).toFixed(2)
     const yMm = (el.y / MM_TO_PX).toFixed(2)
     const widthMm = (el.width / MM_TO_PX).toFixed(2)
     const heightMm = (el.height / MM_TO_PX).toFixed(2)
     
     if (el.type === 'field') {
+      let displayValue = ''
+      if (el.content) {
+        displayValue = el.content.replace(/\{(\w+)\}/g, (match, fieldKey) => {
+          if (fieldKey.startsWith('company_')) {
+            const companyFieldMap = {
+              'company_name': companyInfo.value.name,
+              'company_address': companyInfo.value.address,
+              'company_phone': companyInfo.value.phone,
+              'company_email': companyInfo.value.email
+            }
+            return companyFieldMap[fieldKey] || ''
+          }
+          const value = deliveryData.value[fieldKey]
+          if (fieldKey === 'total_amount') {
+            return value ? `¥${Number(value).toFixed(2)}` : '¥0.00'
+          }
+          return value || ''
+        })
+      } else {
+        const value = deliveryData.value[el.key]
+        if (el.key === 'total_amount') {
+          displayValue = value ? `¥${Number(value).toFixed(2)}` : '¥0.00'
+        } else {
+          displayValue = value || '-'
+        }
+      }
+      
       return `
         <div style="
           position: absolute;
@@ -1300,13 +1593,14 @@ const generatePrintHTML = () => {
           width: ${widthMm}mm;
           font-size: ${el.fontSize};
           font-weight: ${el.fontWeight};
+          font-family: ${el.fontFamily || ''};
           text-align: ${el.textAlign};
           border: ${el.showBorder ? '1px solid #333' : 'none'};
           box-sizing: border-box;
           white-space: nowrap;
         ">
           <span style="font-weight: bold;">${el.label}：</span>
-          <span>${getFieldValue(el.key)}</span>
+          <span>${displayValue}</span>
         </div>
       `
     } else if (el.type === 'preset') {
@@ -1327,7 +1621,67 @@ const generatePrintHTML = () => {
             box-sizing: border-box;
           ">送 货 单</div>
         `
-      } else if (el.presetType === 'company') {
+      } else if (el.presetType === 'qrCode') {
+        const orderNo = deliveryData.value.order_no || 'QR'
+        const qrSize = Math.min(el.width, el.height) * 0.7
+        const qrDataUrl = await generateQRCodeDataUrl(orderNo, Math.round(qrSize))
+        return `
+          <div style="
+            position: absolute;
+            left: ${xMm}mm;
+            top: ${yMm}mm;
+            width: ${widthMm}mm;
+            height: ${heightMm}mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 2mm;
+          ">
+            <img src="${qrDataUrl}" style="width: ${(qrSize / MM_TO_PX).toFixed(2)}mm; height: ${(qrSize / MM_TO_PX).toFixed(2)}mm; object-fit: contain;" />
+            <div style="font-size: ${el.fontSize}; color: #333; margin-top: 1mm; text-align: center; word-break: break-all;">${orderNo}</div>
+          </div>
+        `
+      } else if (el.presetType === 'companyName') {
+        return `
+          <div style="
+            position: absolute;
+            left: ${xMm}mm;
+            top: ${yMm}mm;
+            width: ${widthMm}mm;
+            font-size: ${el.fontSize};
+            font-weight: ${el.fontWeight};
+            text-align: ${el.textAlign};
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+          ">${companyInfo.value.name || '公司名称'}</div>
+        `
+      } else if (el.presetType === 'companyLogo') {
+        if (companyInfo.value.logo_base64) {
+          const logoSize = Math.min(el.width, el.height) * 0.9
+          return `
+            <div style="
+              position: absolute;
+              left: ${xMm}mm;
+              top: ${yMm}mm;
+              width: ${widthMm}mm;
+              height: ${heightMm}mm;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-sizing: border-box;
+            ">
+              <img src="data:image/png;base64,${companyInfo.value.logo_base64}" style="width: ${(logoSize / MM_TO_PX).toFixed(2)}mm; height: ${(logoSize / MM_TO_PX).toFixed(2)}mm; object-fit: contain;" />
+            </div>
+          `
+        } else {
+          return ''
+        }
+      } else if (el.presetType === 'companyAddress') {
         return `
           <div style="
             position: absolute;
@@ -1336,13 +1690,63 @@ const generatePrintHTML = () => {
             width: ${widthMm}mm;
             font-size: ${el.fontSize};
             text-align: ${el.textAlign};
-            color: #666;
+            color: #333;
             display: flex;
             align-items: center;
-            justify-content: center;
             box-sizing: border-box;
-          ">豪威工贸有限公司</div>
+          "><span style="color: #666;">地址：</span>${companyInfo.value.address || ''}</div>
         `
+      } else if (el.presetType === 'companyPhone') {
+        return `
+          <div style="
+            position: absolute;
+            left: ${xMm}mm;
+            top: ${yMm}mm;
+            width: ${widthMm}mm;
+            font-size: ${el.fontSize};
+            text-align: ${el.textAlign};
+            color: #333;
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+          "><span style="color: #666;">电话：</span>${companyInfo.value.phone || ''}</div>
+        `
+      } else if (el.presetType === 'companyEmail') {
+        return `
+          <div style="
+            position: absolute;
+            left: ${xMm}mm;
+            top: ${yMm}mm;
+            width: ${widthMm}mm;
+            font-size: ${el.fontSize};
+            text-align: ${el.textAlign};
+            color: #333;
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+          "><span style="color: #666;">邮箱：</span>${companyInfo.value.email || ''}</div>
+        `
+      } else if (el.presetType === 'companyStamp') {
+        if (companyInfo.value.stamp_base64) {
+          const stampSize = Math.min(el.width, el.height) * 0.9
+          return `
+            <div style="
+              position: absolute;
+              left: ${xMm}mm;
+              top: ${yMm}mm;
+              width: ${widthMm}mm;
+              height: ${heightMm}mm;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-sizing: border-box;
+            ">
+              <img src="data:image/png;base64,${companyInfo.value.stamp_base64}" style="width: ${(stampSize / MM_TO_PX).toFixed(2)}mm; height: ${(stampSize / MM_TO_PX).toFixed(2)}mm; object-fit: contain;" />
+            </div>
+          `
+        } else {
+          return ''
+        }
       } else if (el.presetType === 'signature') {
         return `
           <div style="
@@ -1462,7 +1866,9 @@ const generatePrintHTML = () => {
       }
     }
     return ''
-  }).join('')
+  }))
+
+  const elementsHtml = elements.filter(Boolean).join('')
 
   const dotMatrixStyles = printSettings.dotMatrixMode ? `
     .print-page {
@@ -1517,7 +1923,7 @@ const generatePrintHTML = () => {
     </head>
     <body>
       <div class="print-page">
-        ${elements}
+        ${elementsHtml}
         <div class="page-footer">
           ${printSettings.showDate ? `<span>打印日期：${new Date().toLocaleDateString('zh-CN')}</span>` : ''}
           <span>共 ${printSettings.copyCount} 联单</span>
@@ -1533,7 +1939,7 @@ const handlePrint = async () => {
   printing.value = true
   
   try {
-    const html = generatePrintHTML()
+    const html = await generatePrintHTML()
     const printWindow = window.open('', '_blank')
     
     if (!printWindow) {
@@ -1561,7 +1967,7 @@ const exportPDF = async () => {
   exporting.value = true
   
   try {
-    const html = generatePrintHTML()
+    const html = await generatePrintHTML()
     await exportToPDF(html, `送货单-${deliveryData.value.order_no}`)
     ElMessage.success('PDF导出成功')
   } catch (error) {
@@ -1581,6 +1987,7 @@ watch(() => props.modelValue, (val) => {
   if (val) {
     loadLayout()
     loadTemplates()
+    loadCompanyInfo()
     initDeliveryData()
     selectedElementId.value = null
   }
@@ -1824,13 +2231,94 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.preset-company {
+.preset-qrcode {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 4px;
+}
+
+.preset-qrcode .qrcode-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preset-qrcode .qrcode-label {
+  color: #333;
+  margin-top: 4px;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.2;
+}
+
+.preset-company-name {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: #333;
+  font-weight: bold;
   box-sizing: border-box;
+}
+
+.preset-logo {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.preset-logo .company-logo-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.preset-stamp {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.preset-stamp .company-stamp-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.placeholder-text {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+.preset-company-field {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.preset-company-field .field-label {
+  color: #666;
+  font-size: 11px;
+}
+
+.preset-company-field .field-value {
+  color: #333;
+  font-size: 11px;
 }
 
 .preset-signature {
@@ -2045,6 +2533,51 @@ onUnmounted(() => {
   margin-left: 5px;
   font-size: 12px;
   color: #909399;
+}
+
+.align-buttons-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+}
+
+.content-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.field-picker-btn {
+  flex-shrink: 0;
+}
+
+.field-picker-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.field-picker-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #909399;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.field-picker-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #606266;
+  transition: all 0.2s;
+}
+
+.field-picker-item:hover {
+  background: #f0f7ff;
+  color: #165DFF;
 }
 
 .align-buttons {
