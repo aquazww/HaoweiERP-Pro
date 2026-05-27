@@ -66,3 +66,4 @@ db.sqlite3-journal
 *.temp
 .cache/
 .codebuddy/rules/tcb/
+*.fpk
