@@ -1,5 +1,5 @@
 <template>
-  <div class="purchase-page">
+  <div class="common-page purchase-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -58,13 +58,6 @@
               <span class="order-no-link" @click="handleView(row)">{{ row.order_no }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="150" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="handleView(row)">查看</el-button>
-              <el-button type="primary" link size="small" @click="handleEdit(row)" v-if="canEditPurchase && row.status === 'pending'">编辑</el-button>
-              <el-button type="danger" link size="small" @click="handleDelete(row)" v-if="canDeletePurchase && row.status === 'pending'">删除</el-button>
-            </template>
-          </el-table-column>
         </el-table>
         <div class="pagination-wrapper">
           <el-pagination
@@ -82,6 +75,7 @@
 
     <!-- 新增/编辑弹窗 -->
     <PurchaseOrderForm
+      ref="purchaseFormRef"
       v-model="dialogVisible"
       :dialog-title="isEdit ? '编辑采购单' : '新增采购单'"
       :is-edit="isEdit"
@@ -90,6 +84,7 @@
       :supplier-list="supplierList"
       :warehouse-list="warehouseList"
       :goods-list="goodsList"
+      :category-list="categoryList"
       :available-goods="availableGoods"
       :total-quantity="totalQuantity"
       :total-amount="totalAmount"
@@ -98,6 +93,8 @@
       @add-item="addItem"
       @remove-item="removeItem"
       @goods-change="handleGoodsChange"
+      @code-change="handleCodeChange"
+      @spec-change="handleSpecChange"
       @quantity-input="handleQuantityInput"
       @quantity-blur="handleQuantityBlur"
       @price-input="handlePriceInput"
@@ -112,15 +109,18 @@
       :can-edit="canEditPurchase"
       :can-stock-in="canStockIn"
       :can-delete="canDeletePurchase"
+      :can-cancel="canEditPurchase"
       @edit="handleEditFromView"
       @stock-in="handleStockInFromView"
       @delete="handleDeleteFromView"
+      @cancel="handleCancelFromView"
+      @refresh="handleRefresh"
     />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { usePurchaseOrders } from '@/composables/usePurchaseOrders'
 import PurchaseOrderForm from './components/PurchaseOrderForm.vue'
@@ -132,6 +132,8 @@ const canAddPurchase = canAdd('purchase')
 const canEditPurchase = canEdit('purchase')
 const canDeletePurchase = canDelete('purchase')
 const canStockIn = canEdit('inventory')
+
+const purchaseFormRef = ref(null)
 
 const {
   loading,
@@ -151,6 +153,7 @@ const {
   supplierList,
   warehouseList,
   goodsList,
+  categoryList,
   form,
   rules,
   availableGoods,
@@ -163,16 +166,20 @@ const {
   handleView,
   handleEditFromView,
   handleDeleteFromView,
+  handleCancelFromView,
+  handleRefresh,
   addItem,
   removeItem,
   handleGoodsChange,
+  handleCodeChange,
+  handleSpecChange,
   handleQuantityInput,
   handleQuantityBlur,
   handlePriceInput,
   handlePriceBlur,
   handleSubmit,
   handleDialogClose
-} = usePurchaseOrders()
+} = usePurchaseOrders(purchaseFormRef)
 
 const getStatusType = (status) => {
   const typeMap = {
@@ -184,107 +191,23 @@ const getStatusType = (status) => {
   return typeMap[status] || 'info'
 }
 
+const handleStockInFromView = () => {
+  loadOrders()
+}
+
 onMounted(() => {
   loadOrders()
 })
 </script>
 
 <style scoped>
-.purchase-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.purchase-page .item-count-badge {
+  background: var(--color-primary-lighter);
+  color: var(--color-primary);
+  padding: 2px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 500;
 }
-
-.page-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.toolbar-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-box {
-  position: relative;
-  width: 280px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #909399;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  padding-left: 30px;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-}
-
-.table-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.data-table {
-  flex: 1;
-}
-
-.item-count-badge {
-  background: #f0f5ff;
-  color: #165DFF;
-  padding: 2px 10px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.price-text {
-  color: #f56c6c;
-  font-weight: 500;
-}
-
-.order-no-link {
-  color: #409eff;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.order-no-link:hover {
-  color: #66b1ff;
-}
-
-.pagination-wrapper {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-}
+.purchase-page .price-text { color: var(--color-danger); font-weight: 600; font-family: 'SF Mono','Monaco','Consolas',monospace; }
+.purchase-page .order-no-link { color: var(--color-primary); cursor: pointer; font-weight: 500; }
+.purchase-page .order-no-link:hover { color: var(--color-primary-dark); text-decoration: underline; }
 </style>

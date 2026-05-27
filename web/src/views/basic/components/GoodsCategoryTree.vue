@@ -3,7 +3,6 @@
     <div class="category-header">
       <span class="category-title">商品分类</span>
       <div class="category-actions">
-        <el-button type="primary" link :icon="Plus" size="small" @click="handleAddCategory" v-if="canAddGoods">添加</el-button>
         <el-button type="primary" link :icon="Setting" size="small" @click="handleManageCategory" v-if="canEditGoods">管理</el-button>
       </div>
     </div>
@@ -76,7 +75,7 @@
 </template>
 
 <script setup>
-import { Plus, Setting, Folder, Document, ArrowRight } from '@element-plus/icons-vue'
+import { Setting, Folder, Document, ArrowRight } from '@element-plus/icons-vue'
 
 defineProps({
   categoryTreeData: {
@@ -101,11 +100,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['add-category', 'manage-category', 'select-category', 'category-click'])
-
-const handleAddCategory = () => {
-  emit('add-category')
-}
+const emit = defineEmits(['manage-category', 'select-category', 'category-click'])
 
 const handleManageCategory = () => {
   emit('manage-category')
@@ -132,11 +127,9 @@ const getCategoryTotalGoods = (category) => {
 
 <style scoped>
 .category-card {
-  width: 260px;
+  width: 220px;
   flex-shrink: 0;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -146,9 +139,9 @@ const getCategoryTotalGoods = (category) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+  padding: 12px 14px;
+  border-bottom: 1px solid #ebeef5;
+  background: #fafbfc;
 }
 
 .category-title {
@@ -165,7 +158,7 @@ const getCategoryTotalGoods = (category) => {
 .category-tree-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .category-tree {
@@ -178,7 +171,7 @@ const getCategoryTotalGoods = (category) => {
 }
 
 .category-node.level-1 {
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .category-node.level-2 {
@@ -189,10 +182,10 @@ const getCategoryTotalGoods = (category) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 10px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  border-radius: 6px;
+  border-radius: 4px;
   user-select: none;
   position: relative;
 }
@@ -261,7 +254,7 @@ const getCategoryTotalGoods = (category) => {
 }
 
 .category-item .category-name {
-  font-size: 14px;
+  font-size: 13px;
   color: #303133;
   flex: 1;
 }
@@ -272,11 +265,11 @@ const getCategoryTotalGoods = (category) => {
 }
 
 .category-item .category-count {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
   background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
@@ -287,21 +280,21 @@ const getCategoryTotalGoods = (category) => {
 
 .children-container {
   position: relative;
-  padding-left: 24px;
+  padding-left: 20px;
 }
 
 .children-container::before {
   content: '';
   position: absolute;
-  left: 18px;
+  left: 14px;
   top: 0;
-  bottom: 12px;
+  bottom: 8px;
   width: 1px;
   background: #d9d9d9;
 }
 
 .category-node.level-2 .category-item {
-  padding: 8px 12px;
+  padding: 6px 10px;
   position: relative;
 }
 

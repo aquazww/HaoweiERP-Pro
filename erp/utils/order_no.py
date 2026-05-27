@@ -74,3 +74,10 @@ def generate_stock_transfer_no():
     """生成库存调拨单号"""
     from inventory.models import StockTransfer
     return generate_order_no(prefix='ST', model_class=StockTransfer)
+
+
+def generate_payment_no(payment_type='pay'):
+    """生成收付款单号"""
+    from finance.models import Payment
+    prefix = 'PP' if payment_type == 'pay' else 'PR'
+    return generate_order_no(prefix=prefix, model_class=Payment)

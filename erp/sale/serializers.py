@@ -21,7 +21,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
 class SaleItemCreateSerializer(serializers.ModelSerializer):
     """销售明细创建序列化器"""
     goods = serializers.IntegerField()
-    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))
+    quantity = serializers.IntegerField(min_value=1)
     price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))
     remark = serializers.CharField(required=False, allow_blank=True, default='')
     
@@ -32,6 +32,7 @@ class SaleItemCreateSerializer(serializers.ModelSerializer):
 
 class SaleOrderSerializer(serializers.ModelSerializer):
     """销售单序列化器"""
+    # 返回ID供前端使用,避免嵌套对象
     customer = serializers.IntegerField(source='customer.id', read_only=True)
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)

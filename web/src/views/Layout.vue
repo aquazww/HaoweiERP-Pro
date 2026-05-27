@@ -144,7 +144,11 @@
         </div>
       </el-header>
       <el-main class="el-main">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -666,6 +670,12 @@ onMounted(() => {
   width: 100%;
   height: calc(100% - 52px);
 }
+
+/* 页面过渡动画 */
+.page-fade-enter-active,
+.page-fade-leave-active { transition: all .25s ease; }
+.page-fade-enter-from { opacity: 0; transform: translateY(8px); }
+.page-fade-leave-to { opacity: 0; transform: translateY(-8px); }
 
 /* 确保主内容区域完全铺满 */
 .layout-container :deep(.el-main) {

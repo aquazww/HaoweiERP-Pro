@@ -1,0 +1,46 @@
+#!/bin/bash
+# ============================================
+#  豪威ERP - 容器生命周期控制脚本
+#  FNOS 通过此脚本管理 start / stop / status
+# ============================================
+
+COMPOSE_FILE="${TRIM_APPDEST}/docker/docker-compose.yaml"
+DATA_DIR="${TRIM_PKGVAR}"
+
+case "$1" in
+    start)
+        if [ -f "${COMPOSE_FILE}" ]; then
+            cd "$(dirname "${COMPOSE_FILE}")"
+            docker compose -f "${COMPOSE_FILE}" up -d 2>/dev/null
+        fi
+        exit 0
+        ;;
+
+    stop)
+        if [ -f "${COMPOSE_FILE}" ]; then
+            cd "$(dirname "${COMPOSE_FILE}")"
+            docker compose -f "${COMPOSE_FILE}" down --remove-orphans 2>/dev/null
+        fi
+        exit 0
+        ;;
+
+    status)
+        if [ ! -f "${COMPOSE_FILE}" ]; then
+            echo "compose file not found"
+            exit 3
+        fi
+        # 提取容器名并检查运行状态
+        CONTAINER_NAME=$(grep 'container_name:' "${COMPOSE_FILE}" | head -1 | awk '{print $2}' | xargs)
+        if [ -z "${CONTAINER_NAME}" ]; then
+            echo "no container_name found in compose"
+            exit 3
+        fi
+        docker inspect -f '{{.State.Running}}' "${CONTAINER_NAME}" 2>/dev/null | grep -q 'true'
+        exit $?
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|status}"
+        exit 1
+        ;;
+esac

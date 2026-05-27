@@ -1,5 +1,5 @@
 <template>
-  <div class="payments-page">
+  <div class="common-page payments-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -164,86 +164,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.payments-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.toolbar-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-box {
-  position: relative;
-  width: 280px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #909399;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  padding-left: 30px;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-}
-
-.table-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.data-table {
-  flex: 1;
-}
-
-.price-text {
-  color: #f56c6c;
-  font-weight: 500;
-}
-
-.price-text.success {
-  color: #67c23a;
-}
-
-.pagination-wrapper {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-}
+.payments-page .price-text { color: var(--color-danger); font-weight: 600; font-family: 'SF Mono','Monaco','Consolas',monospace; }
+.payments-page .price-text.success { color: var(--color-success); }
+.payments-page .order-no-link { color: var(--color-primary); cursor: pointer; font-weight: 500; }
+.payments-page .order-no-link:hover { color: var(--color-primary-dark); text-decoration: underline; }
 </style>

@@ -10,7 +10,7 @@ from rest_framework.exceptions import APIException
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter, SearchFilter
 
-from .models import Inventory, InventoryLog, StockIn, StockOut, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
+from .models import Inventory, InventoryLog, StockIn, StockInItem, StockOut, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
 from basic.models import Goods
 from .serializers import (
     InventorySerializer, InventoryListSerializer, InventoryLogSerializer,
@@ -316,6 +316,7 @@ class InventoryLogViewSet(BaseModelViewSet):
 
 
 class StockInViewSet(BaseModelViewSet):
+    """入库单视图集"""
     permission_classes = [IsAuthenticated, ModulePermission]
     queryset = StockIn.objects.select_related(
         'warehouse', 'purchase_order', 'created_by'
@@ -342,6 +343,118 @@ class StockInViewSet(BaseModelViewSet):
             order_no=order_no,
             created_by=self.request.user
         )
+
+    def create(self, request, *args, **kwargs):
+        """创建入库单，支持明细数据"""
+        from decimal import Decimal
+        from basic.models import Goods
+        from purchase.models import PurchaseItem
+        
+        try:
+            items_data = request.data.get('items', [])
+            purchase_order_id = request.data.get('purchase_order')
+            warehouse_id = request.data.get('warehouse')
+            remark = request.data.get('remark', '')
+            
+            if not items_data:
+                return Response({
+                    'code': 400,
+                    'msg': '入库明细不能为空',
+                    'data': None
+                })
+            
+            with transaction.atomic():
+                from utils.order_no import generate_stock_in_no
+                order_no = generate_stock_in_no()
+                
+                total_amount = Decimal('0')
+                for item in items_data:
+                    quantity = Decimal(str(item.get('quantity', 0)))
+                    price = Decimal(str(item.get('price', 0)))
+                    total_amount += quantity * price
+                
+                stock_in = StockIn.objects.create(
+                    order_no=order_no,
+                    warehouse_id=warehouse_id,
+                    purchase_order_id=purchase_order_id,
+                    total_amount=total_amount,
+                    remark=remark,
+                    created_by=request.user
+                )
+                
+                for item in items_data:
+                    goods_id = item.get('goods')
+                    quantity = Decimal(str(item.get('quantity', 0)))
+                    price = Decimal(str(item.get('price', 0)))
+                    
+                    if quantity > 0:
+                        InventoryService.stock_in(
+                            goods_id=goods_id,
+                            warehouse_id=warehouse_id,
+                            quantity=quantity,
+                            related_order=stock_in,
+                            remark=f'采购入库 - {stock_in.order_no}',
+                            created_by=request.user
+                        )
+                        
+                        # 创建入库单明细
+                        goods = Goods.objects.get(id=goods_id)
+                        StockInItem.objects.create(
+                            stock_in=stock_in,
+                            goods=goods,
+                            quantity=int(quantity),
+                            price=price,
+                            amount=quantity * price,
+                            remark=item.get('remark', '')
+                        )
+                        
+                        if purchase_order_id:
+                            try:
+                                purchase_item = PurchaseItem.objects.get(
+                                    order_id=purchase_order_id,
+                                    goods_id=goods_id
+                                )
+                                purchase_item.received_quantity = (
+                                    purchase_item.received_quantity or 0
+                                ) + quantity
+                                purchase_item.save()
+                            except PurchaseItem.DoesNotExist:
+                                pass
+                
+                if purchase_order_id:
+                    from purchase.models import PurchaseOrder
+                    purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
+                    all_received = all(
+                        item.received_quantity >= item.quantity
+                        for item in purchase_order.items.all()
+                    )
+                    some_received = any(
+                        item.received_quantity > 0
+                        for item in purchase_order.items.all()
+                    )
+                    
+                    if all_received:
+                        purchase_order.status = 'completed'
+                    elif some_received:
+                        purchase_order.status = 'partial'
+                    purchase_order.save()
+                
+                stock_in.status = 'confirmed'
+                stock_in.save()
+                
+                serializer = self.get_serializer(stock_in)
+                return Response({
+                    'code': 200,
+                    'msg': '入库成功',
+                    'data': serializer.data
+                })
+                
+        except Exception as e:
+            return Response({
+                'code': 500,
+                'msg': f'入库失败: {str(e)}',
+                'data': None
+            }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):

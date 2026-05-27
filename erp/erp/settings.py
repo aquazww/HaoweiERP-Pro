@@ -61,12 +61,37 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'erp.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# 数据库配置 - 支持 SQLite 和 MySQL，通过环境变量切换
+import os as db_os
+DB_ENGINE = db_os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
+if DB_ENGINE == 'django.db.backends.mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'HOST': db_os.environ.get('DB_HOST', 'localhost'),
+            'PORT': db_os.environ.get('DB_PORT', '3306'),
+            'NAME': db_os.environ.get('DB_NAME', 'erp'),
+            'USER': db_os.environ.get('DB_USER', 'root'),
+            'PASSWORD': db_os.environ.get('DB_PASSWORD', ''),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+            'CONN_MAX_AGE': 60,
+        }
     }
-}
+else:
+    DB_NAME_PATH = db_os.environ.get('DB_NAME', 'data/db.sqlite3')
+    from pathlib import Path as _Path
+    if _Path(DB_NAME_PATH).is_absolute():
+        DB_NAME_FULL = DB_NAME_PATH
+    else:
+        DB_NAME_FULL = BASE_DIR / DB_NAME_PATH
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(DB_NAME_FULL),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

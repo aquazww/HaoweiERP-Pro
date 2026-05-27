@@ -62,6 +62,15 @@ export const deleteSaleOrder = (id) => {
 }
 
 /**
+ * 取消销售订单
+ * @param {number} id - 订单ID
+ * @returns {Promise} 取消结果
+ */
+export const cancelSaleOrder = (id) => {
+  return request.post(`/sale/orders/${id}/cancel/`)
+}
+
+/**
  * 确认销售订单
  * @param {number} id - 订单ID
  * @returns {Promise} 确认结果

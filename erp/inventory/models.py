@@ -7,7 +7,7 @@ class Inventory(models.Model):
     """当前库存表"""
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE, verbose_name='商品')
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, verbose_name='仓库')
-    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='库存数量')
+    quantity = models.IntegerField(default=0, verbose_name='库存数量')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -37,9 +37,9 @@ class InventoryLog(models.Model):
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE, verbose_name='商品')
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, verbose_name='仓库')
     change_type = models.CharField(max_length=20, choices=CHANGE_TYPE_CHOICES, verbose_name='变动类型')
-    change_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='变动数量')
-    before_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='变动前数量')
-    after_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='变动后数量')
+    change_quantity = models.IntegerField(verbose_name='变动数量')
+    before_quantity = models.IntegerField(verbose_name='变动前数量')
+    after_quantity = models.IntegerField(verbose_name='变动后数量')
     related_order_type = models.CharField(max_length=50, blank=True, verbose_name='关联单据类型')
     related_order_id = models.IntegerField(null=True, blank=True, verbose_name='关联单据ID')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
@@ -90,6 +90,24 @@ class StockIn(models.Model):
         return self.order_no
 
 
+class StockInItem(models.Model):
+    """入库单明细"""
+    stock_in = models.ForeignKey(StockIn, on_delete=models.CASCADE, related_name='items', verbose_name='入库单')
+    goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
+    quantity = models.IntegerField(verbose_name='数量')
+    price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='单价')
+    amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='金额')
+    remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
+
+    class Meta:
+        db_table = 'biz_stock_in_item'
+        verbose_name = '入库单明细'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.goods.name} - {self.quantity}'
+
+
 class StockOut(models.Model):
     """出库单"""
     STATUS_CHOICES = [
@@ -123,7 +141,7 @@ class StockOutItem(models.Model):
     """出库单明细"""
     stock_out = models.ForeignKey(StockOut, on_delete=models.CASCADE, related_name='items', verbose_name='出库单')
     goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
-    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='数量')
+    quantity = models.IntegerField(verbose_name='数量')
     price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='单价')
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='金额')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
@@ -181,9 +199,9 @@ class StockAdjustItem(models.Model):
     """库存调整明细"""
     adjust = models.ForeignKey(StockAdjust, on_delete=models.CASCADE, related_name='items', verbose_name='调整单')
     goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
-    before_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整前数量')
-    adjust_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整数量')
-    after_quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调整后数量')
+    before_quantity = models.IntegerField(verbose_name='调整前数量')
+    adjust_quantity = models.IntegerField(verbose_name='调整数量')
+    after_quantity = models.IntegerField(verbose_name='调整后数量')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
 
     class Meta:
@@ -226,7 +244,7 @@ class StockTransferItem(models.Model):
     """库存调拨明细"""
     transfer = models.ForeignKey(StockTransfer, on_delete=models.CASCADE, related_name='items', verbose_name='调拨单')
     goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
-    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='调拨数量')
+    quantity = models.IntegerField(verbose_name='调拨数量')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
 
     class Meta:

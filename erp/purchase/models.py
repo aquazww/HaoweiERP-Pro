@@ -39,8 +39,8 @@ class PurchaseItem(models.Model):
     """采购明细"""
     order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items', verbose_name='采购单')
     goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
-    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='数量')
-    received_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='已入库数量')
+    quantity = models.IntegerField(verbose_name='数量')
+    received_quantity = models.IntegerField(default=0, verbose_name='已入库数量')
     price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='单价')
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='金额')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')

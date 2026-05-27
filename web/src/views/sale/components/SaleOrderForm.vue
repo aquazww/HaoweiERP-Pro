@@ -86,6 +86,8 @@
             <el-input-number
               v-model="row.quantity"
               :min="1"
+              :precision="0"
+              :step="1"
               size="small"
               style="width: 100%"
               @input="$emit('quantity-input', $index)"
@@ -120,7 +122,7 @@
       
       <div class="items-summary">
         <span>合计数量: {{ totalQuantity }}</span>
-        <span>合计金额: ¥{{ totalAmount.toFixed(2) }}</span>
+        <span>合计金额: ¥{{ totalAmount }}</span>
       </div>
     </el-form>
     

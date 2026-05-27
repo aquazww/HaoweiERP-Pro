@@ -110,10 +110,16 @@ const loginRules = {
 const handleLogin = async () => {
   if (!formRef.value) return
   
+  // 先验证表单
   try {
     await formRef.value.validate()
-    loading.value = true
-    
+  } catch (validationError) {
+    // 表单验证失败，Element Plus 会显示各自的错误提示，无需额外处理
+    return
+  }
+  
+  loading.value = true
+  try {
     const res = await request.post('/auth/login/', loginForm.value, {
       _skipAuthRedirect: true
     })
@@ -128,10 +134,8 @@ const handleLogin = async () => {
       router.push('/')
     }, 500)
   } catch (error) {
-    if (error !== false) {
-      const errorMsg = error.response?.data?.msg || error.message || '登录失败，请检查用户名和密码'
-      ElMessage.error(errorMsg)
-    }
+    const errorMsg = error.response?.data?.msg || error.message || '登录失败，请检查用户名和密码'
+    ElMessage.error(errorMsg)
   } finally {
     loading.value = false
   }
@@ -153,90 +157,47 @@ onMounted(() => {
 
 <style scoped>
 .login-container {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, var(--color-bg-page) 0%, #f0f9ff 100%);
-  position: relative;
-  overflow: hidden;
+  width: 100%; height: 100vh;
+  display: flex; justify-content: center; align-items: center;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0ecff 30%, #f0f9ff 60%, #f5f3ff 100%);
+  position: relative; overflow: hidden;
 }
 
-.login-bg-shape {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.6;
-  pointer-events: none;
-}
-
+.login-bg-shape { position: absolute; border-radius: 50%; pointer-events: none; }
 .shape-1 {
-  width: 600px;
-  height: 600px;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, rgba(22, 93, 255, 0) 100%);
-  top: -200px;
-  left: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(22,93,255,.15) 0%, transparent 70%);
+  top: -200px; left: -200px;
   animation: float 20s ease-in-out infinite;
 }
-
 .shape-2 {
-  width: 400px;
-  height: 400px;
-  background: linear-gradient(135deg, rgba(22, 93, 255, 0.15) 0%, rgba(22, 93, 255, 0) 100%);
-  bottom: -100px;
-  right: -100px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(34,197,94,.1) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
   animation: float 25s ease-in-out infinite reverse;
 }
-
 .shape-3 {
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, rgba(22, 93, 255, 0.1) 0%, rgba(22, 93, 255, 0) 100%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(139,92,246,.08) 0%, transparent 60%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
   animation: pulse 15s ease-in-out infinite;
 }
-
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(30px, 30px);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-}
+@keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,30px)} }
+@keyframes pulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.1)} }
 
 .login-card {
   width: 420px;
-  background: var(--color-white);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--shadow-xl);
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(22,93,255,.12), 0 4px 12px rgba(0,0,0,.05);
+  border: 1px solid rgba(255,255,255,.6);
   padding: var(--spacing-2xl);
-  position: relative;
-  z-index: 10;
-  animation: slideUp 0.5s ease-out;
+  position: relative; z-index: 10;
+  animation: slideUp .5s ease-out;
 }
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+@keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
 
 .login-header {
   text-align: center;

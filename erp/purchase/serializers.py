@@ -40,16 +40,12 @@ class PurchaseItemSerializer(serializers.ModelSerializer):
         return data
 
 
-class PurchaseItemCreateSerializer(serializers.ModelSerializer):
+class PurchaseItemCreateSerializer(serializers.Serializer):
     """采购明细创建序列化器"""
     goods = serializers.IntegerField()
-    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))
+    quantity = serializers.IntegerField(min_value=1)
     price = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))
     remark = serializers.CharField(required=False, allow_blank=True, default='')
-    
-    class Meta:
-        model = PurchaseItem
-        fields = ['goods', 'quantity', 'price', 'remark']
 
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
@@ -107,7 +103,7 @@ class PurchaseOrderCreateSerializer(serializers.ModelSerializer):
         if not value or len(value) == 0:
             raise serializers.ValidationError('采购明细不能为空')
         
-        goods_ids = [item['goods'] for item in value]
+        goods_ids = [item.get('goods') or item.get('goods_id') for item in value]
         if len(goods_ids) != len(set(goods_ids)):
             raise serializers.ValidationError('采购明细中存在重复商品')
         
@@ -144,7 +140,8 @@ class PurchaseOrderCreateSerializer(serializers.ModelSerializer):
         )
         
         for item_data in items_data:
-            goods = Goods.objects.get(id=item_data['goods'])
+            goods_id = item_data.get('goods') or item_data.get('goods_id')
+            goods = Goods.objects.get(id=goods_id)
             quantity = item_data['quantity']
             price = item_data['price']
             amount = quantity * price
@@ -174,7 +171,8 @@ class PurchaseOrderCreateSerializer(serializers.ModelSerializer):
             
             total_amount = Decimal('0')
             for item_data in items_data:
-                goods = Goods.objects.get(id=item_data['goods'])
+                goods_id = item_data.get('goods') or item_data.get('goods_id')
+                goods = Goods.objects.get(id=goods_id)
                 quantity = item_data['quantity']
                 price = item_data['price']
                 amount = quantity * price

@@ -1,5 +1,5 @@
 <template>
-  <div class="inventory-log-page">
+  <div class="common-page inventory-log-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -173,144 +173,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.inventory-log-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.inventory-log-page .quantity-in { color: var(--color-success); font-weight: 600; }
+.inventory-log-page .quantity-out { color: var(--color-danger); font-weight: 600; }
+.inventory-log-page .balance-text { color: var(--color-primary); font-weight: 500; }
+.inventory-log-page .order-link { color: var(--color-primary); cursor: pointer; font-weight: 500; }
+.inventory-log-page .order-link:hover { color: var(--color-primary-dark); text-decoration: underline; }
+.inventory-log-page .order-detail-content { display: flex; flex-direction: column; gap: 16px; }
+.inventory-log-page .detail-section {
+  background: var(--color-bg-light); border-radius: var(--border-radius-md); padding: 12px;
+  border: 1px solid var(--color-border-light);
 }
-
-.page-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.toolbar-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-box {
-  position: relative;
-  width: 280px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #909399;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  padding-left: 30px;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-}
-
-.table-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.data-table {
-  flex: 1;
-}
-
-.quantity-in {
-  color: #67c23a;
-  font-weight: 500;
-}
-
-.quantity-out {
-  color: #f56c6c;
-  font-weight: 500;
-}
-
-.balance-text {
-  color: #409eff;
-  font-weight: 500;
-}
-
-.order-link {
-  color: #409eff;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.order-link:hover {
-  color: #66b1ff;
-}
-
-.pagination-wrapper {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.order-detail-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.detail-section {
-  background: #f5f7fa;
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.detail-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.detail-row:last-child {
-  margin-bottom: 0;
-}
-
-.detail-label {
-  font-size: 13px;
-  color: #909399;
-  min-width: 60px;
-}
-
-.detail-value {
-  font-size: 14px;
-  color: #303133;
-  font-weight: 500;
-}
-
-.detail-header {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 12px;
-}
+.inventory-log-page .detail-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.inventory-log-page .detail-row:last-child { margin-bottom: 0; }
+.inventory-log-page .detail-label { font-size: 13px; color: var(--color-text-tertiary); min-width: 60px; }
+.inventory-log-page .detail-value { font-size: 14px; color: var(--color-text-primary); font-weight: 500; }
+.inventory-log-page .detail-header { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px; }
 </style>

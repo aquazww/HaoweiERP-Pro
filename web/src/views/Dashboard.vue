@@ -344,21 +344,33 @@ onMounted(() => {
 }
 
 .stat-card {
-  background-color: var(--color-white);
-  border-radius: var(--border-radius-lg);
+  background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
+  border-radius: var(--border-radius-xl);
   border: 1px solid var(--color-border-light);
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-xl);
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  transition: all var(--transition-base);
+  transition: all .3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
-
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 80px; height: 80px;
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  opacity: 0.03;
+  transform: translate(30px, -30px);
+}
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
 }
+.stat-card:hover::after { opacity: 0.06; }
 
 .stat-card-icon {
   width: 56px;

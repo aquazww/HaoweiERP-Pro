@@ -65,3 +65,4 @@ db.sqlite3-journal
 *.tmp
 *.temp
 .cache/
+.codebuddy/rules/tcb/

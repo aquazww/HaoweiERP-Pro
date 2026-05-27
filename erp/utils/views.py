@@ -186,10 +186,13 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             detail = f'创建{module}: {display_name}'
             self.log_action(request, 'create', detail)
             
+            read_serializer_class = self.get_read_serializer_class()
+            read_serializer = read_serializer_class(instance)
+            
             return Response({
                 'code': 200,
                 'msg': '创建成功',
-                'data': serializer.data
+                'data': read_serializer.data
             })
         except Exception as e:
             from rest_framework.exceptions import ValidationError

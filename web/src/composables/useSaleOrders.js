@@ -2,9 +2,9 @@
  * 销售订单管理组合式函数
  * 管理销售订单的加载、增删改查、状态管理等操作
  */
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getSaleOrders, createSaleOrder, updateSaleOrder, deleteSaleOrder } from '@/api/sale'
+import { getSaleOrders, createSaleOrder, updateSaleOrder, deleteSaleOrder, cancelSaleOrder } from '@/api/sale'
 import { getCustomers, getWarehouses, getGoods } from '@/api/basic'
 import { formatPrice, formatInputNumber, parseInputNumber } from '@/utils/format'
 import { canAdd, canEdit, canDelete } from '@/utils/permission'
@@ -31,6 +31,7 @@ export function useSaleOrders() {
   const goodsList = ref([])
   
   const form = reactive({
+    id: null,
     customer: null,
     warehouse: null,
     order_date: '',
@@ -97,11 +98,18 @@ export function useSaleOrders() {
     isEdit.value = true
     dialogTitle.value = '编辑销售单'
     resetForm()
+    form.id = row.id
     form.customer = row.customer
     form.warehouse = row.warehouse
     form.order_date = row.order_date
     form.remark = row.remark || ''
-    form.items = row.items ? structuredClone(row.items) : []
+    // 映射 API items 的字段到表单需要的格式
+    form.items = row.items ? row.items.map(item => ({
+      ...item,
+      unit_name: item.unit || item.unit_name || '',
+      _quantityError: '',
+      _priceError: ''
+    })) : []
     dialogVisible.value = true
   }
   
@@ -111,10 +119,38 @@ export function useSaleOrders() {
   }
   
   const handleEditFromView = () => {
+    const data = viewData.value
     viewDialogVisible.value = false
-    handleEdit(viewData.value)
+    nextTick(() => {
+      handleEdit(data)
+    })
   }
-  
+
+  const handleCancelFromView = async () => {
+    if (!viewData.value) return
+    
+    try {
+      await ElMessageBox.confirm(
+        `确定取消销售单「${viewData.value.order_no}」？取消后将无法再进行出库操作。`,
+        '取消确认',
+        {
+          confirmButtonText: '确定取消',
+          cancelButtonText: '返回',
+          type: 'warning'
+        }
+      )
+      
+      await cancelSaleOrder(viewData.value.id)
+      ElMessage.success('取消成功')
+      loadOrders()
+      viewDialogVisible.value = false
+    } catch (error) {
+      if (error !== 'cancel') {
+        ElMessage.error(error.message || '取消失败')
+      }
+    }
+  }
+
   const handleDeleteFromView = async () => {
     try {
       await ElMessageBox.confirm(
@@ -188,6 +224,7 @@ export function useSaleOrders() {
   }
   
   const resetForm = () => {
+    form.id = null
     form.customer = null
     form.warehouse = null
     form.order_date = ''
@@ -213,7 +250,7 @@ export function useSaleOrders() {
   const handleGoodsChange = (row, index) => {
     const goods = goodsList.value.find(g => g.id === row.goods)
     if (goods) {
-      row.unit = goods.unit?.name || ''
+      row.unit_name = goods.unit?.name || ''
       row.price = goods.sale_price || 0
       row._priceError = ''
       calculateItemAmount(row)
@@ -344,6 +381,10 @@ export function useSaleOrders() {
     calculateTableHeight()
     window.addEventListener('resize', calculateTableHeight)
   })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', calculateTableHeight)
+  })
   
   return {
     loading,
@@ -374,6 +415,7 @@ export function useSaleOrders() {
     handleView,
     handleEditFromView,
     handleDeleteFromView,
+    handleCancelFromView,
     loadOrders,
     loadCustomers,
     loadWarehouses,

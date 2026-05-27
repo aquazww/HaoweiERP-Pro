@@ -1,15 +1,16 @@
 /**
  * 订单管理组合式函数
- * 独立的订单管理逻辑， */
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+ * 独立的订单管理逻辑
+ */
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder } from '@/api/purchase'
-import { getSuppliers, getWarehouses, getGoods } from '@/api/basic'
+import { getPurchaseOrders, createPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, cancelPurchaseOrder } from '@/api/purchase'
+import { getSuppliers, getWarehouses, getGoods, getCategories } from '@/api/basic'
 import { formatPrice, formatInputNumber, parseInputNumber } from '@/utils/format'
 import { canAdd, canEdit, canDelete } from '@/utils/permission'
 
-export function usePurchaseOrders() {
+export function usePurchaseOrders(purchaseFormRef) {
   const loading = ref(false)
   const orderList = ref([])
   const searchKeyword = ref('')
@@ -29,6 +30,7 @@ export function usePurchaseOrders() {
   const supplierList = ref([])
   const warehouseList = ref([])
   const goodsList = ref([])
+  const categoryList = ref([])
   const selectedGoods = ref([])
   
   const form = reactive({
@@ -103,11 +105,12 @@ export function usePurchaseOrders() {
     isEdit.value = true
     dialogTitle.value = '编辑采购单'
     resetForm()
+    form.id = row.id
     form.supplier = row.supplier
     form.warehouse = row.warehouse
     form.order_date = row.order_date
     form.remark = row.remark || ''
-    form.items = row.items ? structuredClone(row.items) : []
+    form.items = row.items ? JSON.parse(JSON.stringify(row.items)) : []
     dialogVisible.value = true
   }
   
@@ -117,26 +120,83 @@ export function usePurchaseOrders() {
   }
   
   const handleEditFromView = () => {
+    const data = viewData.value
     viewDialogVisible.value = false
-    handleEdit(viewData.value)
+    nextTick(() => {
+      handleEdit(data)
+    })
   }
   
   const handleDeleteFromView = async () => {
+    if (!viewData.value) return
+    
+    const statusText = getStatusText(viewData.value.status)
+    
+    if (viewData.value.status === 'completed') {
+      ElMessage.warning('已入库的采购单不能删除')
+      return
+    }
+    
+    if (viewData.value.status === 'partial') {
+      ElMessage.warning('部分入库的采购单不能删除，请先处理完入库')
+      return
+    }
+    
+    if (viewData.value.status === 'cancelled') {
+      ElMessage.warning('已取消的采购单不能删除')
+      return
+    }
+    
     try {
       await ElMessageBox.confirm(
         `确定删除采购单「${viewData.value.order_no}」？此操作不可恢复`,
-        '提示',
-        { type: 'warning' }
+        '删除确认',
+        {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        }
       )
+      
       await deletePurchaseOrder(viewData.value.id)
       ElMessage.success('删除成功')
       loadOrders()
       viewDialogVisible.value = false
     } catch (error) {
       if (error !== 'cancel') {
-        ElMessage.error('删除失败')
+        ElMessage.error(error.message || '删除失败')
       }
     }
+  }
+  
+  const handleCancelFromView = async () => {
+    if (!viewData.value) return
+    
+    try {
+      await ElMessageBox.confirm(
+        `确定取消采购单「${viewData.value.order_no}」？取消后将无法再进行入库操作。`,
+        '取消确认',
+        {
+          confirmButtonText: '确定取消',
+          cancelButtonText: '返回',
+          type: 'warning'
+        }
+      )
+      
+      await cancelPurchaseOrder(viewData.value.id)
+      ElMessage.success('取消成功')
+      loadOrders()
+      viewDialogVisible.value = false
+    } catch (error) {
+      if (error !== 'cancel') {
+        ElMessage.error(error.message || '取消失败')
+      }
+    }
+  }
+
+  const handleRefresh = () => {
+    loadOrders()
   }
   
   const loadOrders = async () => {
@@ -183,6 +243,9 @@ export function usePurchaseOrders() {
     }
   }
   
+  /**
+   * 加载商品列表
+   */
   const loadGoods = async () => {
     try {
       const res = await getGoods({ page_size: 1000, status: 1 })
@@ -192,7 +255,22 @@ export function usePurchaseOrders() {
     }
   }
   
+  /**
+   * 加载商品分类列表
+   */
+  const loadCategories = async () => {
+    try {
+      const res = await getCategories({ page_size: 1000, is_active: true })
+      const categories = res.data?.items || res.data?.results || []
+      // 只获取二级及以下分类（有商品的分类）
+      categoryList.value = categories.filter(c => c.level >= 2)
+    } catch (error) {
+      categoryList.value = []
+    }
+  }
+  
   const resetForm = () => {
+    form.id = null
     form.supplier = null
     form.warehouse = null
     form.order_date = ''
@@ -200,9 +278,16 @@ export function usePurchaseOrders() {
     form.items = []
   }
   
+  /**
+   * 添加商品项
+   */
   const addItem = () => {
     form.items.push({
       goods: null,
+      goods_code: '',
+      goods_name: '',
+      spec: '',
+      unit_name: '',
       quantity: 0,
       price: 0,
       amount: 0,
@@ -215,14 +300,78 @@ export function usePurchaseOrders() {
     form.items.splice(index, 1)
   }
   
-  const handleGoodsChange = (row, index) => {
-    const goods = goodsList.value.find(g => g.id === row.goods)
-    if (goods) {
-      row.unit = goods.unit?.name || ''
-      row.price = goods.purchase_price || 0
-      row._priceError = ''
-      calculateItemAmount(row)
+  /**
+   * 处理商品编码输入
+   * 根据编码自动匹配商品
+   */
+  const handleCodeChange = (row, index) => {
+    const code = row.goods_code?.trim().toUpperCase()
+    if (!code) {
+      // 清空商品信息
+      row.goods = null
+      row.goods_name = ''
+      row.spec = ''
+      row.unit_name = ''
+      row.price = 0
+      return
     }
+    
+    // 根据编码查找商品
+    const goods = goodsList.value.find(g => g.code?.toUpperCase() === code)
+    if (goods) {
+      // 检查是否已选择
+      const existingIndex = form.items.findIndex((item, i) => i !== index && item.goods === goods.id)
+      if (existingIndex !== -1) {
+        ElMessage.warning(`商品「${goods.name}」已在第${existingIndex + 1}行选择`)
+        row.goods_code = ''
+        return
+      }
+      
+      // 填充商品信息
+      row.goods = goods.id
+      row.goods_name = goods.name
+      row.spec = goods.spec || ''
+      row.unit_name = goods.unit_name || goods.unit?.name || ''
+      row.price = goods.purchase_price || 0
+      calculateItemAmount(row)
+    } else {
+      ElMessage.warning(`未找到编码为「${code}」的商品`)
+      row.goods = null
+      row.goods_name = ''
+      row.spec = ''
+      row.unit_name = ''
+    }
+  }
+  
+  /**
+   * 处理商品选择（从弹窗选择）
+   */
+  const handleGoodsChange = (row, index, goods) => {
+    if (!goods) return
+    
+    // 检查是否已选择
+    const existingIndex = form.items.findIndex((item, i) => i !== index && item.goods === goods.id)
+    if (existingIndex !== -1) {
+      ElMessage.warning(`商品「${goods.name}」已在第${existingIndex + 1}行选择`)
+      return
+    }
+    
+    // 填充商品信息
+    row.goods = goods.id
+    row.goods_code = goods.code || ''
+    row.goods_name = goods.name
+    row.spec = goods.spec || ''
+    row.unit_name = goods.unit_name || goods.unit?.name || ''
+    row.price = goods.purchase_price || 0
+    row._priceError = ''
+    calculateItemAmount(row)
+  }
+  
+  /**
+   * 处理规格变化
+   */
+  const handleSpecChange = (row) => {
+    // 规格变化时可以触发其他逻辑
   }
   
   const handleQuantityInput = (row, value) => {
@@ -263,10 +412,19 @@ export function usePurchaseOrders() {
   }
   
   const handleSubmit = async () => {
-    if (!formRef.value) return
+    if (!purchaseFormRef.value) {
+      console.error('purchaseFormRef 未初始化')
+      return
+    }
+    
+    const formRefInstance = purchaseFormRef.value.formRef
+    if (!formRefInstance) {
+      console.error('formRef 未找到')
+      return
+    }
     
     try {
-      await formRef.value.validate()
+      await formRefInstance.validate()
     } catch (error) {
       return
     }
@@ -274,6 +432,17 @@ export function usePurchaseOrders() {
     const hasError = form.items.some(item => item._quantityError || item._priceError)
     if (hasError) {
       ElMessage.warning('请检查明细数据')
+      return
+    }
+    
+    if (form.items.length === 0) {
+      ElMessage.warning('请添加采购明细')
+      return
+    }
+    
+    const hasInvalidItems = form.items.some(item => !item.goods || !item.quantity || !item.price)
+    if (hasInvalidItems) {
+      ElMessage.warning('请完善采购明细信息')
       return
     }
     
@@ -286,6 +455,9 @@ export function usePurchaseOrders() {
         remark: form.remark,
         items: form.items.map(item => ({
           goods: item.goods,
+          goods_code: item.goods_code,
+          goods_name: item.goods_name,
+          spec: item.spec,
           quantity: Number(item.quantity),
           price: Number(item.price),
           amount: Number(item.amount)
@@ -336,9 +508,14 @@ export function usePurchaseOrders() {
     loadSuppliers()
     loadWarehouses()
     loadGoods()
+    loadCategories()
     loadOrders()
     calculateTableHeight()
     window.addEventListener('resize', calculateTableHeight)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', calculateTableHeight)
   })
   
   return {
@@ -360,7 +537,7 @@ export function usePurchaseOrders() {
     supplierList,
     warehouseList,
     goodsList,
-    selectedGoods,
+    categoryList,
     form,
     rules,
     availableGoods,
@@ -372,21 +549,25 @@ export function usePurchaseOrders() {
     handleView,
     handleEditFromView,
     handleDeleteFromView,
+    handleCancelFromView,
+    handleRefresh,
     loadOrders,
     loadSuppliers,
     loadWarehouses,
     loadGoods,
+    loadCategories,
     calculateTableHeight,
     addItem,
     removeItem,
     handleGoodsChange,
+    handleCodeChange,
+    handleSpecChange,
     handleQuantityInput,
     handleQuantityBlur,
     handlePriceInput,
     handlePriceBlur,
     calculateItemAmount,
     getGoodsUnit,
-    availableGoods,
     resetForm,
     handleSubmit,
     handleDialogClose

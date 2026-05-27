@@ -308,7 +308,6 @@ class CustomerSerializer(serializers.ModelSerializer):
 class GoodsSerializer(serializers.ModelSerializer):
     """商品序列化器"""
     category_name = serializers.CharField(source='category.name', read_only=True)
-    unit_name = serializers.CharField(source='unit.name', read_only=True)
     
     class Meta:
         model = Goods
@@ -401,16 +400,16 @@ class GoodsSerializer(serializers.ModelSerializer):
 
 class GoodsWithStockSerializer(serializers.ModelSerializer):
     """带库存信息的商品序列化器"""
-    category = serializers.IntegerField(source='category.id', read_only=True)
+    category_id = serializers.IntegerField(source='category.id', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
-    unit = serializers.IntegerField(source='unit.id', read_only=True)
+    unit_id = serializers.IntegerField(source='unit.id', read_only=True)
     unit_name = serializers.CharField(source='unit.name', read_only=True)
     total_quantity = serializers.SerializerMethodField()
     stock_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Goods
-        fields = ['id', 'code', 'name', 'category', 'category_name', 'unit', 'unit_name', 'spec',
+        fields = ['id', 'code', 'name', 'category_id', 'category_name', 'unit_id', 'unit_name', 'spec',
                   'barcode', 'purchase_price', 'sale_price', 'retail_price',
                   'min_stock', 'max_stock', 'status', 'total_quantity', 'stock_status',
                   'created_at', 'updated_at']

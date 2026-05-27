@@ -9,7 +9,6 @@
           :expanded-categories="expandedCategories"
           :can-add-goods="canAddGoods"
           :can-edit-goods="canEditGoods"
-          @add-category="handleAddCategoryItem"
           @manage-category="handleManageCategory"
           @category-click="handleCategoryItemClick"
           @select-category="handleSelectCategory"
@@ -48,17 +47,21 @@
             stripe
             highlight-current-row
             @row-dblclick="handleEdit"
+            class="goods-table"
           >
-            <el-table-column prop="code" label="商品编码" min-width="120" />
-            <el-table-column prop="name" label="商品名称" min-width="180" />
-            <el-table-column prop="category_name" label="分类" min-width="100" />
-            <el-table-column prop="unit_name" label="单位" width="80" align="center" />
-            <el-table-column prop="spec" label="规格" min-width="100" />
-            <el-table-column label="进货价" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.purchase_price) }}</template>
+            <el-table-column prop="code" label="商品编码" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="name" label="商品名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="unit_name" label="单位" width="80" align="center" show-overflow-tooltip />
+            <el-table-column prop="spec" label="规格" min-width="100" show-overflow-tooltip />
+            <el-table-column label="进货价" width="110" align="right">
+              <template #default="{ row }">
+                <span class="price-cell">¥{{ formatPrice(row.purchase_price) }}</span>
+              </template>
             </el-table-column>
-            <el-table-column label="销售价" width="100" align="right">
-              <template #default="{ row }">¥{{ formatPrice(row.sale_price) }}</template>
+            <el-table-column label="销售价" width="110" align="right">
+              <template #default="{ row }">
+                <span class="price-cell">¥{{ formatPrice(row.sale_price) }}</span>
+              </template>
             </el-table-column>
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
@@ -102,13 +105,10 @@
       :is-edit="isEdit"
       :form="form"
       :rules="rules"
-      :price-errors="priceErrors"
       :category-options="goodsCategoryOptions"
       :unit-list="unitList"
       :submit-loading="submitLoading"
       @submit="handleSubmit"
-      @price-input="handlePriceInput"
-      @price-blur="handlePriceBlur"
       @dialog-close="handleDialogClose"
     />
     
@@ -141,8 +141,7 @@ const {
   loadCategories,
   handleCategoryItemClick,
   handleSelectCategory,
-  handleManageCategory,
-  handleAddCategoryItem
+  handleManageCategory
 } = useGoodsCategory()
 
 const {
@@ -194,36 +193,35 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #f5f7fa;
 }
 
 .page-content {
   flex: 1;
-  padding: 16px;
   overflow: hidden;
 }
 
 .dual-card-container {
   display: flex;
-  gap: 16px;
   height: 100%;
 }
 
 .goods-card {
   flex: 1;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-left: 1px solid #e4e7ed;
 }
 
 .toolbar-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background: #fafbfc;
 }
 
 .toolbar-left {
@@ -250,9 +248,29 @@ onMounted(() => {
 }
 
 .pagination-wrapper {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  padding: 10px 16px;
+  border-top: 1px solid #ebeef5;
   display: flex;
   justify-content: flex-end;
+  background: #fafbfc;
+}
+
+.goods-table :deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+.goods-table :deep(.price-cell) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.goods-table :deep(.el-table__cell) {
+  padding: 6px 0;
+}
+
+@media screen and (max-width: 1200px) {
+  .goods-table :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+  }
 }
 </style>

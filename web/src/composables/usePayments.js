@@ -2,7 +2,7 @@
  * 付款管理组合式函数
  * 管理付款的加载、增删改查、状态管理等操作
  */
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPayments, createPayment, updatePayment, deletePayment } from '@/api/finance'
 import { formatPrice } from '@/utils/format'
@@ -166,6 +166,11 @@ export function usePayments() {
     }
   }
   
+  const handleDialogClose = () => {
+    formRef.value?.resetFields()
+    resetForm()
+  }
+
   const resetForm = () => {
     form.related_party = null
     form.related_party_name = ''
@@ -240,6 +245,10 @@ export function usePayments() {
     calculateTableHeight()
     window.addEventListener('resize', calculateTableHeight)
   })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', calculateTableHeight)
+  })
   
   return {
     loading,
@@ -271,6 +280,7 @@ export function usePayments() {
     handlePayFromView,
     handleDeleteFromView,
     resetForm,
+    handleDialogClose,
     handleSubmit
   }
 }

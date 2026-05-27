@@ -39,8 +39,8 @@ class SaleItem(models.Model):
     """销售明细"""
     order = models.ForeignKey(SaleOrder, on_delete=models.CASCADE, related_name='items', verbose_name='销售单')
     goods = models.ForeignKey(Goods, on_delete=models.PROTECT, verbose_name='商品')
-    quantity = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='数量')
-    shipped_quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='已出库数量')
+    quantity = models.IntegerField(verbose_name='数量')
+    shipped_quantity = models.IntegerField(default=0, verbose_name='已出库数量')
     price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='单价')
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name='金额')
     remark = models.CharField(max_length=200, blank=True, verbose_name='备注')
@@ -52,3 +52,9 @@ class SaleItem(models.Model):
 
     def __str__(self):
         return f'{self.order.order_no} - {self.goods.name}'
+    
+    def save(self, *args, **kwargs):
+        """保存时自动计算金额"""
+        if self.quantity and self.price:
+            self.amount = self.quantity * self.price
+        super().save(*args, **kwargs)

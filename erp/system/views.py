@@ -135,7 +135,8 @@ class CustomTokenRefreshView(TokenRefreshView):
                 'data': None
             }, status=401)
         
-        request.data['refresh'] = refresh_token
+        # 避免直接修改不可变的 request.data
+        request._full_data = {'refresh': refresh_token}
         response = super().post(request, *args, **kwargs)
         
         from django.conf import settings
@@ -190,6 +191,17 @@ class LogoutView(APIView):
 
     def post(self, request):
         from django.http import JsonResponse
+        
+        # 记录登出日志
+        if request.user.is_authenticated:
+            Log.objects.create(
+                user=request.user,
+                action='logout',
+                module='系统',
+                detail=f'用户 {request.user.username} 登出',
+                ip_address=self.get_client_ip(request)
+            )
+        
         response = JsonResponse({
             'code': 200,
             'msg': '登出成功',
@@ -198,6 +210,12 @@ class LogoutView(APIView):
         response.delete_cookie('access_token')
         response.delete_cookie('refresh_token')
         return response
+    
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0]
+        return request.META.get('REMOTE_ADDR')
 
 
 class UserViewSet(BaseModelViewSet):
@@ -288,7 +306,7 @@ class LogViewSet(BaseModelViewSet):
     """操作日志（只读）"""
     queryset = Log.objects.select_related('user').all()
     serializer_class = LogSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModulePermission]
     http_method_names = ['get', 'head', 'options']
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['user', 'action', 'module']

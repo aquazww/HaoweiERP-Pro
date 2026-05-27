@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Inventory, InventoryLog, StockIn, StockOut, StockOutItem, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
+from .models import Inventory, InventoryLog, StockIn, StockInItem, StockOut, StockOutItem, StockAdjust, StockAdjustItem, StockTransfer, StockTransferItem
 
 
 class InventorySerializer(serializers.ModelSerializer):
@@ -92,6 +92,20 @@ class InventoryLogSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
 
+class StockInItemSerializer(serializers.ModelSerializer):
+    """入库单明细序列化器"""
+    goods = serializers.IntegerField(source='goods.id', read_only=True)
+    goods_name = serializers.CharField(source='goods.name', read_only=True)
+    goods_code = serializers.CharField(source='goods.code', read_only=True)
+    goods_spec = serializers.CharField(source='goods.spec', read_only=True)
+    unit_name = serializers.CharField(source='goods.unit.name', read_only=True)
+    
+    class Meta:
+        model = StockInItem
+        fields = ['id', 'goods', 'goods_name', 'goods_code', 'goods_spec', 'unit_name', 
+                  'quantity', 'price', 'amount', 'remark']
+
+
 class StockInSerializer(serializers.ModelSerializer):
     """入库单序列化器"""
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
@@ -100,12 +114,13 @@ class StockInSerializer(serializers.ModelSerializer):
     purchase_order_no = serializers.CharField(source='purchase_order.order_no', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    items = StockInItemSerializer(many=True, read_only=True)
     
     class Meta:
         model = StockIn
         fields = ['id', 'order_no', 'warehouse', 'warehouse_name', 'purchase_order',
                   'purchase_order_no', 'total_amount', 'status', 'status_display', 'remark',
-                  'created_by', 'created_by_name', 'created_at', 'confirmed_at']
+                  'items', 'created_by', 'created_by_name', 'created_at', 'confirmed_at']
         read_only_fields = ['id', 'order_no', 'created_by', 'created_at', 'confirmed_at']
 
 
@@ -133,6 +148,7 @@ class StockOutItemSerializer(serializers.ModelSerializer):
 
 class StockOutSerializer(serializers.ModelSerializer):
     """出库单序列化器"""
+    # 返回ID供前端使用,避免嵌套对象
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     sale_order = serializers.IntegerField(source='sale_order.id', read_only=True)
@@ -170,6 +186,7 @@ class StockAdjustItemSerializer(serializers.ModelSerializer):
 
 class StockAdjustItemCreateSerializer(serializers.ModelSerializer):
     """库存调整明细创建序列化器"""
+    adjust_quantity = serializers.IntegerField(min_value=1)
     
     class Meta:
         model = StockAdjustItem
@@ -178,6 +195,7 @@ class StockAdjustItemCreateSerializer(serializers.ModelSerializer):
 
 class StockAdjustSerializer(serializers.ModelSerializer):
     """库存调整单序列化器"""
+    # 返回ID供前端使用,避免嵌套对象
     warehouse = serializers.IntegerField(source='warehouse.id', read_only=True)
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
     adjust_type_display = serializers.CharField(source='get_adjust_type_display', read_only=True)
@@ -233,6 +251,7 @@ class StockTransferItemSerializer(serializers.ModelSerializer):
 
 class StockTransferItemCreateSerializer(serializers.ModelSerializer):
     """库存调拨明细创建序列化器"""
+    quantity = serializers.IntegerField(min_value=1)
     
     class Meta:
         model = StockTransferItem
@@ -241,6 +260,7 @@ class StockTransferItemCreateSerializer(serializers.ModelSerializer):
 
 class StockTransferSerializer(serializers.ModelSerializer):
     """库存调拨单序列化器"""
+    # 返回ID供前端使用,避免嵌套对象
     from_warehouse = serializers.IntegerField(source='from_warehouse.id', read_only=True)
     from_warehouse_name = serializers.CharField(source='from_warehouse.name', read_only=True)
     to_warehouse = serializers.IntegerField(source='to_warehouse.id', read_only=True)

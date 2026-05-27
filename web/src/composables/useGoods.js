@@ -5,7 +5,7 @@
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getGoods, createGoods, updateGoods, partialUpdateGoods, deleteGoods, getUnits } from '@/api/basic'
-import { formatPrice, formatInputNumber, parseInputNumber } from '@/utils/format'
+import { formatPrice } from '@/utils/format'
 import { canAdd, canEdit, canDelete } from '@/utils/permission'
 
 export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
@@ -29,12 +29,6 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
   const canAddGoods = canAdd('basic')
   const canEditGoods = canEdit('basic')
   const canDeleteGoods = canDelete('basic')
-  
-  const priceErrors = reactive({
-    purchase_price: '',
-    sale_price: '',
-    retail_price: ''
-  })
   
   const form = reactive({
     id: null,
@@ -91,35 +85,6 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     max_stock: [{ validator: validateMaxStock, trigger: 'blur' }]
   }
   
-  const handlePriceInput = (field, value) => {
-    priceErrors[field] = ''
-    const num = parseInputNumber(value)
-    form[field] = num
-  }
-  
-  const handlePriceBlur = (field) => {
-    const value = form[field]
-    if (value === null || value === undefined || value === '') {
-      priceErrors[field] = '请输入价格'
-      return
-    }
-    if (value < 0) {
-      priceErrors[field] = '价格不能为负数'
-      return
-    }
-    if (value > 99999999.99) {
-      priceErrors[field] = '价格超出范围'
-      return
-    }
-    
-    if (field === 'sale_price' && form.purchase_price && value < form.purchase_price) {
-      priceErrors[field] = '销售价不能低于进货价'
-      return
-    }
-    
-    priceErrors[field] = ''
-  }
-  
   const getGoodsInitials = (name) => {
     if (!name) return ''
     return name.slice(0, 2)
@@ -149,12 +114,22 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     })
   }
   
-  const loadUnits = async () => {
+  /**
+   * 加载计量单位列表
+   * @param {boolean} showError - 是否显示错误提示
+   * @returns {Promise<boolean>} 加载是否成功
+   */
+  const loadUnits = async (showError = false) => {
     try {
       const res = await getUnits({ page_size: 1000, is_active: true })
       unitList.value = res.data?.items || res.data?.results || []
+      return true
     } catch (error) {
       unitList.value = []
+      if (showError) {
+        ElMessage.error('加载计量单位失败：' + (error.message || '未知错误'))
+      }
+      return false
     }
   }
   
@@ -205,9 +180,6 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     form.max_stock = 0
     form.status = 1
     form.remark = ''
-    priceErrors.purchase_price = ''
-    priceErrors.sale_price = ''
-    priceErrors.retail_price = ''
   }
   
   const handleDialogClose = () => {
@@ -225,15 +197,34 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     dialogVisible.value = true
   }
   
+  /**
+   * 处理编辑商品操作
+   * @param {Object} row - 商品数据行
+   */
   const handleEdit = (row) => {
+    // 验证必要的数据是否存在
+    const categoryId = row.category_id !== undefined ? row.category_id : row.category
+    const unitId = row.unit_id !== undefined ? row.unit_id : row.unit
+    
+    // 数据完整性检查
+    if (categoryId === undefined || categoryId === null) {
+      ElMessage.warning('商品分类数据不完整，请刷新列表后重试')
+      return
+    }
+    if (unitId === undefined || unitId === null) {
+      ElMessage.warning('计量单位数据不完整，请刷新列表后重试')
+      return
+    }
+    
     isEdit.value = true
     dialogTitle.value = '编辑商品'
     resetForm()
     form.id = row.id
     form.code = row.code
     form.name = row.name
-    form.category = row.category
-    form.unit = row.unit
+    // 修复：列表接口返回的是 category_id 和 unit_id，详情接口返回的是 category 和 unit
+    form.category = categoryId
+    form.unit = unitId
     form.spec = row.spec || ''
     form.barcode = row.barcode || ''
     form.purchase_price = row.purchase_price || 0
@@ -247,19 +238,6 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
   }
   
   const handleSubmit = async () => {
-    if (!formRef.value) return
-    
-    try {
-      await formRef.value.validate()
-    } catch (error) {
-      return
-    }
-    
-    if (priceErrors.purchase_price || priceErrors.sale_price || priceErrors.retail_price) {
-      ElMessage.warning('请检查价格输入')
-      return
-    }
-    
     submitLoading.value = true
     try {
       const data = {
@@ -332,6 +310,11 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     window.removeEventListener('resize', calculateTableHeight)
   })
   
+  // 价格错误状态（供表单组件使用）
+  const priceErrors = ref({})
+  const handlePriceInput = () => {}
+  const handlePriceBlur = () => {}
+
   return {
     loading,
     toggleLoading,
@@ -351,9 +334,9 @@ export function useGoods(selectedCategoryId, selectedCategoryIncludeChildren) {
     canAddGoods,
     canEditGoods,
     canDeleteGoods,
-    priceErrors,
     form,
     rules,
+    priceErrors,
     handlePriceInput,
     handlePriceBlur,
     getGoodsInitials,

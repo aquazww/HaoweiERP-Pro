@@ -61,6 +61,25 @@ export const deletePurchaseOrder = (id) => {
   return request.delete(`/purchase/orders/${id}/`)
 }
 
+/**
+ * 取消采购订单
+ * @param {number} id - 订单ID
+ * @returns {Promise} 取消结果
+ */
+export const cancelPurchaseOrder = (id) => {
+  return request.post(`/purchase/orders/${id}/cancel/`)
+}
+
+/**
+ * 确认采购入库
+ * @param {number} id - 订单ID
+ * @param {Object} data - 入库数据（可选items和remark）
+ * @returns {Promise} 确认结果
+ */
+export const confirmPurchaseInbound = (id, data = {}) => {
+  return request.post(`/purchase/orders/${id}/confirm_inbound/`, data)
+}
+
 // ==================== 采购明细接口 ====================
 
 /**

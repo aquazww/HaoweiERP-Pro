@@ -2,9 +2,11 @@
  * 库存日志管理组合式函数
  * 管理库存日志的加载、查询等操作
  */
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getInventoryLogs } from '@/api/inventory'
+import { getInventoryLogs, getStockTransfer } from '@/api/inventory'
+import { getPurchaseOrder } from '@/api/purchase'
+import { getSaleOrder } from '@/api/sale'
 import { formatQuantity } from '@/utils/format'
 
 export function useInventoryLog() {
@@ -89,7 +91,7 @@ export function useInventoryLog() {
         const res = await getSaleOrder(orderId)
         orderDetail.value = res.data
       } else if (type === 'transfer') {
-        const res = await getTransferOrder(orderId)
+        const res = await getStockTransfer(orderId)
         orderDetail.value = res.data
       } else {
         orderDetail.value = null
@@ -149,6 +151,10 @@ export function useInventoryLog() {
     loadLogs()
     calculateTableHeight()
     window.addEventListener('resize', calculateTableHeight)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', calculateTableHeight)
   })
   
   return {

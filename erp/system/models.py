@@ -79,6 +79,10 @@ class Log(models.Model):
         ('delete', '删除'),
         ('login', '登录'),
         ('logout', '登出'),
+        ('cancel', '取消'),
+        ('confirm', '确认'),
+        ('confirm_inbound', '确认入库'),
+        ('update_status', '更新状态'),
         ('other', '其他'),
     ]
 

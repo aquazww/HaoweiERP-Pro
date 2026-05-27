@@ -39,7 +39,7 @@
               <span class="code-badge">{{ row.code }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="name" label="公司名称" min-width="200">
+          <el-table-column prop="name" label="公司名称" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
               <div class="name-cell">
                 <div class="company-initials">{{ getCompanyInitials(row.name) }}</div>
@@ -50,9 +50,9 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="tax_no" label="税号" width="170" show-overflow-tooltip />
-          <el-table-column prop="bank_name" label="开户银行" min-width="140" show-overflow-tooltip />
-          <el-table-column label="状态" width="100" align="center">
+          <el-table-column prop="tax_no" label="税号" width="180" show-overflow-tooltip />
+          <el-table-column prop="bank_name" label="开户银行" min-width="150" show-overflow-tooltip />
+          <el-table-column label="状态" width="90" align="center">
             <template #default="{ row }">
               <el-switch
                 v-model="row.status"
@@ -65,7 +65,7 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140" align="center">
+          <el-table-column label="操作" width="130" align="center" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
                 <el-button type="primary" link :icon="Edit" size="small" @click="handleEdit(row)" v-if="canEditBasic">编辑</el-button>
@@ -638,5 +638,19 @@ onUnmounted(() => {
 
 .customers-page .customer-form :deep(.el-form-item__label) {
   font-weight: 500;
+}
+
+.customers-page .data-table :deep(.el-table__cell) {
+  padding: 10px 0;
+}
+
+.customers-page .data-table :deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+@media screen and (max-width: 1200px) {
+  .customers-page .data-table :deep(.el-table__body-wrapper) {
+    overflow-x: auto;
+  }
 }
 </style>

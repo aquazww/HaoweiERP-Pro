@@ -192,9 +192,7 @@ export function useGoodsCategory() {
   }
   
   const handleAddCategoryItem = () => {
-    categoryFormTitle.value = '新增分类'
-    resetCategoryForm()
-    categoryFormDialogVisible.value = true
+    categoryDialogVisible.value = true
   }
   
   const handleEditCategoryItem = (row) => {

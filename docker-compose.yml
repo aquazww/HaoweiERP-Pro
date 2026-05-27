@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../erp
+      dockerfile: Dockerfile
+    container_name: erp-backend
+    restart: always
+    environment:
+      - DJANGO_SETTINGS_MODULE=erp.settings
+      - DB_ENGINE=${DB_ENGINE:-django.db.backends.sqlite3}
+      - DB_NAME=${DB_NAME:-/app/data/db.sqlite3}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production-!@#}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}
+    volumes:
+      - erp-data:/app/data
+      - erp-media:/app/media
+      - erp-static:/app/static
+      - erp-logs:/app/logs
+    networks:
+      - erp-network
+
+  frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    container_name: erp-frontend
+    restart: always
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - erp-network
+
+volumes:
+  erp-data:
+  erp-media:
+  erp-static:
+  erp-logs:
+
+networks:
+  erp-network:
+    driver: bridge

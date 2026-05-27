@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_date
 from .models import Payment, PaymentRecord
 from .serializers import PaymentSerializer, PaymentCreateSerializer, PaymentPaySerializer
 from utils.views import BaseModelViewSet
-from utils.models import generate_order_no
+from utils.order_no import generate_order_no
 from system.permissions import ModulePermission
 from purchase.models import PurchaseOrder
 from sale.models import SaleOrder
@@ -67,7 +67,7 @@ class PaymentViewSet(BaseModelViewSet):
             payment.save()
         else:
             prefix = 'PP' if payment_type == 'pay' else 'PR'
-            order_no = generate_order_no(prefix=prefix)
+            order_no = generate_order_no(prefix=prefix, model_class=Payment)
             payment = Payment.objects.create(
                 order_no=order_no,
                 type=payment_type,

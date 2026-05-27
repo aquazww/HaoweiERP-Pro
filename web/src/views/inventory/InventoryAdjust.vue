@@ -1,5 +1,5 @@
 <template>
-  <div class="inventory-adjust-page">
+  <div class="common-page inventory-adjust-page">
     <div class="page-content">
       <div class="toolbar-card">
         <div class="toolbar-left">
@@ -37,9 +37,9 @@
         >
           <el-table-column prop="warehouse_name" label="仓库" min-width="120" align="center" />
           <el-table-column prop="goods_name" label="商品名称" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="original_quantity" label="原库存" width="100" align="center">
+          <el-table-column prop="before_quantity" label="原库存" width="100" align="center">
             <template #default="{ row }">
-              <span class="quantity-text">{{ formatQuantity(row.original_quantity) }}</span>
+              <span class="quantity-text">{{ formatQuantity(row.before_quantity) }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="adjust_quantity" label="调整数量" width="100" align="center">
@@ -49,9 +49,9 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="new_quantity" label="新库存" width="100" align="center">
+          <el-table-column prop="after_quantity" label="新库存" width="100" align="center">
             <template #default="{ row }">
-              <span class="quantity-text new">{{ formatQuantity(row.new_quantity) }}</span>
+              <span class="quantity-text new">{{ formatQuantity(row.after_quantity) }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100" align="center">
@@ -159,6 +159,8 @@
             v-model="form.new_quantity" 
             :min="0"
             :max="999999999"
+            :precision="0"
+            :step="1"
             style="width: 100%"
             @change="handleQuantityChange"
           />
@@ -409,112 +411,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.inventory-adjust-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-content {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.toolbar-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.search-box {
-  position: relative;
-  width: 280px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #909399;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  padding-left: 30px;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-}
-
-.table-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.data-table {
-  flex: 1;
-}
-
-.quantity-text {
-  color: #606266;
-  font-weight: 500;
-}
-
-.quantity-text.new {
-  color: #409eff;
-}
-
-.quantity-in {
-  color: #67c23a;
-  font-weight: 500;
-}
-
-.quantity-out {
-  color: #f56c6c;
-  font-weight: 500;
-}
-
-.pagination-wrapper {
-  padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.adjust-form {
-  padding: 10px 20px;
-}
-
-.current-stock {
-  font-size: 16px;
-  font-weight: 500;
-  color: #409eff;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+.inventory-adjust-page .quantity-text { color: var(--color-text-primary); font-weight: 500; }
+.inventory-adjust-page .quantity-text.new { color: var(--color-primary); }
+.inventory-adjust-page .quantity-in { color: var(--color-success); font-weight: 600; }
+.inventory-adjust-page .quantity-out { color: var(--color-danger); font-weight: 600; }
+.inventory-adjust-page .adjust-form { padding: 10px 20px; }
+.inventory-adjust-page .current-stock { font-size: 16px; font-weight: 600; color: var(--color-primary); }
+.inventory-adjust-page .dialog-footer { display: flex; justify-content: flex-end; gap: 10px; }
 </style>

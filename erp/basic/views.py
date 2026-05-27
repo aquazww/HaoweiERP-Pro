@@ -138,36 +138,7 @@ class CategoryViewSet(BaseModelViewSet):
     
     @action(detail=False, methods=['post'])
     def batch_update_sort(self, request):
-        """批量更新分类排序"""
-        categories_data = request.data.get('categories', [])
-        
-        try:
-            for item in categories_data:
-                category_id = item.get('id')
-                sort_order = item.get('sort_order')
-                parent_id = item.get('parent')
-                
-                if category_id is not None and sort_order is not None:
-                    Category.objects.filter(id=category_id).update(
-                        sort_order=sort_order,
-                        parent_id=parent_id if parent_id is not None else None
-                    )
-            
-            return Response({
-                'code': 200,
-                'msg': '排序更新成功',
-                'data': None
-            })
-        except Exception as e:
-            return Response({
-                'code': 400,
-                'msg': f'排序更新失败：{str(e)}',
-                'data': None
-            }, status=400)
-
-    @action(detail=False, methods=['post'])
-    def batch_update_sort(self, request):
-        """批量更新排序"""
+        """批量更新分类排序（支持移动父分类和调整排序）"""
         sort_data = request.data.get('sort_list', [])
         try:
             with transaction.atomic():
@@ -188,6 +159,7 @@ class CategoryViewSet(BaseModelViewSet):
                             category.parent = None
                             category.level = 1
                         category.save()
+            self.log_action(request, 'update', f'批量更新分类排序（{len(sort_data)} 条）')
             return Response({'code': 200, 'msg': '排序更新成功', 'data': None})
         except Exception as e:
             return Response({'code': 400, 'msg': str(e), 'data': None}, status=status.HTTP_400_BAD_REQUEST)
@@ -377,7 +349,7 @@ class GoodsViewSet(BaseModelViewSet):
     queryset = Goods.objects.select_related('category').all()
     serializer_class = GoodsSerializer
     filterset_fields = ['category', 'status']
-    search_fields = ['code', 'name', 'spec', 'brand']
+    search_fields = ['code', 'name', 'spec', 'barcode']
     ordering_fields = ['code', 'name', 'created_at']
     ordering = ['-created_at']
     module_name = '商品'
@@ -562,6 +534,7 @@ class CompanyInfoViewSet(viewsets.ViewSet):
 
 class PrintTemplateViewSet(BaseModelViewSet):
     """打印模板视图集"""
+    permission_classes = [IsAuthenticated, ModulePermission]
     queryset = PrintTemplate.objects.all()
     serializer_class = PrintTemplateSerializer
     filterset_fields = ['template_type', 'is_default']
