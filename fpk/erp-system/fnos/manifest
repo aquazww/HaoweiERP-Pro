@@ -1,9 +1,0 @@
-appname = erp-system
-version = 1.0.0
-display_name = 豪威ERP进销存
-platform = x86
-service_port = 8080
-checkport = true
-cmd_support = true
-desc = 豪威工贸ERP进销存管理系统。支持采购管理、销售管理、库存管理、收付款管理、报表中心等完整业务流程。数据本地存储，安全可靠。默认管理员: admin / admin123，登录后请立即修改密码。
-source = thirdparty
