@@ -59,6 +59,10 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   response => {
+    if (response.config.responseType === 'blob') {
+      return response
+    }
+    
     const res = response.data
     
     if (response.config.url?.includes('/auth/login/') && res.data) {
@@ -82,6 +86,10 @@ request.interceptors.response.use(
     } else {
       if (res.data?.reason === 'account_disabled') {
         forceLogout('account_disabled')
+      } else if (res.data?.reason === 'permission_changed') {
+        forceLogout('permission_changed')
+      } else if (res.data?.reason === 'user_deleted') {
+        forceLogout('user_deleted')
       }
       console.error(res.msg || '请求失败')
       const error = new Error(res.msg || '请求失败')
@@ -103,6 +111,11 @@ request.interceptors.response.use(
     
     if (error.response?.data?.data?.reason === 'permission_changed') {
       forceLogout('permission_changed')
+      return Promise.reject(error)
+    }
+    
+    if (error.response?.data?.data?.reason === 'user_deleted') {
+      forceLogout('user_deleted')
       return Promise.reject(error)
     }
     

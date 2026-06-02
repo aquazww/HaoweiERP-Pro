@@ -109,7 +109,18 @@ class TokenVersionMiddleware:
                     response.delete_cookie('refresh_token')
                     return response
             except User.DoesNotExist:
-                pass
+                logger.warning(
+                    '已删除账户的token被使用: user_id=%s path=%s',
+                    user_id, request.path
+                )
+                response = JsonResponse({
+                    'code': 401,
+                    'msg': '您的账户已被管理员删除，请联系管理员',
+                    'data': {'reason': 'user_deleted'}
+                }, status=401)
+                response.delete_cookie('access_token')
+                response.delete_cookie('refresh_token')
+                return response
             
         except (InvalidToken, TokenError) as e:
             logger.debug(f'Token验证失败: {str(e)}')

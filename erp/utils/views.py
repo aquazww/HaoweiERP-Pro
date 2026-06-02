@@ -27,13 +27,16 @@ class BaseModelViewSet(viewsets.ModelViewSet):
     log_exclude_fields = ['created_at', 'updated_at', 'id']
 
     def get_client_ip(self, request):
-        """获取客户端 IP 地址"""
+        """获取客户端真实 IP 地址 —— 支持反向代理溯源"""
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+            ip = x_forwarded_for.split(',')[0].strip()
+            if ip:
+                return ip
+        x_real_ip = request.META.get('HTTP_X_REAL_IP')
+        if x_real_ip:
+            return x_real_ip.strip()
+        return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
     def log_action(self, request, action, detail):
         """记录操作日志"""
@@ -64,6 +67,12 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             return instance.code
         return f'ID={instance.id}'
 
+    PERMISSION_MODULES_MAP = {
+        'basic': '基础资料', 'purchase': '采购管理', 'sale': '销售管理',
+        'inventory': '库存管理', 'finance': '财务管理', 'reports': '报表中心', 'system': '系统管理'
+    }
+    ACTION_NAMES = {'view': '查看', 'add': '新增', 'edit': '编辑', 'delete': '删除'}
+
     def get_changes(self, old_data, new_data):
         """获取变更详情"""
         changes = []
@@ -75,10 +84,61 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             old_value = old_data[field]
             if old_value != new_value:
                 field_display = self.get_field_display_name(field)
-                old_display = self.format_value(old_value)
-                new_display = self.format_value(new_value)
+                if field == 'permissions':
+                    old_display, new_display = self.format_permissions_diff(old_value, new_value)
+                else:
+                    old_display = self.format_value(old_value)
+                    new_display = self.format_value(new_value)
                 changes.append(f'{field_display}: "{old_display}" → "{new_display}"')
         return changes
+
+    def format_permissions_diff(self, old_perm, new_perm):
+        """对比新旧权限字典，只返回变更部分的描述"""
+        if not isinstance(old_perm, dict):
+            old_perm = {}
+        if not isinstance(new_perm, dict):
+            new_perm = {}
+
+        old_parts = []
+        new_parts = []
+
+        all_modules = set(list(old_perm.keys()) + list(new_perm.keys()))
+        for module_key in all_modules:
+            module_name = self.PERMISSION_MODULES_MAP.get(module_key, module_key)
+            old_actions = old_perm.get(module_key, {}) or {}
+            new_actions = new_perm.get(module_key, {}) or {}
+
+            if not isinstance(old_actions, dict):
+                old_actions = {}
+            if not isinstance(new_actions, dict):
+                new_actions = {}
+
+            old_enabled = set()
+            new_enabled = set()
+            all_actions = set(list(old_actions.keys()) + list(new_actions.keys()))
+            for a in all_actions:
+                action_name = self.ACTION_NAMES.get(a, a)
+                if old_actions.get(a):
+                    old_enabled.add(action_name)
+                if new_actions.get(a):
+                    new_enabled.add(action_name)
+
+            if old_enabled == new_enabled:
+                continue
+
+            if old_enabled:
+                old_parts.append(f'{module_name}（{"、".join(sorted(old_enabled))}）')
+            else:
+                old_parts.append(f'{module_name}（无）')
+
+            if new_enabled:
+                new_parts.append(f'{module_name}（{"、".join(sorted(new_enabled))}）')
+            else:
+                new_parts.append(f'{module_name}（无）')
+
+        old_display = '，'.join(old_parts) if old_parts else '无变更'
+        new_display = '，'.join(new_parts) if new_parts else '无变更'
+        return old_display, new_display
 
     def get_field_display_name(self, field):
         """获取字段的中文名称"""
@@ -105,6 +165,7 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             'description': '描述',
             'sort_order': '排序',
             'parent': '上级分类',
+            'permissions': '权限',
         }
         return field_names.get(field, field)
 

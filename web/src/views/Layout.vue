@@ -23,9 +23,9 @@
         :popper-append-to-body="true"
         class="sidebar-menu"
       >
-        <el-menu-item index="/dashboard" @click="handleMenuClick('/dashboard')">
+        <el-menu-item index="/dashboard" @click="handleMenuClick('/dashboard')" class="dashboard-menu-item">
           <el-icon><DataLine /></el-icon>
-          <template #title>概览</template>
+          <template #title>首页概览</template>
         </el-menu-item>
         <el-sub-menu index="purchase" v-if="showPurchaseMenu">
           <template #title>
@@ -243,11 +243,12 @@ const handleCommand = async (command) => {
         type: 'warning'
       })
       await request.post('/auth/logout/')
+      ElMessage.success('已退出登录')
+    } catch {
+    } finally {
       localStorage.removeItem('permissions')
       localStorage.removeItem('username')
-      ElMessage.success('已退出登录')
       router.push('/login')
-    } catch {
     }
   } else if (command === 'profile') {
     ElMessage.info('个人中心功能开发中')
@@ -359,6 +360,42 @@ onMounted(() => {
   transform-origin: center center;
 }
 
+/* 首页概览：居中、放大 1.3 倍，突出层次感 */
+.sidebar-menu .dashboard-menu-item {
+  height: calc(36px * 1.3) !important;
+  line-height: calc(36px * 1.3) !important;
+  margin: 6px 0 12px 0 !important;
+  font-size: calc(var(--font-size-base) * 1.3) !important;
+  font-weight: 700 !important;
+  color: var(--color-text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.sidebar-menu .dashboard-menu-item .el-icon {
+  width: calc(18px * 1.3) !important;
+  height: calc(18px * 1.3) !important;
+  margin-right: var(--spacing-sm) !important;
+  color: var(--color-primary);
+}
+
+.sidebar-menu .dashboard-menu-item:hover {
+  color: var(--color-primary) !important;
+  background-color: var(--color-primary-light) !important;
+}
+
+.sidebar-menu .dashboard-menu-item.is-active {
+  background-color: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+}
+
+/* 折叠状态下保持居中 */
+.sidebar-menu.el-menu--collapse .dashboard-menu-item .el-icon {
+  margin-right: 0 !important;
+}
+
 /* 父菜单项字体加粗 */
 .sidebar-menu .el-sub-menu__title span {
   font-weight: 600;
@@ -398,10 +435,6 @@ onMounted(() => {
   height: 16px;
   background-color: var(--color-primary);
   border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
-}
-
-.sidebar-menu .el-menu-item.is-active .el-icon {
-  color: var(--color-primary);
 }
 
 .sidebar-menu .el-icon {

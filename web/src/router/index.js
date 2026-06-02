@@ -160,6 +160,8 @@ router.beforeEach((to, from, next) => {
   
   if (to.path !== '/login' && to.path !== '/forbidden') {
     if (!username || isTokenExpired) {
+      tokenManager.stopExpiryCheck()
+      localStorage.setItem('logout_reason', 'token_expired')
       localStorage.removeItem('username')
       localStorage.removeItem('permissions')
       localStorage.removeItem('token_expiry')

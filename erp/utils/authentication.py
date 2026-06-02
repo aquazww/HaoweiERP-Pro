@@ -24,7 +24,10 @@ class CookieJWTAuthentication(JWTAuthentication):
             if user:
                 token_version = validated_token.get('token_version', 0)
                 if user.token_version != token_version:
-                    return None
+                    raise AuthenticationFailed(
+                        '您的账户权限已变更，请重新登录',
+                        code='permission_changed'
+                    )
                 if not user.is_active:
                     raise AuthenticationFailed(
                         '您的账户已被禁用，请联系管理员',

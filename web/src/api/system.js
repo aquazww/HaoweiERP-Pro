@@ -81,3 +81,25 @@ export const getPermissionModules = () => {
 export const getLogs = (params) => {
   return request.get('/auth/logs/', { params })
 }
+
+/**
+ * 导出操作日志为 CSV 文件
+ * @param {Object} params - 筛选参数
+ * @returns {Promise} Blob 文件流
+ */
+export const exportLogs = (params = {}) => {
+  return request.get('/auth/logs/export/', {
+    params,
+    responseType: 'blob',
+    timeout: 120000
+  })
+}
+
+/**
+ * 清空操作日志
+ * @param {Object} data - { password: '管理员密码' }
+ * @returns {Promise} 清空结果
+ */
+export const clearLogs = (data) => {
+  return request.post('/auth/logs/clear/', data)
+}

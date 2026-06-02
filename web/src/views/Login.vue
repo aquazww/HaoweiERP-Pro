@@ -151,6 +151,8 @@ onMounted(() => {
     tokenManager.clearLogoutReason()
     if (reason === 'account_disabled') {
       ElMessage.error('您的账户已被禁用，如需恢复请联系系统管理员')
+    } else if (reason === 'user_deleted') {
+      ElMessage.error('您的账户已被管理员删除，请联系管理员')
     } else if (reason === 'token_expired') {
       ElMessage.warning('登录已过期，请重新登录')
     } else if (reason === 'permission_changed') {

@@ -17,7 +17,7 @@
 .common-page .search-box { position: relative; display: flex; align-items: center; }
 .common-page .search-icon { position: absolute; left: 12px; color: var(--color-text-tertiary); z-index: 1; }
 .common-page .search-input { width: 320px; }
-.common-page .search-input :deep(.el-input__wrapper) { padding-left: 36px; }
+.common-page .search-input .el-input__wrapper { padding-left: 36px; }
 
 /* ---- 表格卡片 ---- */
 .common-page .table-card {
@@ -26,15 +26,15 @@
   box-shadow: var(--shadow-sm); overflow: hidden; min-height: 0;
 }
 .common-page .data-table { --el-table-header-bg-color: var(--color-bg-light); }
-.common-page .data-table :deep(.el-table__header-wrapper) { position: sticky; top: 0; z-index: 10; }
-.common-page .data-table :deep(.el-table__header th) {
+.common-page .data-table .el-table__header-wrapper { position: sticky; top: 0; z-index: 10; }
+.common-page .data-table .el-table__header th {
   font-weight: 600; font-size: 13px; color: var(--color-text-secondary);
   background: linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%);
   border-bottom: 2px solid var(--color-border-light);
 }
-.common-page .data-table :deep(.el-table__body td) { font-size: 13px; }
-.common-page .data-table :deep(.el-table__row) { height: 48px; transition: background .15s; }
-.common-page .data-table :deep(.el-table__cell) { padding: 8px 0; }
+.common-page .data-table .el-table__body td { font-size: 13px; }
+.common-page .data-table .el-table__row { height: 48px; transition: background .15s; }
+.common-page .data-table .el-table__cell { padding: 8px 0; }
 
 /* ---- 分页 ---- */
 .common-page .pagination-wrapper {
@@ -110,7 +110,7 @@
 .common-page .items-header:hover { background: #eef2f7; }
 .common-page .items-body { border-top: 1px solid var(--color-border-light); padding: 12px; }
 .common-page .detail-table { --el-table-header-bg-color: var(--color-bg-light); }
-.common-page .detail-table :deep(.el-table__header th) { font-weight: 600; font-size: 12px; }
+.common-page .detail-table .el-table__header th { font-weight: 600; font-size: 12px; }
 
 /* ---- 表单卡片 ---- */
 .common-page .form-section-card {

@@ -1,4 +1,6 @@
 import logging
+import csv
+from django.http import StreamingHttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -7,13 +9,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status as http_status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .serializers import (
     CustomTokenObtainPairSerializer, UserSerializer, UserCreateSerializer, 
-    UserUpdateSerializer, LogSerializer, ResetPasswordSerializer, PERMISSION_MODULES
+    UserUpdateSerializer, LogSerializer, ResetPasswordSerializer, ClearLogsSerializer, PERMISSION_MODULES
 )
 from .models import Log
 from .permissions import IsAdminUser, IsAdminOrReadOnly, ModulePermission
@@ -248,9 +250,14 @@ class UserViewSet(BaseModelViewSet):
             return UserUpdateSerializer
         return UserSerializer
 
+    def get_display_name(self, instance):
+        """获取用户显示名称，合并用户名和姓名"""
+        if instance.name:
+            return f'{instance.username}（{instance.name}）'
+        return instance.username
+
     def perform_create(self, serializer):
         user = serializer.save()
-        self.log_action(self.request, 'create', f'创建用户: {user.username}')
         logger.info(f'用户 {self.request.user.username} 创建了新用户 {user.username}')
 
     def perform_update(self, serializer):
@@ -269,7 +276,6 @@ class UserViewSet(BaseModelViewSet):
             user.invalidate_tokens()
             logger.info(f'用户 {user.username} 状态已变更，已使token失效')
         
-        self.log_action(self.request, 'update', f'更新用户: {user.username}')
         logger.info(f'用户 {self.request.user.username} 更新了用户 {user.username}')
 
     def perform_destroy(self, instance):
@@ -278,7 +284,6 @@ class UserViewSet(BaseModelViewSet):
             raise ValidationError('不能删除管理员账户')
         username = instance.username
         instance.delete()
-        self.log_action(self.request, 'delete', f'删除用户: {username}')
         logger.info(f'用户 {self.request.user.username} 删除了用户 {username}')
 
     @action(detail=True, methods=['post'])
@@ -318,10 +323,82 @@ class LogViewSet(BaseModelViewSet):
     queryset = Log.objects.select_related('user').all()
     serializer_class = LogSerializer
     permission_classes = [IsAuthenticated, ModulePermission]
-    http_method_names = ['get', 'head', 'options']
+    http_method_names = ['get', 'head', 'options', 'post']
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['user', 'action', 'module']
     search_fields = ['detail']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
     module_name = '操作日志'
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """导出操作日志为 CSV 文件"""
+        queryset = self.filter_queryset(self.get_queryset())
+        response = StreamingHttpResponse(
+            streaming_content=self._generate_csv(queryset),
+            content_type='text/csv; charset=utf-8-sig'
+        )
+        response['Content-Disposition'] = 'attachment; filename="operation_logs.csv"'
+        return response
+
+    @action(detail=False, methods=['post'])
+    def clear(self, request):
+        """清空操作日志 —— 需要管理员密码验证"""
+        serializer = ClearLogsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        password = serializer.validated_data['password']
+
+        user = authenticate(request, username=request.user.username, password=password)
+        if user is None:
+            return Response(
+                {'code': 400, 'msg': '管理员密码验证失败，请检查密码是否正确'},
+                status=http_status.HTTP_400_BAD_REQUEST
+            )
+
+        if not request.user.is_superuser and not request.user.is_staff:
+            return Response(
+                {'code': 403, 'msg': '仅管理员可执行此操作'},
+                status=http_status.HTTP_403_FORBIDDEN
+            )
+
+        deleted_count, _ = Log.objects.all().delete()
+        logger.warning(
+            f'用户 {request.user.username}(IP:{self.get_client_ip(request)}) 清空了操作日志，共 {deleted_count} 条'
+        )
+        return Response({
+            'code': 200,
+            'msg': f'操作日志已清空，共删除 {deleted_count} 条记录',
+            'data': {'deleted_count': deleted_count}
+        })
+
+    def _generate_csv(self, queryset):
+        """生成 CSV 数据流的生成器"""
+        yield '\ufeff'
+        writer = csv.writer(self._echo())
+        writer.writerow(['操作用户', '操作类型', '操作模块', '操作详情', 'IP地址', '操作时间'])
+
+        action_map = {
+            'create': '创建', 'update': '更新', 'delete': '删除',
+            'login': '登录', 'logout': '登出', 'cancel': '取消',
+            'confirm': '确认', 'confirm_inbound': '确认入库',
+            'update_status': '状态变更', 'other': '其他'
+        }
+
+        for log in queryset.iterator(chunk_size=500):
+            row = [
+                log.user.name or log.user.username if log.user else '-',
+                action_map.get(log.action, log.action),
+                log.module or '-',
+                log.detail or '-',
+                log.ip_address or '-',
+                log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-'
+            ]
+            yield writer.writerow(row)
+
+    class Echo:
+        def write(self, value):
+            return value
+
+    def _echo(self):
+        return self.Echo()

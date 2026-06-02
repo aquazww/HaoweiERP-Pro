@@ -70,21 +70,21 @@
   --el-table-header-bg-color: var(--color-bg-light);
 }
 
-.data-table :deep(.el-table__header-wrapper) {
+.data-table .el-table__header-wrapper {
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.data-table :deep(.el-table__body-wrapper) {
+.data-table .el-table__body-wrapper {
   overflow-y: auto;
 }
 
-.data-table :deep(.el-table__row) {
+.data-table .el-table__row {
   height: 48px;
 }
 
-.data-table :deep(.el-table__cell) {
+.data-table .el-table__cell {
   padding: 8px 0;
 }
 
@@ -153,16 +153,16 @@
   flex-shrink: 0;
 }
 
-.form-dialog :deep(.el-dialog__header) {
+.form-dialog .el-dialog__header {
   padding: var(--spacing-lg) var(--spacing-xl);
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.form-dialog :deep(.el-dialog__body) {
+.form-dialog .el-dialog__body {
   padding: var(--spacing-lg) var(--spacing-xl);
 }
 
-.form-dialog :deep(.el-dialog__footer) {
+.form-dialog .el-dialog__footer {
   padding: var(--spacing-md) var(--spacing-xl);
   border-top: 1px solid var(--color-border-light);
 }
@@ -198,16 +198,16 @@
   position: relative;
 }
 
-.input-cell.has-error .number-input :deep(.el-input__wrapper) {
+.input-cell.has-error .number-input .el-input__wrapper {
   border-color: var(--color-danger);
   box-shadow: 0 0 0 1px var(--color-danger) inset;
 }
 
-.number-input :deep(.el-input__wrapper) {
+.number-input .el-input__wrapper {
   padding: 0 8px;
 }
 
-.number-input :deep(.el-input__inner) {
+.number-input .el-input__inner {
   text-align: right;
 }
 
@@ -244,7 +244,7 @@
   gap: 12px;
 }
 
-.view-dialog :deep(.el-dialog__body) {
+.view-dialog .el-dialog__body {
   padding: var(--spacing-lg);
 }
 
@@ -267,7 +267,7 @@
     width: 240px;
   }
   
-  .data-table :deep(.el-table__row) {
+  .data-table .el-table__row {
     height: 44px;
   }
 }
@@ -306,11 +306,11 @@
     width: 100%;
   }
   
-  .data-table :deep(.el-table__row) {
+  .data-table .el-table__row {
     height: 40px;
   }
   
-  .data-table :deep(.el-table__cell) {
+  .data-table .el-table__cell {
     padding: 6px 0;
     font-size: var(--font-size-sm);
   }
@@ -343,7 +343,7 @@
     padding: 4px var(--spacing-sm);
   }
   
-  .pagination-wrapper :deep(.el-pagination) {
+  .pagination-wrapper .el-pagination {
     flex-wrap: wrap;
     justify-content: center;
   }

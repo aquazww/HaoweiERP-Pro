@@ -206,13 +206,18 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 class LogSerializer(serializers.ModelSerializer):
     """日志序列化器"""
-    username = serializers.CharField(source='user.username', read_only=True)
-    user_name = serializers.CharField(source='user.name', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True, default='-')
+    user_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Log
         fields = ['id', 'user', 'username', 'user_name', 'action', 'module', 'detail', 'ip_address', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.username or obj.user.name
+        return '-'
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -222,4 +227,14 @@ class ResetPasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         if len(value) < 6:
             raise serializers.ValidationError('密码长度不能少于6位')
+        return value
+
+
+class ClearLogsSerializer(serializers.Serializer):
+    """清空日志序列化器 —— 需要管理员密码验证"""
+    password = serializers.CharField(min_length=1, max_length=128)
+
+    def validate_password(self, value):
+        if not value:
+            raise serializers.ValidationError('请输入管理员密码')
         return value

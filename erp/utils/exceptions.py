@@ -41,6 +41,12 @@ def custom_exception_handler(exc, context):
                     'msg': detail_msg,
                     'data': {'reason': 'account_disabled'}
                 }
+            elif detail_code == 'permission_changed':
+                response.data = {
+                    'code': 401,
+                    'msg': detail_msg,
+                    'data': {'reason': 'permission_changed'}
+                }
             else:
                 response.data = {
                     'code': 401,
