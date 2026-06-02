@@ -20,19 +20,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         username = attrs.get('username')
         password = attrs.get('password')
-        
+
+        if not username or not password:
+            raise serializers.ValidationError('请输入用户名和密码')
+
         try:
             user = User.objects.get(username=username)
-            
+
             if not user.is_active:
-                raise serializers.ValidationError('账户已被禁用，请联系管理员')
-            
+                raise serializers.ValidationError('用户名或密码错误')
+
             if not user.check_password(password):
                 raise serializers.ValidationError('用户名或密码错误')
-                
+
         except User.DoesNotExist:
             raise serializers.ValidationError('用户名或密码错误')
-        
+
         return super().validate(attrs)
 
 

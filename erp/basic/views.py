@@ -159,10 +159,18 @@ class CategoryViewSet(BaseModelViewSet):
                             category.parent = None
                             category.level = 1
                         category.save()
+                        self._update_descendants_level(category)
             self.log_action(request, 'update', f'批量更新分类排序（{len(sort_data)} 条）')
             return Response({'code': 200, 'msg': '排序更新成功', 'data': None})
         except Exception as e:
             return Response({'code': 400, 'msg': str(e), 'data': None}, status=status.HTTP_400_BAD_REQUEST)
+
+    def _update_descendants_level(self, category):
+        """递归更新所有子孙分类的 level 和 path"""
+        for child in category.children.all():
+            child.level = category.level + 1
+            child.save()
+            self._update_descendants_level(child)
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):

@@ -86,6 +86,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import request from '../api/index'
+import { tokenManager } from '../utils/tokenManager'
 
 const router = useRouter()
 const route = useRoute()
@@ -128,6 +129,9 @@ const handleLogin = async () => {
     if (res.data.permissions) {
       localStorage.setItem('permissions', JSON.stringify(res.data.permissions))
     }
+    if (res.data.expires_in) {
+      tokenManager.setTokenExpiry(Date.now() + (res.data.expires_in * 1000))
+    }
     ElMessage.success('登录成功，欢迎回来！')
     
     setTimeout(() => {
@@ -142,6 +146,18 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
+  const reason = tokenManager.getLogoutReason()
+  if (reason) {
+    tokenManager.clearLogoutReason()
+    if (reason === 'account_disabled') {
+      ElMessage.error('您的账户已被禁用，如需恢复请联系系统管理员')
+    } else if (reason === 'token_expired') {
+      ElMessage.warning('登录已过期，请重新登录')
+    } else if (reason === 'permission_changed') {
+      ElMessage.warning('您的账户权限已被管理员修改，请重新登录')
+    }
+  }
+
   localStorage.removeItem('permissions')
   localStorage.removeItem('username')
   localStorage.removeItem('token_expiry')

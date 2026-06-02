@@ -137,6 +137,33 @@ export const getStockAdjust = (id) => {
 }
 
 /**
+ * 创建库存调整
+ * @param {Object} data - 调整数据
+ * @returns {Promise} 创建结果
+ */
+export const createStockAdjust = (data) => {
+  return request.post('/inventory/adjust/', data)
+}
+
+/**
+ * 确认库存调整
+ * @param {number} id - 调整ID
+ * @returns {Promise} 确认结果
+ */
+export const confirmStockAdjust = (id) => {
+  return request.post(`/inventory/adjust/${id}/confirm/`)
+}
+
+/**
+ * 删除库存调整
+ * @param {number} id - 调整ID
+ * @returns {Promise} 删除结果
+ */
+export const deleteStockAdjust = (id) => {
+  return request.delete(`/inventory/adjust/${id}/`)
+}
+
+/**
  * 根据单号获取库存调整
  * @param {string} orderNo - 调整单号
  * @returns {Promise} 调整详情

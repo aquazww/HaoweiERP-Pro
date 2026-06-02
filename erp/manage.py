@@ -7,6 +7,10 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'erp.settings')
+    if not os.environ.get('SECRET_KEY'):
+        print("错误: 环境变量 SECRET_KEY 未设置")
+        print("请设置 SECRET_KEY 环境变量后再运行")
+        sys.exit(1)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

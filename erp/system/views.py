@@ -30,88 +30,98 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username')
-        
-        try:
-            user = User.objects.get(username=username)
-            
-            if not user.is_active:
-                Log.objects.create(
-                    user=user,
-                    action='login',
-                    module='系统',
-                    detail=f'禁用账户 {user.username} 尝试登录',
-                    ip_address=self.get_client_ip(request)
-                )
-                return Response({
-                    'code': 401,
-                    'msg': '账户已被禁用，请联系管理员',
-                    'data': None
-                }, status=401)
-            
-            response = super().post(request, *args, **kwargs)
-            
-            Log.objects.create(
-                user=user,
-                action='login',
-                module='系统',
-                detail=f'用户 {user.username} 登录成功',
-                ip_address=self.get_client_ip(request)
-            )
-            
-            from django.conf import settings
-            from django.http import JsonResponse
-            
-            response_data = JsonResponse({
-                'code': 200,
-                'msg': '登录成功',
-                'data': {
-                    'permissions': user.get_all_permissions(),
-                    'username': user.username,
-                    'expires_in': 7200
-                }
-            })
-            
-            response_data.set_cookie(
-                'access_token',
-                response.data['access'],
-                max_age=7200,
-                httponly=True,
-                secure=not settings.DEBUG,
-                samesite='Lax',
-                path='/'
-            )
-            
-            response_data.set_cookie(
-                'refresh_token',
-                response.data['refresh'],
-                max_age=604800,
-                httponly=True,
-                secure=not settings.DEBUG,
-                samesite='Lax',
-                path='/api/v1/auth/refresh/'
-            )
-            
-            return response_data
-            
-        except User.DoesNotExist:
+
+        if not username:
             return Response({
                 'code': 401,
                 'msg': '用户名或密码错误',
                 'data': None
             }, status=401)
-        except Exception as e:
-            error_msg = str(e)
-            if 'detail' in error_msg or '用户名或密码' in error_msg:
-                return Response({
-                    'code': 401,
-                    'msg': '用户名或密码错误',
-                    'data': None
-                }, status=401)
+
+        user = None
+        is_disabled = False
+
+        try:
+            user = User.objects.get(username=username)
+            if not user.is_active:
+                is_disabled = True
+        except User.DoesNotExist:
+            pass
+
+        django_response = None
+        auth_failed = False
+        if user and not is_disabled:
+            try:
+                django_response = super().post(request, *args, **kwargs)
+            except Exception:
+                auth_failed = True
+
+        if not user or is_disabled or auth_failed or (user and not is_disabled and django_response is None):
+            auth_failed = True
+
+        if user and is_disabled:
+            Log.objects.create(
+                user=user,
+                action='login',
+                module='系统',
+                detail=f'禁用账户尝试登录',
+                ip_address=self.get_client_ip(request)
+            )
             return Response({
                 'code': 401,
-                'msg': '登录失败，请检查用户名和密码',
+                'msg': '您的账户已被禁用，请联系管理员',
+                'data': {'reason': 'account_disabled'}
+            }, status=401)
+
+        if auth_failed:
+            return Response({
+                'code': 401,
+                'msg': '用户名或密码错误',
                 'data': None
             }, status=401)
+
+        Log.objects.create(
+            user=user,
+            action='login',
+            module='系统',
+            detail=f'用户登录成功',
+            ip_address=self.get_client_ip(request)
+        )
+
+        from django.conf import settings
+        from django.http import JsonResponse
+
+        response_data = JsonResponse({
+            'code': 200,
+            'msg': '登录成功',
+            'data': {
+                'permissions': user.get_all_permissions(),
+                'username': user.username,
+                'expires_in': 7200
+            }
+        })
+
+        response_data.set_cookie(
+            'access_token',
+            django_response.data['access'],
+            max_age=7200,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            path='/'
+        )
+
+        response_data.set_cookie(
+            'refresh_token',
+            django_response.data['refresh'],
+            max_age=604800,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            path='/api/v1/auth/refresh/'
+        )
+
+        return response_data
     
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -191,17 +201,17 @@ class LogoutView(APIView):
 
     def post(self, request):
         from django.http import JsonResponse
-        
+
         # 记录登出日志
         if request.user.is_authenticated:
             Log.objects.create(
                 user=request.user,
                 action='logout',
                 module='系统',
-                detail=f'用户 {request.user.username} 登出',
+                detail=f'用户登出',
                 ip_address=self.get_client_ip(request)
             )
-        
+
         response = JsonResponse({
             'code': 200,
             'msg': '登出成功',
@@ -264,7 +274,8 @@ class UserViewSet(BaseModelViewSet):
 
     def perform_destroy(self, instance):
         if instance.username == 'admin':
-            raise ValueError('不能删除管理员账户')
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError('不能删除管理员账户')
         username = instance.username
         instance.delete()
         self.log_action(self.request, 'delete', f'删除用户: {username}')

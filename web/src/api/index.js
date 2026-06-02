@@ -1,6 +1,18 @@
 import axios from 'axios'
 import tokenManager from '../utils/tokenManager'
 
+const forceLogout = (reason) => {
+  if (window._isLoggingOut) return
+  window._isLoggingOut = true
+  tokenManager.stopExpiryCheck()
+  localStorage.setItem('logout_reason', reason)
+  localStorage.removeItem('token_expiry')
+  localStorage.removeItem('permissions')
+  localStorage.removeItem('username')
+  sessionStorage.removeItem('token_warning_shown')
+  window.location.replace('/login')
+}
+
 const request = axios.create({
   baseURL: '/api/v1',
   timeout: 10000,
@@ -22,7 +34,7 @@ const onRefreshed = () => {
 
 const onRefreshFailed = () => {
   refreshSubscribers = []
-  tokenManager.handleTokenExpired()
+  forceLogout('token_expired')
 }
 
 const refreshToken = async () => {
@@ -35,7 +47,7 @@ const refreshToken = async () => {
 request.interceptors.request.use(
   config => {
     if (tokenManager.isTokenExpired()) {
-      tokenManager.handleTokenExpired()
+      forceLogout('token_expired')
       return Promise.reject(new Error('Token expired'))
     }
     return config
@@ -68,6 +80,9 @@ request.interceptors.response.use(
     if (res.code === 200) {
       return res
     } else {
+      if (res.data?.reason === 'account_disabled') {
+        forceLogout('account_disabled')
+      }
       console.error(res.msg || '请求失败')
       const error = new Error(res.msg || '请求失败')
       error.data = res
@@ -78,6 +93,16 @@ request.interceptors.response.use(
     const originalRequest = error.config
     
     if (error.response?.status === 401 && originalRequest._skipAuthRedirect) {
+      return Promise.reject(error)
+    }
+    
+    if (error.response?.data?.data?.reason === 'account_disabled') {
+      forceLogout('account_disabled')
+      return Promise.reject(error)
+    }
+    
+    if (error.response?.data?.data?.reason === 'permission_changed') {
+      forceLogout('permission_changed')
       return Promise.reject(error)
     }
     
@@ -106,7 +131,7 @@ request.interceptors.response.use(
     }
     
     if (error.response?.status === 401) {
-      tokenManager.handleTokenExpired()
+      forceLogout('token_expired')
     }
     
     if (error.response?.status === 403) {

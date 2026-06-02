@@ -132,9 +132,18 @@ class Command(BaseCommand):
         )
         
         if created:
-            user.set_password('admin123')
+            import os
+            import secrets
+            admin_password = os.environ.get(
+                'ADMIN_PASSWORD',
+                secrets.token_urlsafe(16)
+            )
+            user.set_password(admin_password)
             user.save()
-            self.stdout.write('  创建管理员用户: admin (密码: admin123)')
+            self.stdout.write(f'  创建管理员用户: admin')
+            self.stdout.write(self.style.WARNING(f'  请通过环境变量 ADMIN_PASSWORD 设置密码'))
+            if 'ADMIN_PASSWORD' not in os.environ:
+                self.stdout.write(self.style.WARNING(f'  自动生成的密码: {admin_password}'))
         else:
             self.stdout.write('  管理员用户已存在: admin')
 

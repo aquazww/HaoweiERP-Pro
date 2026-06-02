@@ -37,10 +37,17 @@ class TokenVersionMiddleware:
         '/api/v1/auth/login/',
         '/api/v1/auth/refresh/',
         '/api/v1/auth/register/',
+        '/api/v1/auth/logout/',
     ]
     
     def __init__(self, get_response):
         self.get_response = get_response
+    
+    def _get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', '未知')
     
     def __call__(self, request):
         response = self.get_response(request)
@@ -67,23 +74,36 @@ class TokenVersionMiddleware:
             
             try:
                 user = User.objects.get(id=user_id)
+                if not user.is_active:
+                    remote_addr = self._get_client_ip(request)
+                    log_extra = {
+                        'user_id': user.id,
+                        'username': user.username,
+                        'ip_address': remote_addr,
+                        'user_agent': request.META.get('HTTP_USER_AGENT', '未知'),
+                        'request_path': request.path,
+                    }
+                    logger.warning(
+                        '账户禁用触发自动退出: user_id=%(user_id)d '
+                        'username=%(username)s ip=%(ip_address)s '
+                        'path=%(request_path)s',
+                        log_extra
+                    )
+                    response = JsonResponse({
+                        'code': 401,
+                        'msg': '您的账户已被禁用，请联系管理员',
+                        'data': {'reason': 'account_disabled'}
+                    }, status=401)
+                    response.delete_cookie('access_token')
+                    response.delete_cookie('refresh_token')
+                    return response
+
                 if user.token_version != token_version:
                     logger.info(f'用户 {user.username} 的token已失效，token_version不匹配')
                     response = JsonResponse({
                         'code': 401,
                         'msg': '您的账户权限已变更，请重新登录',
-                        'data': None
-                    }, status=401)
-                    response.delete_cookie('access_token')
-                    response.delete_cookie('refresh_token')
-                    return response
-                
-                if not user.is_active:
-                    logger.info(f'用户 {user.username} 已被禁用，拒绝访问')
-                    response = JsonResponse({
-                        'code': 401,
-                        'msg': '您的账户已被禁用，请联系管理员',
-                        'data': None
+                        'data': {'reason': 'permission_changed'}
                     }, status=401)
                     response.delete_cookie('access_token')
                     response.delete_cookie('refresh_token')

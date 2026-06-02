@@ -35,32 +35,22 @@ export function usePayments() {
   const canDeleteFinance = computed(() => canDelete('finance'))
   
   const form = reactive({
-    related_party: null,
-    related_party_name: '',
-    related_order: null,
+    id: null,
     type: 'pay',
-    total_amount: 0,
-    amount: 0,
-    payment_method: 'cash',
-    payment_date: '',
+    related_order_type: 'purchase',
+    related_order_id: null,
     remark: ''
   })
   
   const rules = reactive({
-    related_party: [
-      { required: true, message: '请选择往来单位', trigger: 'change' }
-    ],
     type: [
       { required: true, message: '请选择类型', trigger: 'change' }
     ],
-    total_amount: [
-      { required: true, message: '请输入总金额', trigger: 'blur' }
+    related_order_type: [
+      { required: true, message: '请选择单据类型', trigger: 'change' }
     ],
-    amount: [
-      { required: true, message: '请输入付款金额', trigger: 'blur' }
-    ],
-    payment_date: [
-      { required: true, message: '请选择付款日期', trigger: 'change' }
+    related_order_id: [
+      { required: true, message: '请输入关联订单', trigger: 'blur' }
     ]
   })
   
@@ -116,16 +106,12 @@ export function usePayments() {
   
   const handleEdit = (row) => {
     isEdit.value = true
-    dialogTitle.value = '编辑付款'
+    dialogTitle.value = '编辑付款单'
     resetForm()
-    form.related_party = row.related_party
-    form.related_party_name = row.related_party_name
-    form.related_order = row.related_order
+    form.id = row.id
     form.type = row.type
-    form.total_amount = row.total_amount
-    form.amount = row.amount
-    form.payment_method = row.payment_method
-    form.payment_date = row.payment_date
+    form.related_order_type = row.related_order_type
+    form.related_order_id = row.related_order_id
     form.remark = row.remark || ''
     dialogVisible.value = true
   }
@@ -172,15 +158,14 @@ export function usePayments() {
   }
 
   const resetForm = () => {
-    form.related_party = null
-    form.related_party_name = ''
-    form.related_order = null
+    form.id = null
     form.type = 'pay'
-    form.total_amount = 0
-    form.amount = 0
-    form.payment_method = 'cash'
-    form.payment_date = ''
+    form.related_order_type = 'purchase'
+    form.related_order_id = null
     form.remark = ''
+    if (formRef.value) {
+      formRef.value.resetFields()
+    }
   }
   
   const handleSubmit = async () => {
@@ -194,22 +179,11 @@ export function usePayments() {
     
     submitLoading.value = true
     try {
-      const data = {
-        related_party: form.related_party,
-        related_order: form.related_order,
-        type: form.type,
-        total_amount: form.total_amount,
-        amount: form.amount,
-        payment_method: form.payment_method,
-        payment_date: form.payment_date,
-        remark: form.remark
-      }
-      
       if (isEdit.value) {
-        await updatePayment(viewData.value.id, data)
+        await updatePayment(form.id, { type: form.type, related_order_type: form.related_order_type, related_order_id: form.related_order_id, remark: form.remark })
         ElMessage.success('修改成功')
       } else {
-        await createPayment(data)
+        await createPayment({ type: form.type, related_order_type: form.related_order_type, related_order_id: form.related_order_id, remark: form.remark })
         ElMessage.success('新增成功')
       }
       

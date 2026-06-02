@@ -1,3 +1,5 @@
+import os
+import secrets
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from system.models import Role
@@ -38,9 +40,16 @@ class Command(BaseCommand):
         )
 
         if created:
-            admin_user.set_password('admin123')
+            admin_password = os.environ.get(
+                'ADMIN_PASSWORD',
+                secrets.token_urlsafe(16)
+            )
+            admin_user.set_password(admin_password)
             admin_user.save()
-            self.stdout.write(self.style.SUCCESS('管理员用户创建成功: admin / admin123'))
+            self.stdout.write(self.style.SUCCESS(f'管理员用户创建成功: admin'))
+            self.stdout.write(self.style.WARNING(f'请妥善保管管理员密码，如需查看请查看环境变量 ADMIN_PASSWORD'))
+            if 'ADMIN_PASSWORD' not in os.environ:
+                self.stdout.write(self.style.WARNING(f'自动生成的密码: {admin_password}'))
         else:
             self.stdout.write('管理员用户已存在')
 

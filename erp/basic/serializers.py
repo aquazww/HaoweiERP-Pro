@@ -469,23 +469,43 @@ class CompanyInfoSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         logo_file = validated_data.pop('logo_file', None)
         stamp_file = validated_data.pop('stamp_file', None)
-        
+
         if logo_file is not None:
             if logo_file:
+                import os
+                ext = os.path.splitext(logo_file.name)[1].lower()
+                if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']:
+                    raise serializers.ValidationError({
+                        'logo_file': '不支持的文件格式，仅支持 PNG、JPG、GIF、SVG、WebP 格式'
+                    })
+                if logo_file.size > 5 * 1024 * 1024:
+                    raise serializers.ValidationError({
+                        'logo_file': '文件大小不能超过 5MB'
+                    })
                 instance.logo_data = logo_file.read()
                 instance.logo_filename = logo_file.name
             else:
                 instance.logo_data = None
                 instance.logo_filename = None
-        
+
         if stamp_file is not None:
             if stamp_file:
+                import os
+                ext = os.path.splitext(stamp_file.name)[1].lower()
+                if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+                    raise serializers.ValidationError({
+                        'stamp_file': '不支持的文件格式，仅支持 PNG、JPG、GIF、WebP 格式'
+                    })
+                if stamp_file.size > 5 * 1024 * 1024:
+                    raise serializers.ValidationError({
+                        'stamp_file': '文件大小不能超过 5MB'
+                    })
                 instance.stamp_data = stamp_file.read()
                 instance.stamp_filename = stamp_file.name
             else:
                 instance.stamp_data = None
                 instance.stamp_filename = None
-        
+
         return super().update(instance, validated_data)
 
 

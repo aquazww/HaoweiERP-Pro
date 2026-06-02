@@ -14,12 +14,15 @@ python manage.py migrate --noinput
 
 # 创建管理员账户（如果不存在）
 echo "[2/3] 检查管理员账户..."
+ADMIN_PASSWORD=${ADMIN_PASSWORD:-$(python3 -c "import secrets; print(secrets.token_urlsafe(16))")}
+export ADMIN_PASSWORD
 python manage.py shell -c "
+import os
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', password='admin123')
-    admin = User.objects.get(username='admin')
+    admin_password = os.environ['ADMIN_PASSWORD']
+    admin = User.objects.create_superuser('admin', password=admin_password)
     admin.name = '系统管理员'
     admin.permissions = {
         'basic': {'view': True, 'add': True, 'edit': True, 'delete': True},
@@ -31,7 +34,7 @@ if not User.objects.filter(username='admin').exists():
         'system': {'view': True, 'add': True, 'edit': True, 'delete': True}
     }
     admin.save()
-    print('管理员账户已创建: admin / admin123')
+    print(f'管理员账户已创建: admin / {admin_password}')
 " 2>&1
 
 # 收集静态文件
@@ -40,7 +43,6 @@ python manage.py collectstatic --noinput 2>/dev/null || true
 
 echo "========================================"
 echo "  系统就绪，启动服务..."
-echo "  默认管理员: admin / admin123"
 echo "========================================"
 
 # 启动 Gunicorn

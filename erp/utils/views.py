@@ -4,8 +4,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from system.models import Log
 from .permissions import HasModulePermission
+import html
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_log_message(message):
+    """消毒日志消息，防止日志注入攻击"""
+    if not isinstance(message, str):
+        message = str(message)
+    message = message.replace('\n', ' ').replace('\r', ' ')
+    return message[:500]
 
 
 class BaseModelViewSet(viewsets.ModelViewSet):
@@ -183,7 +192,7 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             instance = serializer.instance
             display_name = self.get_display_name(instance)
             module = self.module_name or self.__class__.__name__.replace('ViewSet', '')
-            detail = f'创建{module}: {display_name}'
+            detail = sanitize_log_message(f'创建{module}: {display_name}')
             self.log_action(request, 'create', detail)
             
             read_serializer_class = self.get_read_serializer_class()
@@ -204,14 +213,14 @@ class BaseModelViewSet(viewsets.ModelViewSet):
                     if isinstance(messages, list):
                         for msg in messages:
                             if hasattr(msg, 'string'):
-                                error_messages.append(msg.string)
-                                error_data[field] = msg.string
+                                error_messages.append(sanitize_log_message(msg.string))
+                                error_data[field] = sanitize_log_message(msg.string)
                             else:
-                                error_messages.append(str(msg))
-                                error_data[field] = str(msg)
+                                error_messages.append(sanitize_log_message(str(msg)))
+                                error_data[field] = sanitize_log_message(str(msg))
                     else:
-                        error_messages.append(str(messages))
-                        error_data[field] = str(messages)
+                        error_messages.append(sanitize_log_message(str(messages)))
+                        error_data[field] = sanitize_log_message(str(messages))
                 return Response({
                     'code': 400,
                     'msg': error_messages[0] if error_messages else '数据验证失败',
@@ -258,9 +267,9 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             
             changes = self.get_changes(old_data, new_data)
             if changes:
-                detail = f'更新{module}「{display_name}」: {"; ".join(changes)}'
+                detail = sanitize_log_message(f'更新{module}「{display_name}」: {"; ".join(changes)}')
             else:
-                detail = f'更新{module}「{display_name}」: 无变更'
+                detail = sanitize_log_message(f'更新{module}「{display_name}」: 无变更')
             
             self.log_action(request, 'update', detail)
             
@@ -303,7 +312,7 @@ class BaseModelViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             display_name = self.get_display_name(instance)
             module = self.module_name or self.__class__.__name__.replace('ViewSet', '')
-            detail = f'删除{module}: {display_name}'
+            detail = sanitize_log_message(f'删除{module}: {display_name}')
             
             self.perform_destroy(instance)
             self.log_action(request, 'delete', detail)

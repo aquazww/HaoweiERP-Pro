@@ -178,7 +178,7 @@ class SaleOrderViewSet(BaseModelViewSet):
                             remark=f'销售出库 - {sale_order.order_no}',
                             created_by=request.user
                         )
-                        item.shipped_quantity = item.quantity
+                        item.shipped_quantity = (item.shipped_quantity or 0) + shipped_qty
                         item.save()
                         
                         StockOutItem.objects.create(

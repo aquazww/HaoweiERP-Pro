@@ -195,7 +195,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getStockAdjustList, getStockAdjust, createStockIn, confirmStockIn, deleteInventory } from '@/api/inventory'
+import { getStockAdjustList, createStockAdjust, confirmStockAdjust, deleteStockAdjust, getInventory } from '@/api/inventory'
 import { getWarehouses, getGoods } from '@/api/basic'
 import { formatQuantity } from '@/utils/format'
 import { canAdd, canEdit, canDelete } from '@/utils/permission'
@@ -320,11 +320,13 @@ const handleGoodsChange = async () => {
   }
   
   try {
-    const res = await getInventoryStock({
+    const res = await getInventory({
       warehouse: form.warehouse,
-      goods: form.goods
+      goods: form.goods,
+      page_size: 1
     })
-    currentStock.value = res.data?.quantity || 0
+    const items = res.data?.items || res.data?.results || []
+    currentStock.value = items.length > 0 ? (items[0].quantity || 0) : 0
     form.new_quantity = currentStock.value
   } catch (error) {
     currentStock.value = 0
@@ -346,14 +348,19 @@ const handleSubmit = async () => {
   
   submitLoading.value = true
   try {
+    const adjustQuantity = form.new_quantity - currentStock.value
     const data = {
       warehouse: form.warehouse,
-      goods: form.goods,
-      new_quantity: form.new_quantity,
-      reason: form.reason
+      adjust_type: adjustQuantity >= 0 ? 'increase' : 'decrease',
+      reason: form.reason,
+      items: [{
+        goods: form.goods,
+        adjust_quantity: Math.abs(adjustQuantity),
+        remark: ''
+      }]
     }
     
-    await createStockIn(data)
+    await createStockAdjust(data)
     ElMessage.success('新增成功')
     dialogVisible.value = false
     loadAdjusts()
@@ -367,7 +374,7 @@ const handleSubmit = async () => {
 const handleApprove = async (row) => {
   try {
     await ElMessageBox.confirm('确定通过此调整申请？', '提示', { type: 'warning' })
-    await confirmStockIn(row.id)
+    await confirmStockAdjust(row.id)
     ElMessage.success('已通过')
     loadAdjusts()
   } catch (error) {
@@ -380,7 +387,7 @@ const handleApprove = async (row) => {
 const handleReject = async (row) => {
   try {
     await ElMessageBox.confirm('确定拒绝此调整申请？', '提示', { type: 'warning' })
-    await deleteInventory(row.id)
+    await deleteStockAdjust(row.id)
     ElMessage.success('已拒绝')
     loadAdjusts()
   } catch (error) {
@@ -393,7 +400,7 @@ const handleReject = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm('确定删除此调整记录？', '确认删除', { type: 'warning' })
-    await deleteInventory(row.id)
+    await deleteStockAdjust(row.id)
     ElMessage.success('删除成功')
     loadAdjusts()
   } catch (error) {

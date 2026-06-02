@@ -1,8 +1,10 @@
 const TOKEN_EXPIRY_KEY = 'token_expiry'
 const TOKEN_WARNING_KEY = 'token_warning_shown'
+const LOGOUT_REASON_KEY = 'logout_reason'
 
 let expiryCheckInterval = null
 let warningTimeout = null
+let isLoggingOut = false
 
 const getElMessage = async () => {
   const { ElMessage } = await import('element-plus')
@@ -40,23 +42,24 @@ export const tokenManager = {
 
   startExpiryCheck() {
     this.stopExpiryCheck()
-    
+
     const checkExpiry = async () => {
+      if (isLoggingOut) return
       if (this.isTokenExpired()) {
         this.handleTokenExpired()
         return
       }
-      
+
       const warningThreshold = 5 * 60 * 1000
       if (this.isTokenExpiringSoon(warningThreshold)) {
         this.showExpiryWarning()
       }
     }
-    
+
     checkExpiry()
-    
+
     expiryCheckInterval = setInterval(checkExpiry, 30 * 1000)
-    
+
     const timeUntilExpiry = this.getTimeUntilExpiry()
     if (timeUntilExpiry && timeUntilExpiry > 0) {
       const warningTime = timeUntilExpiry - 5 * 60 * 1000
@@ -80,13 +83,14 @@ export const tokenManager = {
   },
 
   async showExpiryWarning() {
+    if (isLoggingOut) return
     const warningShown = sessionStorage.getItem(TOKEN_WARNING_KEY)
     if (warningShown) return
-    
+
     sessionStorage.setItem(TOKEN_WARNING_KEY, 'true')
-    
+
     const timeLeft = Math.max(1, Math.floor((this.getTimeUntilExpiry() || 0) / 60000))
-    
+
     try {
       const ElMessage = await getElMessage()
       ElMessage.warning({
@@ -101,22 +105,51 @@ export const tokenManager = {
   },
 
   async handleTokenExpired() {
+    if (isLoggingOut) return
+    isLoggingOut = true
     this.stopExpiryCheck()
+    localStorage.setItem(LOGOUT_REASON_KEY, 'token_expired')
     this.clearTokenData()
-    
+
     try {
       const ElMessage = await getElMessage()
       ElMessage.error({
         message: '登录已过期，请重新登录',
-        duration: 3000
+        duration: 2000
       })
     } catch (e) {
       console.warn('显示过期提示失败', e)
     }
-    
-    setTimeout(() => {
-      window.location.href = '/login?reason=token_expired'
-    }, 1500)
+
+    window.location.href = '/login'
+  },
+
+  async handleAccountDisabled() {
+    if (isLoggingOut) return
+    isLoggingOut = true
+    this.stopExpiryCheck()
+    localStorage.setItem(LOGOUT_REASON_KEY, 'account_disabled')
+    this.clearTokenData()
+
+    try {
+      const ElMessage = await getElMessage()
+      ElMessage.error({
+        message: '您的账户已被禁用，请联系管理员',
+        duration: 3000
+      })
+    } catch (e) {
+      console.warn('显示禁用提示失败', e)
+    }
+
+    window.location.href = '/login'
+  },
+
+  getLogoutReason() {
+    return localStorage.getItem(LOGOUT_REASON_KEY)
+  },
+
+  clearLogoutReason() {
+    localStorage.removeItem(LOGOUT_REASON_KEY)
   },
 
   clearTokenData() {

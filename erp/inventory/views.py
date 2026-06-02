@@ -59,17 +59,31 @@ class InventoryViewSet(BaseModelViewSet):
             if stock_status == 'out':
                 queryset = queryset.filter(quantity__lte=0)
             elif stock_status == 'low':
-                queryset = queryset.filter(
-                    quantity__gt=0
-                ).extra(
-                    where=['quantity <= (SELECT min_stock FROM biz_goods WHERE biz_goods.id = biz_inventory.goods_id AND min_stock > 0)']
-                )
+                from django.db.models import Subquery, OuterRef
+                low_stock_ids = Inventory.objects.filter(
+                    goods_id=OuterRef('goods_id'),
+                    quantity__gt=0,
+                    quantity__lte=Subquery(
+                        Goods.objects.filter(
+                            id=OuterRef('goods_id'),
+                            min_stock__gt=0
+                        ).values('min_stock')[:1]
+                    )
+                ).values('pk')
+                queryset = queryset.filter(pk__in=Subquery(low_stock_ids))
             elif stock_status == 'over':
-                queryset = queryset.filter(
-                    quantity__gt=0
-                ).extra(
-                    where=['quantity >= (SELECT max_stock FROM biz_goods WHERE biz_goods.id = biz_inventory.goods_id AND max_stock > 0)']
-                )
+                from django.db.models import Subquery, OuterRef
+                over_stock_ids = Inventory.objects.filter(
+                    goods_id=OuterRef('goods_id'),
+                    quantity__gt=0,
+                    quantity__gte=Subquery(
+                        Goods.objects.filter(
+                            id=OuterRef('goods_id'),
+                            max_stock__gt=0
+                        ).values('max_stock')[:1]
+                    )
+                ).values('pk')
+                queryset = queryset.filter(pk__in=Subquery(over_stock_ids))
             elif stock_status == 'normal':
                 queryset = queryset.filter(quantity__gt=0)
         

@@ -1,6 +1,7 @@
 import logging
 from rest_framework.views import exception_handler
 from rest_framework.exceptions import PermissionDenied, AuthenticationFailed, NotAuthenticated, ValidationError
+from rest_framework_simplejwt.exceptions import AuthenticationFailed as JwtAuthenticationFailed
 from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
@@ -26,12 +27,26 @@ def custom_exception_handler(exc, context):
                 'data': None
             }
             response.status_code = 200
-        elif isinstance(exc, AuthenticationFailed):
-            response.data = {
-                'code': 401,
-                'msg': '认证失败',
-                'data': None
-            }
+        elif isinstance(exc, (AuthenticationFailed, JwtAuthenticationFailed)):
+            exc_detail = exc.detail if hasattr(exc, 'detail') else '认证失败'
+            if isinstance(exc_detail, dict):
+                detail_msg = str(exc_detail.get('detail', '认证失败'))
+                detail_code = str(exc_detail.get('code', ''))
+            else:
+                detail_msg = str(exc_detail)
+                detail_code = ''
+            if detail_code == 'account_disabled':
+                response.data = {
+                    'code': 401,
+                    'msg': detail_msg,
+                    'data': {'reason': 'account_disabled'}
+                }
+            else:
+                response.data = {
+                    'code': 401,
+                    'msg': detail_msg,
+                    'data': None
+                }
             response.status_code = 200
         elif isinstance(exc, ValidationError):
             errors = exc.detail
